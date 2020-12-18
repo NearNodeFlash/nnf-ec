@@ -28,21 +28,24 @@ type Controller struct {
 // Send -
 func (c *Controller) Send(w http.ResponseWriter, payload interface{}) {
 
-	jsonArg, err := json.Marshal(payload)
+	arg, err := json.Marshal(payload)
 	if err != nil {
-		w.WriteHeader(500)
+		log.WithError(err).Warnf("Element Controller %s: Send Failed", c.Name)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	funcName := getFunctionName()
 	r := client.ClientRequest{
-		ElmntCntrlFunc:        getFunctionName(),
-		ElmntCntrlFuncJsonArg: jsonArg,
-		ElmntCntrlPort:        c.Port,
+		ElmntCntrlFunc:        funcName,
+		ElmntCntrlFuncJsonArg: arg,
+		ElmntCntrlPort:        ":" + c.Port,
 		ElmntCntrlName:        c.Name,
 
 		HTTPwriter: w,
 	}
 
+	log.Warnf("Element Controller %s: Process Function: %s", c.Name, funcName)
 	r.ProcessRequest()
 }
 
@@ -93,10 +96,10 @@ func (c *Controller) SendElmntCntrlTaskRequest(_ context.Context, in *pb.CreateE
 
 // Run -
 func Run(c *Controller) {
-	log.Infof("Starting %s Element Controller on Port %d", c.Name, c.Port)
+	log.Infof("Starting %s Element Controller on Port %s", c.Name, c.Port)
 	listen, err := net.Listen("tcp", ":"+c.Port)
 	if err != nil {
-		log.WithError(err).Fatalf("Failed to listen on port %d", c.Port)
+		log.WithError(err).Fatalf("Failed to listen on port %s", c.Port)
 	}
 
 	server := grpc.NewServer()
@@ -106,4 +109,6 @@ func Run(c *Controller) {
 	if err := server.Serve(listen); err != nil {
 		log.WithError(err).Fatalf("Failed to server %s", c.Name)
 	}
+
+	log.Warn(" %s Element Controller Terminated", c.Name)
 }

@@ -19,4 +19,6 @@ export KUBECONFIG=`pwd`/master-config
 kubectl config view
 kubectl config use-context kubernetes-admin@kubernetes
 
-helm del --purge nnf-ec
+helm del --purge nnf-ec || true
+helm install --name nnf-ec ./kubernetes/nnf-ec/
+

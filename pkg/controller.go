@@ -6,7 +6,7 @@ var (
 	// Controller for Near-Node Flash Element Controller
 	Controller = &ec.Controller{
 		Name:     "Near Node Flash",
-		Port:     "50053",
+		Port:     "50057",
 		Version:  "v1",
 		Servicer: NewDefaultApiService(),
 	}

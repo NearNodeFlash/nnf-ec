@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // DefaultApiController -
@@ -16,11 +18,13 @@ func NewDefaultApiController() DefaultApi {
 
 // RedfishV1FabricsGet -
 func (*DefaultApiController) RedfishV1FabricsGet(w http.ResponseWriter, r *http.Request) {
+	log.Info("RedfishV1FabricsGet")
 	Controller.Send(w, nil)
 }
 
 // RedfishV1FabricsFabricIdGet -
 func (*DefaultApiController) RedfishV1FabricsFabricIdGet(w http.ResponseWriter, r *http.Request) {
+	log.Info("RedfishV1FabricsFabricIdGet")
 	Controller.Send(w, mux.Vars(r))
 }
 

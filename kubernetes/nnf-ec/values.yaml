@@ -33,7 +33,7 @@ cray-service:
         - name: dp-api-service
           containerPort: 8080
         - name: grpc
-          containerPort: 50053
+          containerPort: 50057
       env:
       - name: WATCH_NAMESPACE
         value: ""
@@ -49,8 +49,8 @@ cray-service:
         value: default
       - name: RABBIT
         value: "1"
-    cray-csds-dm-ec:
-      name: dm-ec
+    cray-csds-nnf-ec:
+      name: nnf-ec
       image:
         # repository: cray/cray-csds-dm-ec
         # repository: cray/cray-dp-drive-mgmt-elmnt-cntrl
@@ -63,8 +63,7 @@ cray-service:
         value: ""
         ports:
           - name: nnf-ec-grpc
-            containerPort: 50053
-      - name: POD_NAME
+            containerPort: 50057
         valueFrom:
           fieldRef:
             fieldPath: metadata.name

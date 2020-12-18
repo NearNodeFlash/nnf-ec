@@ -51,16 +51,18 @@ COPY ec ./ec
 COPY internal ./internal
 COPY pkg ./pkg
 COPY go.mod go.sum ./
-RUN go mod vendor
+#RUN go mod vendor
+COPY vendor ./vendor
 
 # Build nnf-ec binary
 RUN set -ex && go build -v -i -o /usr/local/bin/nnf-ec ./cmd/nnf_ec.go
+ENTRYPOINT ["/bin/sh"]
 
 FROM dtr.dev.cray.com/baseos/centos:centos7 AS application
-ENV PROJECT ${GOPATH}/src/stash.us.cray.com/sp/nnf-ec
+ENV PROJECT ${GOPATH}/src/stash.us.cray.com/rabsw/nnf-ec
 
 # Pull over nnf-ec binary from base stage, add dependencies
 COPY --from=0 /usr/local/bin/nnf-ec /usr/local/bin/nnf-ec
-RUN yum install -y udev bash && yum clean all
+#RUN yum install -y udev bash && yum clean all
 
-ENTRYPOINT ["/usr/local/bin/nnf-ec]
+ENTRYPOINT ["/usr/local/bin/nnf-ec"]
