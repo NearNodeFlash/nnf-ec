@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"path"
 	"reflect"
 	"runtime"
 	"strings"
@@ -28,6 +27,12 @@ type Controller struct {
 // Send -
 func (c *Controller) Send(w http.ResponseWriter, payload interface{}) {
 
+	/*
+		if payload == nil {
+			payload = struct{}{}
+		}
+	*/
+
 	arg, err := json.Marshal(payload)
 	if err != nil {
 		log.WithError(err).Warnf("Element Controller %s: Send Failed", c.Name)
@@ -35,7 +40,7 @@ func (c *Controller) Send(w http.ResponseWriter, payload interface{}) {
 		return
 	}
 
-	funcName := getFunctionName()
+	funcName := getParentFunctionName()
 	r := client.ClientRequest{
 		ElmntCntrlFunc:        funcName,
 		ElmntCntrlFuncJsonArg: arg,
@@ -49,11 +54,13 @@ func (c *Controller) Send(w http.ResponseWriter, payload interface{}) {
 	r.ProcessRequest()
 }
 
-func getFunctionName() string {
-	var pcs [3]uintptr
-	n := runtime.Callers(2, pcs[:])
+// Returns the parent's function name at the point of calling this function.
+// i.e. If the call chain is A()->B()->getParentFunctionName() then 'A' is returned.
+func getParentFunctionName() string {
+	var pcs [4]uintptr
+	n := runtime.Callers(3, pcs[:])
 	frame, _ := runtime.CallersFrames(pcs[:n]).Next()
-	return strings.SplitAfter(path.Base(frame.Function), ".")[1]
+	return frame.Function[strings.LastIndex(frame.Function, ".")+1:]
 }
 
 // checkAPI -
@@ -63,7 +70,7 @@ func (c *Controller) checkAPI(api string) error {
 
 // SendElmntCntrlTaskRequest -
 func (c *Controller) SendElmntCntrlTaskRequest(_ context.Context, in *pb.CreateElmntCntrlTaskRequest) (*pb.CreateElmntCntrlTaskResponse, error) {
-	log.Info("%s Received Task Request: %s: %s", c.Name, in.Sender, in.Task.Name)
+	log.Infof("%s received task request: %s: %s", c.Name, in.Sender, in.Task.Name)
 
 	if err := c.checkAPI(in.Api); err != nil {
 		log.WithError(err).Warnf("Unsupported API version %s", in.Api)
@@ -73,7 +80,7 @@ func (c *Controller) SendElmntCntrlTaskRequest(_ context.Context, in *pb.CreateE
 	// Use reflection to call the method requested and pass in the JSON message as args
 	method := reflect.ValueOf(c.Servicer).MethodByName((in.Task.Name))
 	if !method.IsValid() {
-		log.Errorf("Method %s not found in ", in.Task.Name, c.Name)
+		log.Errorf("%s has no method %s", c.Name, in.Task.Name)
 		return nil, nil
 	}
 
@@ -110,5 +117,5 @@ func Run(c *Controller) {
 		log.WithError(err).Fatalf("Failed to server %s", c.Name)
 	}
 
-	log.Warn(" %s Element Controller Terminated", c.Name)
+	log.Warnf("%s Element Controller Terminated", c.Name)
 }
