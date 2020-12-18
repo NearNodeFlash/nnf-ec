@@ -4,27 +4,28 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+)
 
-	log "github.com/sirupsen/logrus"
+// ApiController singleton object used to communicated to the NNF API
+var (
+	ApiController = newDefaultApiController()
 )
 
 // DefaultApiController -
-type DefaultApiController struct{}
+type defaultApiController struct{}
 
 // NewDefaultApiController -
-func NewDefaultApiController() DefaultApi {
-	return &DefaultApiController{}
+func newDefaultApiController() DefaultApi {
+	return &defaultApiController{}
 }
 
 // RedfishV1FabricsGet -
-func (*DefaultApiController) RedfishV1FabricsGet(w http.ResponseWriter, r *http.Request) {
-	log.Info("RedfishV1FabricsGet")
+func (*defaultApiController) RedfishV1FabricsGet(w http.ResponseWriter, r *http.Request) {
 	Controller.Send(w, nil)
 }
 
 // RedfishV1FabricsFabricIdGet -
-func (*DefaultApiController) RedfishV1FabricsFabricIdGet(w http.ResponseWriter, r *http.Request) {
-	log.Info("RedfishV1FabricsFabricIdGet")
+func (*defaultApiController) RedfishV1FabricsFabricIdGet(w http.ResponseWriter, r *http.Request) {
 	Controller.Send(w, mux.Vars(r))
 }
 
