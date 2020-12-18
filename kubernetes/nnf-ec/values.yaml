@@ -1,0 +1,85 @@
+# Please refer to https://stash.us.cray.com/projects/CLOUD/repos/cray-charts/browse/stable/cray-service/values.yaml?at=refs%2Fheads%2Fmaster
+# for more info on values you can set/override
+# Note that cray-service.containers[*].image and cray-service.initContainers[*].image map values are one of the only structures that
+# differ from the standard kubernetes container spec:
+# image:
+#   repository: ""
+#   tag: "" (default = "latest")
+#   pullPolicy: "" (default = "IfNotPresent")
+cray-service:
+  # imagesHost: "s-lmo-anastl:5000"
+  nameOverride: csds-dpapi
+  type: DaemonSet
+  service:
+    enabled: False
+  replicaCount: 1
+  serviceAccountName: csds-dpapi
+  tolerations:
+    - key: "node-type"
+      operator: "Equal"
+      value: "storage"
+      effect: "NoSchedule"
+  containers:
+    cray-csds-dpapi:
+      name: dpapi
+      image:
+        # repository: cray/cray-csds-dpapi
+        # repository: cray/cray-dp-api
+        repository: roiger/dp-api
+        pullPolicy: Always
+      securityContext:
+        privileged: true
+      ports:
+        - name: dp-api-service
+          containerPort: 8080
+        - name: grpc
+          containerPort: 50053
+      env:
+      - name: WATCH_NAMESPACE
+        value: ""
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: POD_HOST
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+      - name: DISCOVERY_NAMESPACE
+        value: default
+      - name: RABBIT
+        value: "1"
+    cray-csds-dm-ec:
+      name: dm-ec
+      image:
+        # repository: cray/cray-csds-dm-ec
+        # repository: cray/cray-dp-drive-mgmt-elmnt-cntrl
+        repository: roiger/nnf-ec
+        pullPolicy: Always
+      securityContext:
+        privileged: true
+      env:
+      - name: WATCH_NAMESPACE
+        value: ""
+        ports:
+          - name: nnf-ec-grpc
+            containerPort: 50053
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: POD_HOST
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+      - name: DISCOVERY_NAMESPACE
+        value: default
+      - name: RABBIT
+        value: "1"
+  nodeSelector:
+    cray.dpm.dg.dpm-storage-node: "true"
+
+global:
+  chart:
+    name: "" # set at deploy time automatically, no need to ever set explicitly
+    version: "" # set at deploy time automatically, no need to ever set explicitly

@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "csds-dpapi.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "cray-service.name" . }}
+    {{- include "cray-service.common-labels" . | nindent 4 }}
+  annotations:
+    {{- include "cray-service.common-annotations" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims", "events", "secrets", "pods"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["configmaps", "services"]
+  verbs: ["get", "list", "create", "delete", "update"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets"]
+  verbs: ["get", "list"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors"]
+  verbs: ["get", "create"]
+- apiGroups: ["apps"]
+  resourceNames: ["csds-dpapi"]
+  resources: ["deployments/finalizers"]
+  verbs: ["update"]
+- apiGroups: ["dpm.cray.hpe.com"]
+  resources: ["*"]
+  verbs: ["*"]
