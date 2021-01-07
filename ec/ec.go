@@ -123,7 +123,7 @@ func (c *Controller) checkApiVersion(api string) error {
 
 // ProcessTaskRequest -
 func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest) (*pb.ECTaskResponse, error) {
-	log.Infof("Received Task request from [%s] for method [%s]", in.Sender, in.Method)
+	log.Infof("Received Task request from [%s] for method [%s] [%s]", in.Sender, in.Method, in.Uri)
 
 	if err := c.checkApiVersion(in.Api); err != nil {
 		log.WithError(err).Warnf("API Version incorrect %s", in.Api)
@@ -144,6 +144,9 @@ func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest)
 		log.Warnf("Request faild with status %d", res.StatusCode)
 		err = http.ErrNotSupported // TODO: Should have a encoding map from StatusCode to Err
 	}
+
+	log.Infof("Task Processed from [%s] for method [%s] [%s] Status %d", in.Sender, in.Method, in.Uri, res.StatusCode)
+	log.Infof("%s", string(res.Buffer.Bytes()))
 
 	return &pb.ECTaskResponse{
 		Api:      c.Version,
