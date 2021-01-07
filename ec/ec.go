@@ -49,16 +49,17 @@ type Controller struct {
 
 // ResponseWriter -
 type ResponseWriter struct {
-	Buffer     bytes.Buffer
+	Hdr        http.Header
 	StatusCode int
+	Buffer     bytes.Buffer
 }
 
 func NewResponseWriter() ResponseWriter {
-	return ResponseWriter{}
+	return ResponseWriter{StatusCode: http.StatusOK}
 }
 
 func (r ResponseWriter) Header() http.Header {
-	return http.Header{}
+	return r.Hdr
 }
 
 func (r ResponseWriter) Write(b []byte) (int, error) {
