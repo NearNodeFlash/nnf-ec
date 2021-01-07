@@ -196,4 +196,5 @@ func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
 		log.WithError(err).Error("Failed to write json response")
 		// TODO
 	}
+	//log.WithError(err).Infof("Wrote response %s", string(w.Buffer.Bytes()))
 }

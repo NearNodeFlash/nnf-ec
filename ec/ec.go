@@ -51,12 +51,14 @@ type Controller struct {
 type ResponseWriter struct {
 	Hdr        http.Header
 	StatusCode int
-	Buffer     bytes.Buffer
+	Buffer     *bytes.Buffer
 }
 
 func NewResponseWriter() ResponseWriter {
 	return ResponseWriter{
-		StatusCode: http.StatusOK}
+		StatusCode: http.StatusOK,
+		Buffer:     bytes.NewBuffer([]byte{}),
+	}
 }
 
 func (r ResponseWriter) Header() http.Header {
