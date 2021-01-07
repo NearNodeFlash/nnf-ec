@@ -40,6 +40,8 @@ func (*DefaultApiService) RedfishV1FabricsGet(w http.ResponseWriter, r *http.Req
 
 	err := fabric.Get(&model)
 
+	log.WithError(err).Info("RedfishV1FabricsGet")
+
 	encodeResponse(model, err, w)
 }
 
@@ -184,6 +186,7 @@ func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
 	}
 
 	response, err := json.Marshal(s)
+	log.WithError(err).Infof("Writing response %s", string(response))
 	if err != nil {
 		log.WithError(err).Error("Failed to marshal json response")
 		// TODO
