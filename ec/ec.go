@@ -55,7 +55,8 @@ type ResponseWriter struct {
 }
 
 func NewResponseWriter() ResponseWriter {
-	return ResponseWriter{StatusCode: http.StatusOK}
+	return ResponseWriter{
+		StatusCode: http.StatusOK}
 }
 
 func (r ResponseWriter) Header() http.Header {

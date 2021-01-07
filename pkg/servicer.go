@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric"
 	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
@@ -171,6 +173,9 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsPost(w http.Respons
 }
 
 func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
+	if err != nil {
+		log.WithError(err).Warn("Element Controller Error")
+	}
 
 	var e *ec.ControllerError
 	if errors.As(err, &e) {
@@ -180,10 +185,12 @@ func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
 
 	response, err := json.Marshal(s)
 	if err != nil {
+		log.WithError(err).Error("Failed to marshal json response")
 		// TODO
 	}
 	_, err = w.Write(response)
 	if err != nil {
+		log.WithError(err).Error("Failed to write json response")
 		// TODO
 	}
 }
