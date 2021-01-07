@@ -1,57 +1,105 @@
 package elementcontroller
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"io/ioutil"
 	"net"
 	"net/http"
-	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	client "stash.us.cray.com/sp/dp-api/api/grpc/v1/grpc-client"
-	pb "stash.us.cray.com/sp/dp-common/api/proto/v1/dp-element_cntrl"
+	client "stash.us.cray.com/sp/dp-api/api/grpc/v2/grpc-client"
+	msgs "stash.us.cray.com/sp/dp-common/api/proto/v2/dp-api_msgs"
+	pb "stash.us.cray.com/sp/dp-common/api/proto/v2/dp-ec"
 )
+
+// Route
+type Route struct {
+	Name        string
+	Method      string
+	Path        string
+	HandlerFunc http.HandlerFunc
+}
+
+// Routes -
+type Routes []Route
+
+// Router -
+type Router interface {
+	Routes() Routes
+}
 
 // Controller -
 type Controller struct {
-	Name     string
-	Port     string
-	Version  string
-	Servicer interface{}
+	Name    string
+	Port    string
+	Version string
+	Router  Router
+	Mux     *mux.Router
+}
+
+// ResponseWriter -
+type ResponseWriter struct {
+	Buffer     bytes.Buffer
+	StatusCode int
+}
+
+func NewResponseWriter() ResponseWriter {
+	return ResponseWriter{}
+}
+
+func (r ResponseWriter) Header() http.Header {
+	return http.Header{}
+}
+
+func (r ResponseWriter) Write(b []byte) (int, error) {
+	return r.Buffer.Write(b)
+}
+
+func (r ResponseWriter) WriteHeader(s int) {
+	r.StatusCode = s
 }
 
 // Send -
-func (c *Controller) Send(w http.ResponseWriter, payload interface{}) {
+func (c *Controller) Send(w http.ResponseWriter, r *http.Request) {
 
-	/*
-		if payload == nil {
-			payload = struct{}{}
-		}
-	*/
-
-	arg, err := json.Marshal(payload)
-	if err != nil {
-		log.WithError(err).Warnf("Element Controller %s: Send Failed", c.Name)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	// Initialize ClientRequest object
+	grpcReq := client.ClientRequest{
+		ElmntCntrlName: c.Name,
+		ElmntCntrlPort: ":" + c.Port,
+		HTTPwriter:     w,
 	}
 
+	// Record timestamp of request and reminder
+	t := time.Now().In(time.UTC)
+	reminder, _ := ptypes.TimestampProto(t)
+	pfx := t.Format(time.RFC3339Nano)
+
+	// Construct and send element controller request
 	funcName := getParentFunctionName()
-	r := client.ClientRequest{
-		ElmntCntrlFunc:        funcName,
-		ElmntCntrlFuncJsonArg: arg,
-		ElmntCntrlPort:        ":" + c.Port,
-		ElmntCntrlName:        c.Name,
+	data, _ := ioutil.ReadAll(r.Body)
 
-		HTTPwriter: w,
+	request := pb.ECTaskRequest{
+		Api:       c.Version,
+		Sender:    msgs.DPAPIname,
+		Name:      funcName,
+		Uri:       r.RequestURI,
+		Method:    r.Method,
+		JsonMsg:   string(data),
+		Reminder:  reminder,
+		Timestamp: pfx,
 	}
 
-	log.Warnf("Element Controller %s: Process Function: %s", c.Name, funcName)
-	r.ProcessRequest()
+	grpcReq.ProcessRequest(&request)
 }
 
 // Returns the parent's function name at the point of calling this function.
@@ -64,46 +112,56 @@ func getParentFunctionName() string {
 }
 
 // checkAPI -
-func (c *Controller) checkAPI(api string) error {
+func (c *Controller) checkApiVersion(api string) error {
+	if c.Version != api {
+		return status.Errorf(codes.Unimplemented, "%s: Unsupported API Version", c.Name)
+	}
 	return nil
 }
 
-// SendElmntCntrlTaskRequest -
-func (c *Controller) SendElmntCntrlTaskRequest(_ context.Context, in *pb.CreateElmntCntrlTaskRequest) (*pb.CreateElmntCntrlTaskResponse, error) {
-	log.Infof("%s received task request: %s: %s", c.Name, in.Sender, in.Task.Name)
+// ProcessTaskRequest -
+func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest) (*pb.ECTaskResponse, error) {
+	log.Infof("Received Task request from [%s] for method [%s]", in.Sender, in.Method)
 
-	if err := c.checkAPI(in.Api); err != nil {
-		log.WithError(err).Warnf("Unsupported API version %s", in.Api)
+	if err := c.checkApiVersion(in.Api); err != nil {
+		log.WithError(err).Warnf("API Version incorrect %s", in.Api)
 		return nil, err
 	}
 
-	// Use reflection to call the method requested and pass in the JSON message as args
-	method := reflect.ValueOf(c.Servicer).MethodByName((in.Task.Name))
-	if !method.IsValid() {
-		log.Errorf("%s has no method %s", c.Name, in.Task.Name)
-		return nil, nil
+	// Rebuild the HTTP Request
+	req, err := http.NewRequest(in.Method, in.Uri, strings.NewReader(in.JsonMsg))
+	if err != nil {
+		log.WithError(err).Errorf("Could not build http request")
+		return nil, status.Error(codes.Internal, "Could not build http request")
 	}
 
-	values := make([]reflect.Value, method.Type().NumIn())
-	values[0] = reflect.ValueOf(in.Task.JsonMsg)
+	res := NewResponseWriter()
+	c.Mux.ServeHTTP(res, req)
 
-	// Call the method with input values of the form [0]jsonRequest.([]byte), and
-	// expect response in form [0]jsonResponse, [1]error
-	response := method.Call(values)
-
-	if !response[1].IsNil() {
-		return nil, response[1].Interface().(error)
+	if res.StatusCode != http.StatusOK {
+		log.Warnf("Request faild with status %d", res.StatusCode)
+		err = http.ErrNotSupported // TODO: Should have a encoding map from StatusCode to Err
 	}
 
-	return &pb.CreateElmntCntrlTaskResponse{
+	return &pb.ECTaskResponse{
 		Api:      c.Version,
-		JsonData: response[0].Interface().(string),
-	}, nil
+		JsonData: string(res.Buffer.Bytes()),
+	}, err
 }
 
 // Run -
 func Run(c *Controller) {
 	log.Infof("Starting %s Element Controller on Port %s", c.Name, c.Port)
+
+	c.Mux = mux.NewRouter().StrictSlash(true)
+	for _, route := range c.Router.Routes() {
+		c.Mux.
+			Name(route.Name).
+			Methods(route.Method).
+			Path(route.Path).
+			Handler(route.HandlerFunc)
+	}
+
 	listen, err := net.Listen("tcp", ":"+c.Port)
 	if err != nil {
 		log.WithError(err).Fatalf("Failed to listen on port %s", c.Port)
@@ -111,10 +169,10 @@ func Run(c *Controller) {
 
 	server := grpc.NewServer()
 
-	pb.RegisterDP_Elmnt_CntrlServer(server, c)
+	pb.RegisterControllerServiceServer(server, c)
 
 	if err := server.Serve(listen); err != nil {
-		log.WithError(err).Fatalf("Failed to server %s", c.Name)
+		log.WithError(err).Fatalf("Failed to serve %s", c.Name)
 	}
 
 	log.Warnf("%s Element Controller Terminated", c.Name)
