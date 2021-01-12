@@ -31,6 +31,9 @@ type Api interface {
 	RedfishV1FabricsFabricIdEndpointsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1FabricsFabricIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request)
 
+	RedfishV1FabricsFabricIdEndpointGroupsGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1FabricsFabricIdEndpointGroupsEndpointGroupIdGet(w http.ResponseWriter, r *http.Request)
+
 	RedfishV1FabricsFabricIdConnectionsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1FabricsFabricIdConnectionsPost(w http.ResponseWriter, r *http.Request)
 }

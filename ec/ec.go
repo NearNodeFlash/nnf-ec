@@ -38,13 +38,17 @@ type Router interface {
 	Routes() Routes
 }
 
+// ControllerRuntime -
+type InitFunc func() error
+
 // Controller -
 type Controller struct {
-	Name    string
-	Port    string
-	Version string
-	Router  Router
-	Mux     *mux.Router
+	Name     string
+	Port     string
+	Version  string
+	InitFunc InitFunc
+	Router   Router
+	Mux      *mux.Router
 }
 
 // ResponseWriter -
@@ -147,9 +151,6 @@ func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest)
 		err = http.ErrNotSupported // TODO: Should have a encoding map from StatusCode to Err
 	}
 
-	log.Infof("Task Processed from [%s] for method [%s] [%s] Status %d", in.Sender, in.Method, in.Uri, res.StatusCode)
-	log.Infof("%s", string(res.Buffer.Bytes()))
-
 	return &pb.ECTaskResponse{
 		Api:      c.Version,
 		JsonData: string(res.Buffer.Bytes()),
@@ -158,7 +159,12 @@ func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest)
 
 // Run -
 func Run(c *Controller) {
-	log.Infof("Starting %s Element Controller on Port %s", c.Name, c.Port)
+	log.Infof("Starting element controller %s  on port %s", c.Name, c.Port)
+
+	if err := c.InitFunc(); err != nil {
+		log.WithError(err).Errorf("Failed to initialize element controller %s", c.Name)
+		return
+	}
 
 	c.Mux = mux.NewRouter().StrictSlash(true)
 	for _, route := range c.Router.Routes() {
@@ -182,5 +188,5 @@ func Run(c *Controller) {
 		log.WithError(err).Fatalf("Failed to serve %s", c.Name)
 	}
 
-	log.Warnf("%s Element Controller Terminated", c.Name)
+	log.Warnf("Element controller %s terminated", c.Name)
 }

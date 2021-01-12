@@ -70,5 +70,17 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			Path:        "/redfish/v1/Fabrics/{FabricId}/Endpoints/{EndpointId}",
 			HandlerFunc: s.RedfishV1FabricsFabricIdEndpointsEndpointIdGet,
 		},
+		{
+			Name:        "RedfishV1FabricsFabricIdEndpointGroupsGet",
+			Method:      strings.ToUpper("Get"),
+			Path:        "/redfish/v1/Fabrics/{FabricId}/EndpointGroups",
+			HandlerFunc: s.RedfishV1FabricsFabricIdEndpointGroupsGet,
+		},
+		{
+			Name:        "RedfishV1FabricsFabricIdEndpointGroupsEndpointGroupIdGet",
+			Method:      strings.ToUpper("Get"),
+			Path:        "/redfish/v1/Fabrics/{FabricId}/EndpointGroups/{EndpointGroupId}",
+			HandlerFunc: s.RedfishV1FabricsFabricIdEndpointGroupsEndpointGroupIdGet,
+		},
 	}
 }

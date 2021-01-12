@@ -67,7 +67,11 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdSwitchesGet(w http.ResponseWri
 	params := Params(r)
 	fabricId := params["FabricId"]
 
-	model := sf.SwitchCollectionSwitchCollection{}
+	model := sf.SwitchCollectionSwitchCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches", fabricId),
+		OdataType: "#SwitchCollection.v1_0_0.SwitchCollection",
+		Name:      "Switch Collection",
+	}
 
 	err := fabric.FabricIdSwitchesGet(fabricId, &model)
 
@@ -80,7 +84,11 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdSwitchesSwitchIdGet(w http.Res
 	fabricId := params["FabricId"]
 	switchId := params["SwitchId"]
 
-	model := sf.SwitchV140Switch{}
+	model := sf.SwitchV140Switch{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s", fabricId, switchId),
+		OdataType: "#Switch.v1_4_0.Switch",
+		Name:      "Swtich",
+	}
 
 	err := fabric.FabricIdSwitchesSwitchIdGet(fabricId, switchId, &model)
 
@@ -93,7 +101,11 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdSwitchesSwitchIdPortsGet(w htt
 	fabricId := params["FabricId"]
 	switchId := params["SwitchId"]
 
-	model := sf.PortCollectionPortCollection{}
+	model := sf.PortCollectionPortCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s/Ports", fabricId, switchId),
+		OdataType: "#PortCollection.v1_0_0.PortCollection",
+		Name:      "Port Collection",
+	}
 
 	err := fabric.FabricIdSwitchesSwitchIdPortsGet(fabricId, switchId, &model)
 
@@ -107,7 +119,11 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdSwitchesSwitchIdPortsPortIdGet
 	switchId := params["SwitchId"]
 	portId := params["PortId"]
 
-	model := sf.PortV130Port{}
+	model := sf.PortV130Port{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s/Ports/%s", fabricId, switchId, portId),
+		OdataType: "#Port.v1_3_0.Port",
+		Name:      "Port",
+	}
 
 	err := fabric.FabricIdSwitchesSwitchIdPortsPortIdGet(fabricId, switchId, portId, &model)
 
@@ -119,7 +135,11 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdEndpointsGet(w http.ResponseWr
 	params := Params(r)
 	fabricId := params["FabricId"]
 
-	model := sf.EndpointCollectionEndpointCollection{}
+	model := sf.EndpointCollectionEndpointCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints", fabricId),
+		OdataType: "#EndpointCollection.v1_0_0.EndpointCollection",
+		Name:      "Endpoint Collection",
+	}
 
 	err := fabric.FabricIdEndpointsGet(fabricId, &model)
 
@@ -132,9 +152,44 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdEndpointsEndpointIdGet(w http.
 	fabricId := params["FabricId"]
 	endpointId := params["EndpointId"]
 
-	model := sf.EndpointV150Endpoint{}
+	model := sf.EndpointV150Endpoint{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, endpointId),
+		OdataType: "#Endpoint.v1_5_0.Endpoint",
+		Name:      "Endpoint",
+	}
 
 	err := fabric.FabricIdEndpointsEndpointIdGet(fabricId, endpointId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+func (*DefaultApiService) RedfishV1FabricsFabricIdEndpointGroupsGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	fabricId := params["FabricId"]
+
+	model := sf.EndpointGroupCollectionEndpointGroupCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/EndpointGroups", fabricId),
+		OdataType: "#EndpointGroupCollection.v1_0_0.EndpointGroupCollection",
+		Name:      "Endpoint Group Collection",
+	}
+
+	err := fabric.FabricIdEndpointGroupsGet(fabricId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+func (*DefaultApiService) RedfishV1FabricsFabricIdEndpointGroupsEndpointGroupIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	fabricId := params["FabricId"]
+	groupId := params["EndpointGroupId"]
+
+	model := sf.EndpointGroupV130EndpointGroup{
+		OdataId: fmt.Sprintf("/redfish/v1/Fabrics/%s/EndpointGroups/%s", fabricId, groupId),
+		OdataType: "#EndpointGroup.v1_3_0.EndpointGroup",
+		Name: "Endpoint Group",
+	}
+
+	err := fabric.FabricIdEndpointGroupsEndpointIdGet(fabricId, groupId, &model)
 
 	encodeResponse(model, err, w)
 }
@@ -144,7 +199,11 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsGet(w http.Response
 	params := Params(r)
 	fabricId := params["FabricId"]
 
-	model := sf.ConnectionCollectionConnectionCollection{}
+	model := sf.ConnectionCollectionConnectionCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections", fabricId),
+		OdataType: "#ConnectionCollection.v1_0_0.ConnectionCollection",
+		Name:      "Connection Collection",
+	}
 
 	err := fabric.FabricIdConnectionsGet(fabricId, &model)
 
@@ -186,7 +245,6 @@ func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
 	}
 
 	response, err := json.Marshal(s)
-	log.WithError(err).Infof("Writing response %s", string(response))
 	if err != nil {
 		log.WithError(err).Error("Failed to marshal json response")
 		// TODO
@@ -196,5 +254,4 @@ func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
 		log.WithError(err).Error("Failed to write json response")
 		// TODO
 	}
-	//log.WithError(err).Infof("Wrote response %s", string(w.Buffer.Bytes()))
 }
