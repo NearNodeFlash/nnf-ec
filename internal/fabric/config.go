@@ -212,9 +212,7 @@ type PortConfig struct {
 	Width int
 }
 
-var Config *ConfigFile
-
-func loadConfig() error {
+func loadConfig() (*ConfigFile, error) {
 
 	/*
 		data, err := configFile.ReadFile("config.yaml")
@@ -224,16 +222,16 @@ func loadConfig() error {
 	*/
 	data := []byte(configFile)
 
-	Config = new(ConfigFile)
-	if err := yaml.Unmarshal(data, Config); err != nil {
-		return err
+	var config = new(ConfigFile)
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return config, err
 	}
 
 	// For usability we convert the port index to a string - this
 	// allows for easier comparisons for functions receiving portId
 	// as a string. We also tally the number of each port type
-	for switchIdx := range Config.Switches {
-		s := &Config.Switches[switchIdx]
+	for switchIdx := range config.Switches {
+		s := &config.Switches[switchIdx]
 		for _, p := range s.Ports {
 
 			switch p.getPortType() {
@@ -246,21 +244,21 @@ func loadConfig() error {
 			case sf.INTERSWITCH_PORT_PV130PT:
 				continue
 			default:
-				return fmt.Errorf("Unhandled port type %s", p.Type)
+				return config, fmt.Errorf("Unhandled port type %s", p.Type)
 			}
 		}
 
-		Config.ManagementPortCount += s.ManagementPortCount
-		Config.UpstreamPortCount += s.UpstreamPortCount
-		Config.DownstreamPortCount += s.DownstreamPortCount
+		config.ManagementPortCount += s.ManagementPortCount
+		config.UpstreamPortCount += s.UpstreamPortCount
+		config.DownstreamPortCount += s.DownstreamPortCount
 	}
 
 	// Only a single management endpoint for ALL switches (but unique ports)
-	if Config.ManagementPortCount != len(Config.Switches) {
-		return fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(Config.Switches), Config.ManagementPortCount)
+	if config.ManagementPortCount != len(config.Switches) {
+		return config, fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(config.Switches), config.ManagementPortCount)
 	}
 
-	return nil
+	return config, nil
 }
 
 func (c *ConfigFile) findSwitch(switchId string) (*SwitchConfig, error) {

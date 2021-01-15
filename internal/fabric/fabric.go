@@ -331,20 +331,19 @@ func (c *Connection) Initialize() error {
 func Initialize(ctrl SwitchtecControllerInterface) error {
 
 	fabric = &Fabric{
-		id:     FabricId,
-		ctrl:   ctrl,
-		config: Config,
+		id:   FabricId,
+		ctrl: ctrl,
 	}
-
 	f := fabric
-	c := fabric.config
 
 	log.SetLevel(log.DebugLevel)
 	log.Infof("Initialize %s Fabric", f.id)
 
-	if err := loadConfig(); err != nil {
+	c, err := loadConfig()
+	if err != nil {
 		return err
 	}
+	fabric.config = c
 
 	log.Debugf("Fabric Configuration '%s' Loaded...", c.Metadata.Name)
 	log.Debugf("  Management Ports: %d", c.ManagementPortCount)
@@ -357,13 +356,13 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Debugf("    Downstream Ports: %d", switchConf.DownstreamPortCount)
 	}
 
-	f.switches = make([]Switch, len(Config.Switches))
-	for switchIdx, switchConf := range Config.Switches {
+	f.switches = make([]Switch, len(c.Switches))
+	for switchIdx, switchConf := range c.Switches {
 		log.Infof("Initialize switch %s", switchConf.Id)
 		s := Switch{
 			id:     switchConf.Id,
 			fabric: f,
-			config: &Config.Switches[switchIdx],
+			config: &c.Switches[switchIdx],
 			ports:  make([]Port, len(switchConf.Ports)),
 		}
 

@@ -18,9 +18,9 @@ type MockSwitchtecController struct {
 type MockSwitchtecDevice struct {
 	ctrl *MockSwitchtecController
 
-	id   int
-	path string
-	open bool
+	id     int
+	path   string
+	open   bool
 	exists bool
 
 	config *SwitchConfig
@@ -40,7 +40,8 @@ type MockSwitchtecPort struct {
 
 func NewMockSwitchtecController() SwitchtecControllerInterface {
 
-	if err := loadConfig(); err != nil {
+	config, err := loadConfig()
+	if err != nil {
 		return nil
 	}
 
@@ -48,8 +49,8 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 		globalPdfid: rand.Intn(0x1000),
 	}
 
-	ctrl.devices = make([]MockSwitchtecDevice, len(Config.Switches))
-	for switchIdx, switchConfig := range Config.Switches {
+	ctrl.devices = make([]MockSwitchtecDevice, len(config.Switches))
+	for switchIdx, switchConfig := range config.Switches {
 
 		devId, err := strconv.Atoi(switchConfig.Id)
 		if err != nil {
@@ -60,8 +61,8 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 			ctrl:   ctrl,
 			id:     devId,
 			path:   "",
-			config: &Config.Switches[switchIdx],
-			open: false,
+			config: &config.Switches[switchIdx],
+			open:   false,
 			exists: true,
 		}
 
@@ -80,10 +81,10 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 			case sf.MANAGEMENT_PORT_PV130PT:
 				port.bindings = make([]*switchtec.DumpEpPortAttachedDeviceFunction, switchConfig.DownstreamPortCount)
 			case sf.UPSTREAM_PORT_PV130PT:
-				port.bindings = make([]*switchtec.DumpEpPortAttachedDeviceFunction, Config.DownstreamPortCount)
+				port.bindings = make([]*switchtec.DumpEpPortAttachedDeviceFunction, config.DownstreamPortCount)
 			case sf.DOWNSTREAM_PORT_PV130PT:
 				{
-					port.functions = make([]switchtec.DumpEpPortAttachedDeviceFunction, 1 /* PF */ +1 /* MGMT */ +Config.UpstreamPortCount)
+					port.functions = make([]switchtec.DumpEpPortAttachedDeviceFunction, 1 /* PF */ +1 /* MGMT */ +config.UpstreamPortCount)
 
 					isPF := func(idx int) uint8 {
 						if idx == 0 {
@@ -127,7 +128,7 @@ func (c MockSwitchtecController) Open(path string) (SwitchtecDeviceInterface, er
 			if !device.exists {
 				return nil, os.ErrNotExist
 			}
-			
+
 			return device, nil
 		}
 	}
