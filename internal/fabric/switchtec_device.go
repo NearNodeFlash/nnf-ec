@@ -18,6 +18,10 @@ func (SwitchtecController) Exists(path string) bool {
 }
 
 func (SwitchtecController) Open(path string) (SwitchtecDeviceInterface, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, err
+	}
+
 	dev, err := switchtec.Open(path)
 	return &SwitchtecDevice{dev: dev}, err
 }

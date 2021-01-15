@@ -2,6 +2,7 @@ package fabric
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -208,13 +209,11 @@ func (s *Switch) identify() error {
 
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
-		if !f.ctrl.Exists(path) {
-			log.Debugf("path %s does not exist", path)
-			continue
-		}
-
 		dev, err := f.ctrl.Open(path)
-		if err != nil {
+		if os.IsNotExist(err) {
+			log.WithError(err).Debugf("path %s", path)
+			continue
+		} else if err != nil {
 			return err
 		}
 
@@ -352,7 +351,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	log.Debugf("  Upstream Ports:   %d", c.UpstreamPortCount)
 	log.Debugf("  Downstream Ports: %d", c.DownstreamPortCount)
 	for _, switchConf := range c.Switches {
-		log.Debugf("  Switch %s Configuration: %s", switchConf.Id)
+		log.Debugf("  Switch %s Configuration: %s", switchConf.Id, switchConf.Metadata.Name)
 		log.Debugf("    Management Ports: %d", switchConf.ManagementPortCount)
 		log.Debugf("    Upstream Ports:   %d", switchConf.UpstreamPortCount)
 		log.Debugf("    Downstream Ports: %d", switchConf.DownstreamPortCount)

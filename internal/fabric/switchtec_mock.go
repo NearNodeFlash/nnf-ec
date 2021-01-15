@@ -3,6 +3,7 @@ package fabric
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 
 	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
@@ -20,6 +21,7 @@ type MockSwitchtecDevice struct {
 	id   int
 	path string
 	open bool
+	exists bool
 
 	config *SwitchConfig
 	ports  []MockSwitchtecPort
@@ -59,6 +61,8 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 			id:     devId,
 			path:   "",
 			config: &Config.Switches[switchIdx],
+			open: false,
+			exists: true,
 		}
 
 		ctrl.devices[switchIdx] = dev
@@ -114,17 +118,25 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 	return ctrl
 }
 
-func (c MockSwitchtecController) Exists(path string) bool { return true } // TODO: Some sort of testing where one or more switchtec device is missing
-
 func (c MockSwitchtecController) Open(path string) (SwitchtecDeviceInterface, error) {
 	for deviceIdx := range c.devices {
 		device := &c.devices[deviceIdx]
 		if device.path == "" || device.path == path {
 			device.path = path
+
+			if !device.exists {
+				return nil, os.ErrNotExist
+			}
+			
 			return device, nil
 		}
 	}
 	return nil, fmt.Errorf("Device %s not found", path)
+}
+
+func (c MockSwitchtecController) SetSwitchNotExists(switchIdx int) {
+	c.devices[switchIdx].exists = false
+
 }
 
 func (c *MockSwitchtecController) allocateNewPDFID() int {

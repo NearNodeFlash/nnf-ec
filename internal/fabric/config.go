@@ -15,7 +15,7 @@ import (
 const configFile = `
 version: v1
 metadata:
-  name: Rabbit Fabric Configuration
+  name: Rabbit
 switches:
   - id: 0
     metadata:
