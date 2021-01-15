@@ -338,12 +338,24 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	}
 
 	f := fabric
+	c := fabric.config
 
 	log.SetLevel(log.DebugLevel)
 	log.Infof("Initialize %s Fabric", f.id)
 
 	if err := loadConfig(); err != nil {
 		return err
+	}
+
+	log.Debugf("Fabric Configuration '%s' Loaded...", c.Metadata.Name)
+	log.Debugf("  Management Ports: %d", c.ManagementPortCount)
+	log.Debugf("  Upstream Ports:   %d", c.UpstreamPortCount)
+	log.Debugf("  Downstream Ports: %d", c.DownstreamPortCount)
+	for _, switchConf := range c.Switches {
+		log.Debugf("  Switch %s Configuration: %s", switchConf.Id)
+		log.Debugf("    Management Ports: %d", switchConf.ManagementPortCount)
+		log.Debugf("    Upstream Ports:   %d", switchConf.UpstreamPortCount)
+		log.Debugf("    Downstream Ports: %d", switchConf.DownstreamPortCount)
 	}
 
 	f.switches = make([]Switch, len(Config.Switches))
