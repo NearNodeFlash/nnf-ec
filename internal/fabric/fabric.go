@@ -209,6 +209,7 @@ func (s *Switch) identify() error {
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
 		if !f.ctrl.Exists(path) {
+			log.Debugf("path %s does not exist", path)
 			continue
 		}
 
@@ -225,6 +226,7 @@ func (s *Switch) identify() error {
 		if id := strconv.Itoa(int(paxId)); id == s.id {
 			s.dev = dev
 			s.path = path
+			s.paxId = paxId
 			return nil
 		}
 
@@ -349,6 +351,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Infof("Initialize switch %s", switchConf.Id)
 		s := Switch{
 			id:     switchConf.Id,
+			fabric: f,
 			config: &Config.Switches[switchIdx],
 			ports:  make([]Port, len(switchConf.Ports)),
 		}
