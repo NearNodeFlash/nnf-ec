@@ -114,6 +114,8 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 	return ctrl
 }
 
+func (c MockSwitchtecController) Exists(path string) bool { return true } // TODO: Some sort of testing where one or more switchtec device is missing
+
 func (c MockSwitchtecController) Open(path string) (SwitchtecDeviceInterface, error) {
 	for deviceIdx := range c.devices {
 		device := &c.devices[deviceIdx]

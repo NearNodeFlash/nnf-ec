@@ -208,6 +208,10 @@ func (s *Switch) identify() error {
 
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
+		if !fabric.ctrl.Exists(path) {
+			continue
+		}
+
 		dev, err := fabric.ctrl.Open(path)
 		if err != nil {
 			return err
@@ -227,7 +231,7 @@ func (s *Switch) identify() error {
 		dev.Close()
 	}
 
-	return fmt.Errorf("Could not identify switch %s", s.id)
+	return fmt.Errorf("Could not identify switch %s", s.id) // TODO: Switch not found
 }
 
 // findPort - Finds the i'th port of portType in the switch

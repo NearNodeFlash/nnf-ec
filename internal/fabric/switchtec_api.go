@@ -5,6 +5,7 @@ import (
 )
 
 type SwitchtecControllerInterface interface {
+	Exists(path string) bool
 	Open(path string) (SwitchtecDeviceInterface, error)
 }
 

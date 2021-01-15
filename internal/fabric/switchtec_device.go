@@ -1,6 +1,8 @@
 package fabric
 
 import (
+	"os"
+
 	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
 )
 
@@ -8,6 +10,11 @@ type SwitchtecController struct{}
 
 func NewSwitchtecController() SwitchtecControllerInterface {
 	return &SwitchtecController{}
+}
+
+func (SwitchtecController) Exists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
 }
 
 func (SwitchtecController) Open(path string) (SwitchtecDeviceInterface, error) {
