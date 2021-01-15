@@ -58,6 +58,9 @@ cray-service:
         pullPolicy: Always
       securityContext:
         privileged: true
+      volumeMounts:
+      - mountPath: /dev
+        name: dev-dir
       env:
       - name: WATCH_NAMESPACE
         value: ""
@@ -75,6 +78,10 @@ cray-service:
         value: default
       - name: RABBIT
         value: "1"
+  volumes:
+  - name: dev-dir
+    hostPath:
+      path: /dev
   nodeSelector:
     cray.dpm.dg.dpm-storage-node: "true"
 

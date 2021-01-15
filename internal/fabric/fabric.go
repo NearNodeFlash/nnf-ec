@@ -203,16 +203,16 @@ func (s *Switch) isReady() bool {
 }
 
 func (s *Switch) identify() error {
-
-	for i := 0; i < len(fabric.switches); i++ {
+	f := s.fabric
+	for i := 0; i < len(f.switches); i++ {
 
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
-		if !fabric.ctrl.Exists(path) {
+		if !f.ctrl.Exists(path) {
 			continue
 		}
 
-		dev, err := fabric.ctrl.Open(path)
+		dev, err := f.ctrl.Open(path)
 		if err != nil {
 			return err
 		}

@@ -187,9 +187,9 @@ type ConfigFile struct {
 	}
 	Switches []SwitchConfig
 
-	ManagementPortCount int `yaml:",omitempty"`
-	UpstreamPortCount   int `yaml:",omitempty"`
-	DownstreamPortCount int `yaml:",omitempty"`
+	ManagementPortCount int
+	UpstreamPortCount   int
+	DownstreamPortCount int
 }
 
 type SwitchConfig struct {
@@ -199,9 +199,9 @@ type SwitchConfig struct {
 	}
 	Ports []PortConfig
 
-	ManagementPortCount int `yaml:",omitempty"`
-	UpstreamPortCount   int `yaml:",omitempty"`
-	DownstreamPortCount int `yaml:",omitempty"`
+	ManagementPortCount int
+	UpstreamPortCount   int
+	DownstreamPortCount int
 }
 
 type PortConfig struct {
