@@ -249,12 +249,21 @@ func (s *Switch) findPort(portType sf.PortV130PortType, idx int) *Port {
 	panic(fmt.Sprintf("Switch Port %d Not Found", idx))
 }
 
+func (s *Switch) isDown() bool {
+	return !s.isReady()
+}
+
 func (p *Port) LinkStatus() error {
 	// TODO
 	return nil
 }
 
 func (p *Port) Initialize() error {
+
+	if p.swtch.isDown() {
+		log.Warnf("port %d switch is down", p.id)
+		return nil
+	}
 
 	if err := p.LinkStatus(); err != nil {
 		log.WithError(err).Warnf("Failed to read port %d link status", p.id)
