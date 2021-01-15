@@ -29,5 +29,5 @@ var (
 
 // ControllerInitialize -
 func ControllerInitialize() error {
-	return fabric.Initialize()
+	return fabric.Initialize(fabric.NewSwitchtecController())
 }

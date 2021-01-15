@@ -186,6 +186,10 @@ type ConfigFile struct {
 		Name string
 	}
 	Switches []SwitchConfig
+
+	ManagementPortCount int `yaml:",omitempty"`
+	UpstreamPortCount   int `yaml:",omitempty"`
+	DownstreamPortCount int `yaml:",omitempty"`
 }
 
 type SwitchConfig struct {
@@ -194,6 +198,10 @@ type SwitchConfig struct {
 		Name string
 	}
 	Ports []PortConfig
+
+	ManagementPortCount int `yaml:",omitempty"`
+	UpstreamPortCount   int `yaml:",omitempty"`
+	DownstreamPortCount int `yaml:",omitempty"`
 }
 
 type PortConfig struct {
@@ -216,6 +224,7 @@ func loadConfig() error {
 	*/
 	data := []byte(configFile)
 
+	Config = new(ConfigFile)
 	if err := yaml.Unmarshal(data, Config); err != nil {
 		return err
 	}
@@ -223,23 +232,32 @@ func loadConfig() error {
 	// For usability we convert the port index to a string - this
 	// allows for easier comparisons for functions receiving portId
 	// as a string. We also tally the number of each port type
-	managmentPortCount := 0
-	for _, s := range Config.Switches {
+	for switchIdx := range Config.Switches {
+		s := &Config.Switches[switchIdx]
 		for _, p := range s.Ports {
 
 			switch p.getPortType() {
 			case sf.MANAGEMENT_PORT_PV130PT:
-				managmentPortCount++
-				// Do nothing
+				s.ManagementPortCount++
+			case sf.UPSTREAM_PORT_PV130PT:
+				s.UpstreamPortCount++
+			case sf.DOWNSTREAM_PORT_PV130PT:
+				s.DownstreamPortCount++
+			case sf.INTERSWITCH_PORT_PV130PT:
+				continue
 			default:
 				return fmt.Errorf("Unhandled port type %s", p.Type)
 			}
 		}
+
+		Config.ManagementPortCount += s.ManagementPortCount
+		Config.UpstreamPortCount += s.UpstreamPortCount
+		Config.DownstreamPortCount += s.DownstreamPortCount
 	}
 
 	// Only a single management endpoint for ALL switches (but unique ports)
-	if managmentPortCount != len(Config.Switches) {
-		return fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(Config.Switches), managmentPortCount)
+	if Config.ManagementPortCount != len(Config.Switches) {
+		return fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(Config.Switches), Config.ManagementPortCount)
 	}
 
 	return nil

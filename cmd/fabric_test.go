@@ -6,8 +6,8 @@ import (
 	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric"
 )
 
-func TestInit(t *testing.T) {
-	if err := fabric.Initialize(); err != nil {
+func TestFabric(t *testing.T) {
+	if err := fabric.Initialize(fabric.NewMockSwitchtecController()); err != nil {
 		t.Error(err)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -184,9 +183,9 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdEndpointGroupsEndpointGroupIdG
 	groupId := params["EndpointGroupId"]
 
 	model := sf.EndpointGroupV130EndpointGroup{
-		OdataId: fmt.Sprintf("/redfish/v1/Fabrics/%s/EndpointGroups/%s", fabricId, groupId),
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/EndpointGroups/%s", fabricId, groupId),
 		OdataType: "#EndpointGroup.v1_3_0.EndpointGroup",
-		Name: "Endpoint Group",
+		Name:      "Endpoint Group",
 	}
 
 	err := fabric.FabricIdEndpointGroupsEndpointIdGet(fabricId, groupId, &model)
@@ -210,27 +209,44 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsGet(w http.Response
 	encodeResponse(model, err, w)
 }
 
-// RedfishV1FabricsFabricIdConnectionsPost -
-func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsPost(w http.ResponseWriter, r *http.Request) {
+// RedfishV1FabricsFabricIdConnectionsConnectionIdGet -
+func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsConnectionIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	fabricId := params["FabricId"]
+	connectionId := params["ConnectionId"]
 
-	// TODO: Move the read & unmarshal into a function
-	var model sf.ConnectionV100Connection
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		// TODO:
+	model := sf.ConnectionV100Connection{
+		OdataId: fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, connectionId),
+		OdataType: "#Connection.v1_0_0.Connection",
+		Name: "Connection",
 	}
 
-	err = json.Unmarshal(body, &model)
-	if err != nil {
-		// TODO:
-	}
+	err := fabric.FabricIdConnectionsConnectionIdGet(fabricId, connectionId, &model)
 
-	err = fabric.FabricIdConnectionsPost(fabricId, &model)
+	encodeResponse(model, err, w)
+	
+	// THIS DOES NOT EXIST
+	/*
+		params := Params(r)
+		fabricId := params["FabricId"]
 
-	encodeResponse(model, err, w) // TODO: Need to return header information for the ConnectionId
+		// TODO: Move the read & unmarshal into a function
+		var model sf.ConnectionV100Connection
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			// TODO:
+		}
+
+		err = json.Unmarshal(body, &model)
+		if err != nil {
+			// TODO:
+		}
+
+		//err = fabric.FabricIdConnectionsPost(fabricId, &model)
+		encodeResponse(model, err, w) // TODO: Need to return header information for the ConnectionId
+	*/
+
 }
 
 func encodeResponse(s interface{}, err error, w http.ResponseWriter) {

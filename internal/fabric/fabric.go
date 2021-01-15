@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
+	log "github.com/sirupsen/logrus"
 
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
+	openapi "stash.us.cray.com/sp/rfsf-openapi/pkg/common"
+	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
 	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
 )
 
@@ -15,15 +17,15 @@ const (
 )
 
 type Fabric struct {
-	id             string
+	ctrl SwitchtecControllerInterface
+
+	id     string
+	config *ConfigFile
+
 	switches       []Switch
 	endpoints      []Endpoint
 	endpointGroups []EndpointGroup
 	connections    []Connection
-
-	managmentPortCount  int
-	upstreamPortCount   int
-	downstreamPortCount int
 
 	managementEndpointCount int
 	upstreamEndpointCount   int
@@ -34,31 +36,39 @@ type Switch struct {
 	id     string
 	paxId  int32
 	path   string
-	dev    *switchtec.Device
+	dev    SwitchtecDeviceInterface
 	config *SwitchConfig
 	ports  []Port
 
-	managementPortCount int
-	upstreamPortCount   int
-	downstreamPortCount int
+	fabric   *Fabric
+	mgmtPort *Port
 }
 
 type Port struct {
 	id     string
+	idx    int
+	typ    sf.PortV130PortType
 	swtch  *Switch
 	config *PortConfig
 
-	portType sf.PortV130PortType
+	endpoints []*Endpoint
 }
 
 type Endpoint struct {
-	id    string
-	ports []*Port
+	id           string
+	endpointType sf.EndpointV150EntityType
+	ports        []*Port
+
+	pdfid         uint16
+	bound         bool
+	boundPaxId    uint8
+	boundHvdPhyId uint8
+	boundHvdLogId uint8
 }
 
 type EndpointGroup struct {
-	id        string
-	endpoints []*Endpoint
+	id         string
+	endpoints  []*Endpoint
 	connection *Connection
 }
 
@@ -66,17 +76,13 @@ type Connection struct {
 	endpointGroup *EndpointGroup
 }
 
-var fabric = &Fabric{
-	id: FabricId,
-}
+var fabric *Fabric
 
-func isFabric(fabricId string) bool     { return fabricId == FabricId }
-func isSwitch(switchId string) bool     { _, err := fabric.findSwitch(switchId); return err == nil }
-func isEndpoint(endpointId string) bool { _, err := fabric.findEndpoint(endpointId); return err == nil }
-func isEndpointGroup(groupId string) bool {
-	_, err := fabric.findEndpointGroup(groupId)
-	return err == nil
-}
+func isFabric(id string) bool        { return id == FabricId }
+func isSwitch(id string) bool        { _, err := fabric.findSwitch(id); return err == nil }
+func isEndpoint(id string) bool      { _, err := fabric.findEndpoint(id); return err == nil }
+func isEndpointGroup(id string) bool { _, err := fabric.findEndpointGroup(id); return err == nil }
+func isConnection(id string) bool    { _, err := fabric.findConnection(id); return err == nil }
 
 func (f *Fabric) findSwitch(switchId string) (*Switch, error) {
 	for _, s := range f.switches {
@@ -109,24 +115,24 @@ func (f *Fabric) findSwitchPort(switchId string, portId string) (*Port, error) {
 	return nil, fmt.Errorf("Could not find switch %s port %s", switchId, portId)
 }
 
-// findPort - Find's the i'th port of portType in the fabric
+// findPort - Finds the i'th port of portType in the fabric
 func (f *Fabric) findPort(portType sf.PortV130PortType, idx int) *Port {
 	switch portType {
 	case sf.MANAGEMENT_PORT_PV130PT:
 		return f.switches[idx].findPort(portType, 0)
 	case sf.UPSTREAM_PORT_PV130PT:
 		for _, s := range f.switches {
-			if idx < s.upstreamPortCount {
+			if idx < s.config.UpstreamPortCount {
 				return s.findPort(portType, idx)
 			}
-			idx = idx - s.upstreamPortCount
+			idx = idx - s.config.UpstreamPortCount
 		}
 	case sf.DOWNSTREAM_PORT_PV130PT:
 		for _, s := range f.switches {
-			if idx < s.downstreamPortCount {
+			if idx < s.config.DownstreamPortCount {
 				return s.findPort(portType, idx)
 			}
-			idx = idx - s.downstreamPortCount
+			idx = idx - s.config.DownstreamPortCount
 		}
 	}
 
@@ -142,7 +148,7 @@ func (f *Fabric) isUpstreamEndpoint(idx int) bool {
 }
 
 func (f *Fabric) isDownstreamEndpoint(idx int) bool {
-	return !f.isUpstreamEndpoint(idx) && idx-f.managementEndpointCount-f.upstreamEndpointCount < f.downstreamEndpointCount
+	return idx >= (f.managementEndpointCount + f.upstreamEndpointCount)
 }
 
 func (f *Fabric) getUpstreamEndpointRelativePortIndex(idx int) int {
@@ -150,7 +156,7 @@ func (f *Fabric) getUpstreamEndpointRelativePortIndex(idx int) int {
 }
 
 func (f *Fabric) getDownstreamEndpointRelativePortIndex(idx int) int {
-	return (idx - (f.managementEndpointCount + f.upstreamEndpointCount)) / (f.managementEndpointCount + f.upstreamEndpointCount)
+	return (idx - (f.managementEndpointCount + f.upstreamEndpointCount)) / (1 /*PF*/ + f.managementEndpointCount + f.upstreamEndpointCount)
 }
 
 func (f *Fabric) findEndpoint(endpointId string) (*Endpoint, error) {
@@ -179,6 +185,19 @@ func (f *Fabric) findEndpointGroup(endpointGroupId string) (*EndpointGroup, erro
 	return &f.endpointGroups[id], nil
 }
 
+func (f *Fabric) findConnection(connectionId string) (*Connection, error) {
+	id, err := strconv.Atoi(connectionId)
+	if err != nil {
+		return nil, ec.ErrNotFound
+	}
+
+	if !(id < len(f.connections)) {
+		return nil, ec.ErrNotFound
+	}
+
+	return &f.connections[id], nil
+}
+
 func (s *Switch) isReady() bool {
 	return s.dev != nil
 }
@@ -189,7 +208,7 @@ func (s *Switch) identify() error {
 
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
-		dev, err := switchtec.Open(path)
+		dev, err := fabric.ctrl.Open(path)
 		if err != nil {
 			return err
 		}
@@ -214,7 +233,7 @@ func (s *Switch) identify() error {
 // findPort - Finds the i'th port of portType in the switch
 func (s *Switch) findPort(portType sf.PortV130PortType, idx int) *Port {
 	for _, p := range s.ports {
-		if p.portType == portType {
+		if p.typ == portType {
 			if idx == 0 {
 				return &p
 			}
@@ -225,93 +244,239 @@ func (s *Switch) findPort(portType sf.PortV130PortType, idx int) *Port {
 	panic(fmt.Sprintf("Switch Port %d Not Found", idx))
 }
 
+func (p *Port) LinkStatus() error {
+	// TODO
+	return nil
+}
+
+func (p *Port) Initialize() error {
+
+	if err := p.LinkStatus(); err != nil {
+		log.WithError(err).Warnf("Failed to read port %d link status", p.id)
+	}
+
+	switch p.typ {
+	case sf.DOWNSTREAM_PORT_PV130PT:
+
+		processPort := func(port *Port) func(*switchtec.DumpEpPortDevice) error {
+			return func(epPort *switchtec.DumpEpPortDevice) error {
+				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
+					log.Errorf("Port %d is down", p.id)
+					// Port & Associated Endpoints are Down/Unreachable
+					//p.Down() // TODO
+				}
+
+				for idx, f := range epPort.Ep.Functions {
+
+					if int(f.FunctionID) > len(p.endpoints) {
+						break
+					}
+
+					ep := p.endpoints[idx]
+
+					ep.pdfid = f.PDFID
+					ep.bound = f.Bound != 0
+					ep.boundPaxId = f.BoundPAXID
+					ep.boundHvdPhyId = f.BoundHVDPhyPID
+					ep.boundHvdLogId = f.BoundHVDLogPID
+				}
+
+				return nil
+			}
+		}
+
+		log.Infof("Switch %s enumerting endpoint %d", p.swtch.id, p.config.Port)
+		p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p))
+	}
+
+	return nil
+}
+
+func (c *Connection) Initialize() error {
+	endpointGroup := c.endpointGroup
+	initiatorEndpoint := endpointGroup.endpoints[0]
+
+	for idx, downstreamEndpoint := range endpointGroup.endpoints[1:] {
+
+		for _, port := range initiatorEndpoint.ports {
+
+			switch port.typ {
+			case sf.MANAGEMENT_PORT_PV130PT:
+				if len(downstreamEndpoint.ports) != 1 {
+					log.Panicf("Logical Error: Downstream Endpoint %d has multiple ports", downstreamEndpoint.id)
+				}
+
+				if downstreamEndpoint.ports[0].swtch == port.swtch {
+					if err := port.swtch.dev.Bind(uint8(port.config.Port), uint8(idx), downstreamEndpoint.pdfid); err != nil {
+						log.WithError(err).Warnf("Failed to bind port")
+					}
+				}
+			case sf.UPSTREAM_PORT_PV130PT:
+				if err := port.swtch.dev.Bind(uint8(port.config.Port), uint8(idx), downstreamEndpoint.pdfid); err != nil {
+					log.WithError(err).Warnf("Failed to bind port")
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // Initialize
-func Initialize() error {
+func Initialize(ctrl SwitchtecControllerInterface) error {
+
+	fabric = &Fabric{
+		id:     FabricId,
+		ctrl:   ctrl,
+		config: Config,
+	}
+
 	f := fabric
+
+	log.SetLevel(log.DebugLevel)
+	log.Infof("Initialize %s Fabric", f.id)
 
 	if err := loadConfig(); err != nil {
 		return err
 	}
 
-	fabric.switches = make([]Switch, len(Config.Switches))
+	f.switches = make([]Switch, len(Config.Switches))
 	for switchIdx, switchConf := range Config.Switches {
+		log.Infof("Initialize switch %s", switchConf.Id)
 		s := Switch{
-			config: &switchConf,
+			id:     switchConf.Id,
+			config: &Config.Switches[switchIdx],
 			ports:  make([]Port, len(switchConf.Ports)),
 		}
 
+		if err := s.identify(); err != nil {
+			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
+		}
+
+		f.switches[switchIdx] = s
+
 		for portIdx, portConf := range switchConf.Ports {
 			portType := portConf.getPortType()
-			switch portType {
-			case sf.MANAGEMENT_PORT_PV130PT:
-				s.managementPortCount++
-			case sf.UPSTREAM_PORT_PV130PT:
-				s.upstreamPortCount++
-			case sf.DOWNSTREAM_PORT_PV130PT:
-				s.downstreamPortCount++
-			}
 
 			s.ports[portIdx] = Port{
-				swtch:    &s, // I dont think this is needed
-				config:   &portConf,
-				portType: portType,
+				swtch:  &f.switches[switchIdx],
+				config: &switchConf.Ports[portIdx],
+				typ:    portType,
+				idx:    portIdx,
+			}
+
+			if portType == sf.MANAGEMENT_PORT_PV130PT {
+				s.mgmtPort = &s.ports[portIdx]
 			}
 		}
-
-		fabric.switches[switchIdx] = s
 	}
 
-	// Tally the switch ports and apply to the fabric
-	for _, s := range fabric.switches {
-		fabric.managmentPortCount += s.managementPortCount
-		fabric.upstreamPortCount += s.upstreamPortCount
-		fabric.downstreamPortCount += s.downstreamPortCount
-	}
+	// create the endpoints
 
-	// configure the endpoints
+	// Endpoint and Port relation
+	//
+	//       Endpoint         Port           Switch
+	// [0  ] Rabbit           Mgmt           0, 1              One endpoint per mgmt (one mgmt port per switch)
+	// [1  ] Compute 0        USP0			 0                 One endpoint per compuete
+	// [2  ] Compute 1        USP1           0
+	//   ...
+	// [N-1] Compute N        USPN           1
+	// [N  ] Drive 0 PF       DSP0           0 ---------------|
+	// [N+1] Drive 0 VF0      DSP0           0                | Each drive is enumerated out to M endpoints
+	// [N+2] Drive 0 VF1      DSP0           0                |   1 for the physical function (unused)
+	//   ...                                                  |   1 for the rabbit
+	// [N+M] Drive 0 VFM-1    DSP0           0 ---------------|   1 per compute
+	//
 
-	fabric.managementEndpointCount = 1
-	fabric.upstreamEndpointCount = fabric.upstreamPortCount
-	fabric.downstreamEndpointCount = (fabric.managementEndpointCount + fabric.upstreamEndpointCount) * fabric.downstreamPortCount
+	f.managementEndpointCount = 1
+	f.upstreamEndpointCount = f.config.UpstreamPortCount
 
-	fabric.endpoints = make([]Endpoint, 1+fabric.managementEndpointCount+fabric.upstreamEndpointCount+fabric.downstreamEndpointCount)
-	for endpointIdx, endpoint := range fabric.endpoints {
+	mangementAndUpstreamEndpointCount := f.managementEndpointCount + f.upstreamEndpointCount
+	f.downstreamEndpointCount = (1 /*PF*/ + mangementAndUpstreamEndpointCount) * f.config.DownstreamPortCount
 
-		if fabric.isManagementEndpoint(endpointIdx) {
+	f.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+f.downstreamEndpointCount)
+
+	for endpointIdx := range f.endpoints {
+		endpoint := &f.endpoints[endpointIdx]
+
+		endpoint.id = strconv.Itoa(endpointIdx)
+
+		switch {
+		case f.isManagementEndpoint(endpointIdx):
+			endpoint.endpointType = sf.PROCESSOR_EV150ET
 			endpoint.ports = make([]*Port, len(fabric.switches))
 			for switchIdx, s := range fabric.switches {
-				endpoint.ports[switchIdx] = s.findPort(sf.MANAGEMENT_PORT_PV130PT, 0)
+				port := s.findPort(sf.MANAGEMENT_PORT_PV130PT, 0)
+
+				endpoint.ports[switchIdx] = port
+
+				port.endpoints = make([]*Endpoint, 1)
+				port.endpoints[0] = endpoint
 			}
-		} else if fabric.isUpstreamEndpoint(endpointIdx) {
+		case f.isUpstreamEndpoint(endpointIdx):
+			port := f.findPort(sf.UPSTREAM_PORT_PV130PT, f.getUpstreamEndpointRelativePortIndex(endpointIdx))
+
+			endpoint.endpointType = sf.STORAGE_INITIATOR_EV150ET
 			endpoint.ports = make([]*Port, 1)
-			endpoint.ports[0] = fabric.findPort(sf.UPSTREAM_PORT_PV130PT, fabric.getUpstreamEndpointRelativePortIndex(endpointIdx))
-		} else if fabric.isDownstreamEndpoint(endpointIdx) {
+			endpoint.ports[0] = port
+
+			port.endpoints = make([]*Endpoint, 1)
+			port.endpoints[0] = endpoint
+
+		case f.isDownstreamEndpoint(endpointIdx):
+			port := f.findPort(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
+
+			endpoint.endpointType = sf.DRIVE_EV150ET
 			endpoint.ports = make([]*Port, 1)
-			endpoint.ports[0] = fabric.findPort(sf.DOWNSTREAM_PORT_PV130PT, fabric.getDownstreamEndpointRelativePortIndex(endpointIdx))
+			endpoint.ports[0] = port
+
+			if len(port.endpoints) == 0 {
+				port.endpoints = make([]*Endpoint, 1 /*PF*/ +mangementAndUpstreamEndpointCount)
+				// we will initialize the port's endpoints when the endpointGroup is initialized
+			}
+
+		default:
+			panic(fmt.Errorf("Unhandled endpoint index %d", endpointIdx))
 		}
 	}
 
-	// configure the endpoint groups
+	// create the endpoint groups & connections
 
-	mangementAndUpstreamEndpointCount := fabric.managementEndpointCount + fabric.upstreamEndpointCount
-	fabric.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
-	for endpointGroupIdx, endpointGroup := range fabric.endpointGroups {
+	f.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
+	f.connections = make([]Connection, mangementAndUpstreamEndpointCount)
+	for endpointGroupIdx := range fabric.endpointGroups {
+		endpointGroup := &fabric.endpointGroups[endpointGroupIdx]
+		connection := &fabric.connections[endpointGroupIdx]
 
-		endpointGroup.endpoints = make([]*Endpoint, 1+f.downstreamEndpointCount)
+		endpointGroup.id = strconv.Itoa(endpointGroupIdx)
+		endpointGroup.connection = connection
+		endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
 		endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
 
-		for idx, _ := range endpointGroup.endpoints[1:] {
+		for idx := range endpointGroup.endpoints[1:] {
 			endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
+		}
+
+		connection.endpointGroup = endpointGroup
+
+	}
+
+	// initialize ports
+
+	for _, s := range f.switches {
+		for _, p := range s.ports {
+			if err := p.Initialize(); err != nil {
+				log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
+			}
 		}
 	}
 
-	// configure the connections
+	// initialize connections
 
-	fabric.connections = make([]Connection, mangementAndUpstreamEndpointCount)
-	for connectionIdx, connection := range fabric.connections {
-		epg := &fabric.endpointGroups[connectionIdx]
-		epg.connection = &connection
-		connection.endpointGroup = epg
+	for _, c := range f.connections {
+		if err := c.Initialize(); err != nil {
+			log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
+		}
 	}
 
 	return nil
@@ -421,7 +586,7 @@ func FabricIdSwitchesSwitchIdPortsPortIdGet(fabricId string, switchId string, po
 
 	model.PortProtocol = sf.PC_IE_PP
 	model.PortMedium = sf.ELECTRICAL_PV130PM
-	model.PortType = p.portType
+	model.PortType = p.typ
 	model.PortId = strconv.Itoa(p.config.Port)
 
 	model.Width = int64(p.config.Width)
@@ -433,7 +598,11 @@ func FabricIdSwitchesSwitchIdPortsPortIdGet(fabricId string, switchId string, po
 	model.LinkState = sf.ENABLED_PV130LST
 	//model.LinkStatus = // TODO
 
-	//model.Links.AssociatedEndpoints // TODO
+	model.Links.AssociatedEndpointsodataCount = int64(len(p.endpoints))
+	model.Links.AssociatedEndpoints = make([]sf.OdataV4IdRef, model.Links.AssociatedEndpointsodataCount)
+	for idx, ep := range p.endpoints {
+		model.Links.AssociatedEndpoints[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, ep.id)
+	}
 
 	return nil
 }
@@ -446,7 +615,7 @@ func FabricIdEndpointsGet(fabricId string, model *sf.EndpointCollectionEndpointC
 
 	model.MembersodataCount = int64(len(fabric.endpoints))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
-	for idx, _ := range fabric.endpoints {
+	for idx := range fabric.endpoints {
 		model.Members[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%d", fabricId, idx)
 	}
 
@@ -476,6 +645,24 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 		model.Links.Ports[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s/Ports/%s", fabricId, port.swtch.id, port.id)
 	}
 
+	type Oem struct {
+		Pdfid         int
+		Bound         bool
+		BoundPaxId    int
+		BoundHvdPhyId int
+		BoundHvdLogId int
+	}
+
+	oem := Oem{
+		Pdfid:         int(ep.pdfid),
+		Bound:         ep.bound,
+		BoundPaxId:    int(ep.boundPaxId),
+		BoundHvdPhyId: int(ep.boundHvdPhyId),
+		BoundHvdLogId: int(ep.boundHvdLogId),
+	}
+
+	model.Oem = openapi.MarshalOem(oem)
+
 	return nil
 }
 
@@ -486,7 +673,7 @@ func FabricIdEndpointGroupsGet(fabricId string, model *sf.EndpointGroupCollectio
 
 	model.MembersodataCount = int64(len(fabric.endpointGroups))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
-	for idx, _ := range fabric.endpointGroups {
+	for idx := range fabric.endpointGroups {
 		model.Members[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/EndpointGroups/%d", fabricId, idx)
 	}
 
@@ -498,22 +685,20 @@ func FabricIdEndpointGroupsEndpointIdGet(fabricId string, groupId string, model 
 		return ec.ErrNotFound
 	}
 
-	epg, err := fabric.findEndpointGroup(groupId)
+	endpointGroup, err := fabric.findEndpointGroup(groupId)
 	if err != nil {
 		return err
 	}
 
-	model.Links.EndpointsodataCount = int64(len(epg.endpoints))
+	model.Links.EndpointsodataCount = int64(len(endpointGroup.endpoints))
 	model.Links.Endpoints = make([]sf.OdataV4IdRef, model.Links.EndpointsodataCount)
-	for idx, ep := range epg.endpoints {
+	for idx, ep := range endpointGroup.endpoints {
 		model.Links.Endpoints[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, ep.id)
 	}
 
-	model.Links.ConnectionsodataCount = int64(len(epg.connections))
-	model.Links.Connections = make([]sf.OdataV4IdRef, model.Links.ConnectionsodataCount) // TODO
-	for idx, c := range epg.connections {
-		model.Links.Connections[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", c.id)
-	}
+	model.Links.ConnectionsodataCount = 1
+	model.Links.Connections = make([]sf.OdataV4IdRef, model.Links.ConnectionsodataCount)
+	model.Links.Connections[0].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, endpointGroup.id)
 
 	return nil
 }
@@ -524,14 +709,42 @@ func FabricIdConnectionsGet(fabricId string, model *sf.ConnectionCollectionConne
 		return ec.ErrNotFound
 	}
 
+	model.MembersodataCount = int64(len(fabric.connections))
+	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
+	for idx, c := range fabric.connections {
+		model.Members[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, c.endpointGroup.id)
+	}
+
 	return nil
 }
 
-// FabricIdConnectionsPost -
-func FabricIdConnectionsPost(fabricId string, model *sf.ConnectionV100Connection) error {
-	if !isFabric(fabricId) {
+// FabricIdConnectionsConnectionIdGet
+func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, model *sf.ConnectionV100Connection) error {
+	if !isFabric(fabricId) || !isConnection(connectionId) {
 		return ec.ErrNotFound
 	}
+
+	connection, err := fabric.findConnection(connectionId)
+	if err != nil {
+		return err
+	}
+
+	endpointGroup := connection.endpointGroup
+
+	model.Id = connectionId
+	model.ConnectionType = sf.STORAGE_CV100CT
+
+	model.Links.InitiatorEndpointsodataCount = 1
+	model.Links.InitiatorEndpoints = make([]sf.OdataV4IdRef, model.Links.InitiatorEndpointsodataCount)
+	model.Links.InitiatorEndpoints[0].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, endpointGroup.endpoints[0].id)
+
+	model.Links.TargetEndpointsodataCount = int64(len(endpointGroup.endpoints) - 1)
+	model.Links.TargetEndpoints = make([]sf.OdataV4IdRef, model.Links.TargetEndpointsodataCount)
+	for idx, endpoint := range endpointGroup.endpoints[1:] {
+		model.Links.TargetEndpoints[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, endpoint.id)
+	}
+
+	// TODO: Fill out connection.VolumeInfo[] ConnectionV100VolumeInfo
 
 	return nil
 }
