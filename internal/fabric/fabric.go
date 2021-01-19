@@ -307,31 +307,33 @@ func (p *Port) Initialize() error {
 }
 
 func (c *Connection) Initialize() error {
-	endpointGroup := c.endpointGroup
-	initiatorEndpoint := endpointGroup.endpoints[0]
+	/*
+		endpointGroup := c.endpointGroup
+		initiatorEndpoint := endpointGroup.endpoints[0]
 
-	for idx, downstreamEndpoint := range endpointGroup.endpoints[1:] {
+		for idx, downstreamEndpoint := range endpointGroup.endpoints[1:] {
 
-		for _, port := range initiatorEndpoint.ports {
+			for _, port := range initiatorEndpoint.ports {
 
-			switch port.typ {
-			case sf.MANAGEMENT_PORT_PV130PT:
-				if len(downstreamEndpoint.ports) != 1 {
-					log.Panicf("Logical Error: Downstream Endpoint %d has multiple ports", downstreamEndpoint.id)
-				}
+				switch port.typ {
+				case sf.MANAGEMENT_PORT_PV130PT:
+					if len(downstreamEndpoint.ports) != 1 {
+						log.Panicf("Logical Error: Downstream Endpoint %d has multiple ports", downstreamEndpoint.id)
+					}
 
-				if downstreamEndpoint.ports[0].swtch == port.swtch {
+					if downstreamEndpoint.ports[0].swtch == port.swtch {
+						if err := port.swtch.dev.Bind(uint8(port.config.Port), uint8(idx), downstreamEndpoint.pdfid); err != nil {
+							log.WithError(err).Warnf("Failed to bind port")
+						}
+					}
+				case sf.UPSTREAM_PORT_PV130PT:
 					if err := port.swtch.dev.Bind(uint8(port.config.Port), uint8(idx), downstreamEndpoint.pdfid); err != nil {
 						log.WithError(err).Warnf("Failed to bind port")
 					}
 				}
-			case sf.UPSTREAM_PORT_PV130PT:
-				if err := port.swtch.dev.Bind(uint8(port.config.Port), uint8(idx), downstreamEndpoint.pdfid); err != nil {
-					log.WithError(err).Warnf("Failed to bind port")
-				}
 			}
 		}
-	}
+	*/
 
 	return nil
 }
