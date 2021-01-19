@@ -10,7 +10,6 @@ import (
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
 	openapi "stash.us.cray.com/sp/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
 )
 
 const (
@@ -269,40 +268,41 @@ func (p *Port) Initialize() error {
 		log.WithError(err).Warnf("Failed to read port %d link status", p.id)
 	}
 
-	switch p.typ {
-	case sf.DOWNSTREAM_PORT_PV130PT:
+	/*
+		switch p.typ {
+		case sf.DOWNSTREAM_PORT_PV130PT:
 
-		processPort := func(port *Port) func(*switchtec.DumpEpPortDevice) error {
-			return func(epPort *switchtec.DumpEpPortDevice) error {
-				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
-					log.Errorf("Port %d is down", p.id)
-					// Port & Associated Endpoints are Down/Unreachable
-					//p.Down() // TODO
-				}
-
-				for idx, f := range epPort.Ep.Functions {
-
-					if int(f.FunctionID) > len(p.endpoints) {
-						break
+			processPort := func(port *Port) func(*switchtec.DumpEpPortDevice) error {
+				return func(epPort *switchtec.DumpEpPortDevice) error {
+					if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
+						log.Errorf("Port %d is down", p.id)
+						// Port & Associated Endpoints are Down/Unreachable
+						//p.Down() // TODO
 					}
 
-					ep := p.endpoints[idx]
+					for idx, f := range epPort.Ep.Functions {
 
-					ep.pdfid = f.PDFID
-					ep.bound = f.Bound != 0
-					ep.boundPaxId = f.BoundPAXID
-					ep.boundHvdPhyId = f.BoundHVDPhyPID
-					ep.boundHvdLogId = f.BoundHVDLogPID
+						if int(f.FunctionID) > len(p.endpoints) {
+							break
+						}
+
+						ep := p.endpoints[idx]
+
+						ep.pdfid = f.PDFID
+						ep.bound = f.Bound != 0
+						ep.boundPaxId = f.BoundPAXID
+						ep.boundHvdPhyId = f.BoundHVDPhyPID
+						ep.boundHvdLogId = f.BoundHVDLogPID
+					}
+
+					return nil
 				}
-
-				return nil
 			}
+
+			log.Infof("Switch %s enumerting endpoint %d", p.swtch.id, p.config.Port)
+			p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p))
 		}
-
-		log.Infof("Switch %s enumerting endpoint %d", p.swtch.id, p.config.Port)
-		p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p))
-	}
-
+	*/
 	return nil
 }
 
