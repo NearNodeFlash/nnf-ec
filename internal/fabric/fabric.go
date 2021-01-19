@@ -367,39 +367,39 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Debugf("    Downstream Ports: %d", switchConf.DownstreamPortCount)
 	}
 
-	/*
-		f.switches = make([]Switch, len(c.Switches))
-		for switchIdx, switchConf := range c.Switches {
-			log.Infof("Initialize switch %s", switchConf.Id)
-			s := Switch{
-				id:     switchConf.Id,
-				fabric: f,
-				config: &c.Switches[switchIdx],
-				ports:  make([]Port, len(switchConf.Ports)),
-			}
-
-			if err := s.identify(); err != nil {
-				log.WithError(err).Warnf("Failed to identify switch %s", s.id)
-			}
-
-			f.switches[switchIdx] = s
-
-			for portIdx, portConf := range switchConf.Ports {
-				portType := portConf.getPortType()
-
-				s.ports[portIdx] = Port{
-					swtch:  &f.switches[switchIdx],
-					config: &switchConf.Ports[portIdx],
-					typ:    portType,
-					idx:    portIdx,
-				}
-
-				if portType == sf.MANAGEMENT_PORT_PV130PT {
-					s.mgmtPort = &s.ports[portIdx]
-				}
-			}
+	f.switches = make([]Switch, len(c.Switches))
+	for switchIdx, switchConf := range c.Switches {
+		log.Infof("Initialize switch %s", switchConf.Id)
+		s := Switch{
+			id:     switchConf.Id,
+			fabric: f,
+			config: &c.Switches[switchIdx],
+			ports:  make([]Port, len(switchConf.Ports)),
 		}
 
+		if err := s.identify(); err != nil {
+			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
+		}
+
+		f.switches[switchIdx] = s
+
+		for portIdx, portConf := range switchConf.Ports {
+			portType := portConf.getPortType()
+
+			s.ports[portIdx] = Port{
+				swtch:  &f.switches[switchIdx],
+				config: &switchConf.Ports[portIdx],
+				typ:    portType,
+				idx:    portIdx,
+			}
+
+			if portType == sf.MANAGEMENT_PORT_PV130PT {
+				s.mgmtPort = &s.ports[portIdx]
+			}
+		}
+	}
+
+	/*
 		// create the endpoints
 
 		// Endpoint and Port relation
