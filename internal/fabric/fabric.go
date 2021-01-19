@@ -468,44 +468,46 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		}
 	}
 
-	// create the endpoint groups & connections
+	/*
+		// create the endpoint groups & connections
 
-	f.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
-	f.connections = make([]Connection, mangementAndUpstreamEndpointCount)
-	for endpointGroupIdx := range fabric.endpointGroups {
-		endpointGroup := &fabric.endpointGroups[endpointGroupIdx]
-		connection := &fabric.connections[endpointGroupIdx]
+		f.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
+		f.connections = make([]Connection, mangementAndUpstreamEndpointCount)
+		for endpointGroupIdx := range fabric.endpointGroups {
+			endpointGroup := &fabric.endpointGroups[endpointGroupIdx]
+			connection := &fabric.connections[endpointGroupIdx]
 
-		endpointGroup.id = strconv.Itoa(endpointGroupIdx)
-		endpointGroup.connection = connection
-		endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
-		endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
+			endpointGroup.id = strconv.Itoa(endpointGroupIdx)
+			endpointGroup.connection = connection
+			endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
+			endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
 
-		for idx := range endpointGroup.endpoints[1:] {
-			endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
+			for idx := range endpointGroup.endpoints[1:] {
+				endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
+			}
+
+			connection.endpointGroup = endpointGroup
+
 		}
 
-		connection.endpointGroup = endpointGroup
+		// initialize ports
 
-	}
-
-	// initialize ports
-
-	for _, s := range f.switches {
-		for _, p := range s.ports {
-			if err := p.Initialize(); err != nil {
-				log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
+		for _, s := range f.switches {
+			for _, p := range s.ports {
+				if err := p.Initialize(); err != nil {
+					log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
+				}
 			}
 		}
-	}
 
-	// initialize connections
+		// initialize connections
 
-	for _, c := range f.connections {
-		if err := c.Initialize(); err != nil {
-			log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
+		for _, c := range f.connections {
+			if err := c.Initialize(); err != nil {
+				log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
+			}
 		}
-	}
+	*/
 
 	return nil
 }
