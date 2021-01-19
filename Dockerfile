@@ -53,9 +53,11 @@ COPY pkg ./pkg
 COPY go.mod go.sum ./
 #RUN go mod vendor
 COPY vendor ./vendor
+COPY bin ./bin
 
 # Build nnf-ec binary
 RUN set -ex && go build -v -i -o /usr/local/bin/nnf-ec ./cmd/nnf_ec.go
+
 ENTRYPOINT ["/bin/sh"]
 
 FROM dtr.dev.cray.com/baseos/centos:centos7 AS application
@@ -66,3 +68,5 @@ COPY --from=0 /usr/local/bin/nnf-ec /usr/local/bin/nnf-ec
 #RUN yum install -y udev bash && yum clean all
 
 ENTRYPOINT ["/usr/local/bin/nnf-ec"]
+
+
