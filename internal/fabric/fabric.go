@@ -76,7 +76,7 @@ type Connection struct {
 	endpointGroup *EndpointGroup
 }
 
-var fabric *Fabric
+var fabric Fabric
 
 func isFabric(id string) bool        { return id == FabricId }
 func isSwitch(id string) bool        { _, err := fabric.findSwitch(id); return err == nil }
@@ -341,11 +341,11 @@ func (c *Connection) Initialize() error {
 // Initialize
 func Initialize(ctrl SwitchtecControllerInterface) error {
 
-	fabric = &Fabric{
+	fabric = Fabric{
 		id:   FabricId,
 		ctrl: ctrl,
 	}
-	f := fabric
+	f := &fabric
 
 	log.SetLevel(log.DebugLevel)
 	log.Infof("Initialize %s Fabric", f.id)
@@ -370,18 +370,18 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	f.switches = make([]Switch, len(c.Switches))
 	for switchIdx, switchConf := range c.Switches {
 		log.Infof("Initialize switch %s", switchConf.Id)
-		s := Switch{
+		f.switches[switchIdx] = Switch{
 			id:     switchConf.Id,
 			fabric: f,
 			config: &c.Switches[switchIdx],
 			ports:  make([]Port, len(switchConf.Ports)),
 		}
 
+		s := &f.switches[switchIdx]
+
 		if err := s.identify(); err != nil {
 			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
 		}
-
-		f.switches[switchIdx] = s
 
 		for portIdx, portConf := range switchConf.Ports {
 			portType := portConf.getPortType()
@@ -391,10 +391,6 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 				config: &switchConf.Ports[portIdx],
 				typ:    portType,
 				idx:    portIdx,
-			}
-
-			if portType == sf.MANAGEMENT_PORT_PV130PT {
-				s.mgmtPort = &s.ports[portIdx]
 			}
 		}
 	}
