@@ -379,9 +379,11 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 		s := &f.switches[switchIdx]
 
+		log.Infof("Initialize switch %s", switchConf.Id)
 		if err := s.identify(); err != nil {
 			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
 		}
+		log.Infof("Switch %s initialized: PAX %d", switchConf.Id, s.paxId)
 
 		for portIdx, portConf := range switchConf.Ports {
 			portType := portConf.getPortType()
