@@ -212,19 +212,23 @@ func (s *Switch) identify() error {
 
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
+		log.Debugf("Identify Switch %s: Opening %s", s.id, path)
 		dev, err := f.ctrl.Open(path)
 		if os.IsNotExist(err) {
 			log.WithError(err).Debugf("path %s", path)
 			continue
 		} else if err != nil {
+			log.WithError(err).Warnf("Identify Switch %s: Open Error", s.id)
 			return err
 		}
 
 		paxId, err := dev.Identify()
 		if err != nil {
+			log.WithError(err).Warnf("Identify Switch %s: Identify Error", s.id)
 			return err
 		}
 
+		log.Infof("Identify Switch %s: Device ID: %d", s.id, paxId)
 		if id := strconv.Itoa(int(paxId)); id == s.id {
 			s.dev = dev
 			s.path = path
@@ -235,7 +239,7 @@ func (s *Switch) identify() error {
 		dev.Close()
 	}
 
-	return fmt.Errorf("Could not identify switch %s", s.id) // TODO: Switch not found
+	return fmt.Errorf("Identify Switch %s: Could Not ID Switch", s.id) // TODO: Switch not found
 }
 
 // findPort - Finds the i'th port of portType in the switch
@@ -386,6 +390,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Infof("identify switch %s", switchConf.Id)
 		if err := s.identify(); err != nil {
 			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
+			// TODO: Set Switch Down
 		}
 		log.Infof("Switch %s identified: PAX %d", switchConf.Id, s.paxId)
 
