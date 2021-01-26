@@ -36,4 +36,23 @@ type Api interface {
 
 	RedfishV1FabricsFabricIdConnectionsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1FabricsFabricIdConnectionsConnectionIdGet(w http.ResponseWriter, r *http.Request)
+
+	//RedfishV1ChassisChassisIdDrivesGet(w http.ResponseWriter, r *http.Request)
+	//RedfishV1ChassisChassisIdDrivesDriveIdGet(w http.ResponseWriter, r *http.Request)
+
+	RedfishV1StorageGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageStorageIdGet(w http.ResponseWriter, r *http.Request)
+
+	RedfishV1StorageStorageIdStoragePoolsGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageStorageIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request)
+
+	RedfishV1StorageStorageIdControllersGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageStorageIdControllersControllerIdGet(w http.ResponseWriter, r *http.Request)
+
+	RedfishV1StorageStorageIdVolumesGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageStorageIdVolumesPost(w http.ResponseWriter, r *http.Request)
+
+	RedfishV1StorageStorageIdVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageStorageIdVolumesVolumeIdDelete(w http.ResponseWriter, r *http.Request)
+
 }

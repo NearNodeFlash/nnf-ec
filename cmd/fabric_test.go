@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
 )
 
 func TestFabric(t *testing.T) {

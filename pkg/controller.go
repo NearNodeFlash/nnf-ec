@@ -13,7 +13,7 @@ package nnf
 
 import (
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
-	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
 )
 
 var (

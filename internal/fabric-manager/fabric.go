@@ -159,6 +159,10 @@ func (f *Fabric) getDownstreamEndpointRelativePortIndex(idx int) int {
 	return (idx - (f.managementEndpointCount + f.upstreamEndpointCount)) / (1 /*PF*/ + f.managementEndpointCount + f.upstreamEndpointCount)
 }
 
+func (f *Fabric) getDownstreamEndpointIndex(deviceIdx int, functionIdx int) int {
+	return (deviceIdx * (1 /*PF*/ + f.managementEndpointCount + f.upstreamEndpointCount)) + functionIdx
+}
+
 func (f *Fabric) findEndpoint(endpointId string) (*Endpoint, error) {
 	id, err := strconv.Atoi(endpointId)
 	if err != nil {

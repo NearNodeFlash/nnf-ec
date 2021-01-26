@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
-	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
+	nvmenamespace "stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
 	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
 )
 
@@ -26,6 +28,15 @@ func NewDefaultApiService() Api {
 // Params -
 func Params(r *http.Request) map[string]string {
 	return mux.Vars(r)
+}
+
+func UnmarshalRequest(r *http.Request, model interface{}) error {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(body, &model)
 }
 
 // RedfishV1FabricsGet -
@@ -216,37 +227,170 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsConnectionIdGet(w h
 	connectionId := params["ConnectionId"]
 
 	model := sf.ConnectionV100Connection{
-		OdataId: fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, connectionId),
+		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, connectionId),
 		OdataType: "#Connection.v1_0_0.Connection",
-		Name: "Connection",
+		Name:      "Connection",
 	}
 
 	err := fabric.FabricIdConnectionsConnectionIdGet(fabricId, connectionId, &model)
 
 	encodeResponse(model, err, w)
-	
-	// THIS DOES NOT EXIST
-	/*
-		params := Params(r)
-		fabricId := params["FabricId"]
+}
 
-		// TODO: Move the read & unmarshal into a function
-		var model sf.ConnectionV100Connection
+// RedfishV1StorageGet
+func (*DefaultApiService) RedfishV1StorageGet(w http.ResponseWriter, r *http.Request) {
 
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			// TODO:
-		}
+	model := sf.StorageCollectionStorageCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage"),
+		OdataType: "#StorageCollection.v1_0_0.StorageCollection",
+		Name:      "Storage Collection",
+	}
 
-		err = json.Unmarshal(body, &model)
-		if err != nil {
-			// TODO:
-		}
+	err := nvmenamespace.Get(&model)
 
-		//err = fabric.FabricIdConnectionsPost(fabricId, &model)
-		encodeResponse(model, err, w) // TODO: Need to return header information for the ConnectionId
-	*/
+	encodeResponse(model, err, w)
+}
 
+// RedfishV1StorageStorageIdGet
+func (*DefaultApiService) RedfishV1StorageStorageIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+
+	model := sf.StorageV190Storage{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s", storageId),
+		OdataType: "#Storage.v1_9_0.Storage",
+		Name:      "Storage",
+	}
+
+	err := nvmenamespace.StorageIdGet(storageId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdStoragePoolsGet
+func (*DefaultApiService) RedfishV1StorageStorageIdStoragePoolsGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+
+	model := sf.StoragePoolCollectionStoragePoolCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s/StoragePools", storageId),
+		OdataType: "#StoragePoolCollection.v1_0_0.StoragePoolCollection",
+		Name:      "Storage Pool Collection",
+	}
+
+	err := nvmenamespace.StorageIdStoragePoolsGet(storageId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdStoragePoolsStoragePoolIdGet
+func (*DefaultApiService) RedfishV1StorageStorageIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+	storagePoolId := params["StoragePoolId"]
+
+	model := sf.StoragePoolV150StoragePool{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s/StoragePools/%s", storageId, storagePoolId),
+		OdataType: "#StoragePool.v1_5_0.StoragePool",
+		Name:      "Storage Pool",
+	}
+
+	err := nvmenamespace.StorageIdStoragePoolIdGet(storageId, storagePoolId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdControllersGet
+func (*DefaultApiService) RedfishV1StorageStorageIdControllersGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+
+	model := sf.StorageControllerCollectionStorageControllerCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s/StorageControllers", storageId),
+		OdataType: "#StorageControllerCollection.v1_0_0.StorageControllerCollection",
+		Name:      "Storage Controller Collection",
+	}
+
+	err := nvmenamespace.StorageIdControllersGet(storageId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdControllersControllerIdGet
+func (*DefaultApiService) RedfishV1StorageStorageIdControllersControllerIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+	controllerId := params["ControllerId"]
+
+	model := sf.StorageControllerV100StorageController{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s/StorageControllers/%s", storageId, controllerId),
+		OdataType: "#StorageController.v1_0_0.StorageController",
+		Name:      "Storage Controller",
+	}
+
+	err := nvmenamespace.StorageIdControllerIdGet(storageId, controllerId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdVolumesGet
+func (*DefaultApiService) RedfishV1StorageStorageIdVolumesGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+
+	model := sf.VolumeCollectionVolumeCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s/Volumes", storageId),
+		OdataType: "#VolumeCollection.v1_0_0.VolumeCollection",
+		Name:      "Volume Collection",
+	}
+
+	err := nvmenamespace.StorageIdVolumesGet(storageId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdVolumesPost
+func (*DefaultApiService) RedfishV1StorageStorageIdVolumesPost(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+
+	var model sf.VolumeV161Volume
+
+	if err := UnmarshalRequest(r, &model); err != nil {
+		encodeResponse(model, err, w)
+	}
+
+	_, err := nvmenamespace.StorageIdVolumePost(storageId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdVolumesVolumeIdGet
+func (*DefaultApiService) RedfishV1StorageStorageIdVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+	volumeId := params["VolumeId"]
+
+	model := sf.VolumeV161Volume{
+		OdataId:   fmt.Sprintf("/redfish/v1/Storage/%s/Volumes/%s", storageId, volumeId),
+		OdataType: "Volume.v1_6_1.Volume",
+		Name:      "Volume",
+	}
+
+	err := nvmenamespace.StorageIdVolumeIdGet(storageId, volumeId, &model)
+
+	encodeResponse(model, err, w)
+}
+
+// RedfishV1StorageStorageIdVolumesVolumeIdDelete
+func (*DefaultApiService) RedfishV1StorageStorageIdVolumesVolumeIdDelete(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageId := params["StorageId"]
+	volumeId := params["VolumeId"]
+
+	err := nvmenamespace.StorageIdVolumeIdDelete(storageId, volumeId)
+
+	encodeResponse(nil, err, w)
 }
 
 func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
@@ -260,14 +404,16 @@ func encodeResponse(s interface{}, err error, w http.ResponseWriter) {
 		return
 	}
 
-	response, err := json.Marshal(s)
-	if err != nil {
-		log.WithError(err).Error("Failed to marshal json response")
-		// TODO
-	}
-	_, err = w.Write(response)
-	if err != nil {
-		log.WithError(err).Error("Failed to write json response")
-		// TODO
+	if s != nil {
+		response, err := json.Marshal(s)
+		if err != nil {
+			log.WithError(err).Error("Failed to marshal json response")
+			// TODO
+		}
+		_, err = w.Write(response)
+		if err != nil {
+			log.WithError(err).Error("Failed to write json response")
+			// TODO
+		}
 	}
 }
