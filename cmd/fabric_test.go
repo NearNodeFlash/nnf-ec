@@ -7,7 +7,6 @@ import (
 )
 
 func TestFabric(t *testing.T) {
-
 	if err := fabric.Initialize(fabric.NewMockSwitchtecController()); err != nil {
 		t.Error(err)
 	}

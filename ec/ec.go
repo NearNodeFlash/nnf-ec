@@ -60,6 +60,7 @@ type ResponseWriter struct {
 
 func NewResponseWriter() ResponseWriter {
 	return ResponseWriter{
+		Hdr:        http.Header{},
 		StatusCode: http.StatusOK,
 		Buffer:     bytes.NewBuffer([]byte{}),
 	}
@@ -159,7 +160,7 @@ func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest)
 
 // Run -
 func Run(c *Controller) {
-	log.Infof("Starting element controller %s  on port %s", c.Name, c.Port)
+	log.Infof("Starting %s on port %s", c.Name, c.Port)
 
 	if err := c.InitFunc(); err != nil {
 		log.WithError(err).Errorf("Failed to initialize element controller %s", c.Name)
@@ -175,7 +176,7 @@ func Run(c *Controller) {
 			Handler(route.HandlerFunc)
 	}
 
-	listen, err := net.Listen("tcp", ":"+c.Port)
+	listen, err := net.Listen("tcp", "localhost:"+c.Port)
 	if err != nil {
 		log.WithError(err).Fatalf("Failed to listen on port %s", c.Port)
 	}

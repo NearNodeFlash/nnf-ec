@@ -311,10 +311,10 @@ func (s *Switch) getFirmwareVersion() string {
 
 // findPort - Finds the i'th port of portType in the switch
 func (s *Switch) findPort(portType sf.PortV130PortType, idx int) *Port {
-	for _, p := range s.ports {
-		if p.typ == portType {
+	for portIdx, port := range s.ports {
+		if port.typ == portType {
 			if idx == 0 {
-				return &p
+				return &s.ports[portIdx]
 			}
 			idx--
 		}
@@ -430,6 +430,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 	c, err := loadConfig()
 	if err != nil {
+		log.WithError(err).Errorf("Failed to load % configuration", f.id)
 		return err
 	}
 	fabric.config = c
@@ -539,8 +540,8 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		case f.isDownstreamEndpoint(endpointIdx):
 			port := f.findPort(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
 
-			log.Debugf("Processing DSP Endpoint %d: Port %s", endpointIdx, port.id)
-			log.Debugf("  Relative Port Index:           % 3d", f.getDownstreamEndpointRelativePortIndex(endpointIdx))
+			//log.Debugf("Processing DSP Endpoint %d: Port %s", endpointIdx, port.id)
+			//log.Debugf("  Relative Port Index:           % 3d", f.getDownstreamEndpointRelativePortIndex(endpointIdx))
 
 			endpoint.endpointType = sf.DRIVE_EV150ET
 			endpoint.ports = make([]*Port, 1)
@@ -598,6 +599,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		}
 	}
 
+	log.Infof("%s Fabric Initialization Finished", f.id)
 	return nil
 }
 
