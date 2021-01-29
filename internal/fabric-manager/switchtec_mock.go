@@ -155,6 +155,22 @@ func (d MockSwitchtecDevice) Identify() (int32, error) {
 	return int32(d.id), nil
 }
 
+func (d MockSwitchtecDevice) GetFirmwareVersion() (string, error) {
+	return "MockFirmware", nil
+}
+
+func (d MockSwitchtecDevice) GetModel() (string, error) {
+	return "MockModel", nil
+}
+
+func (d MockSwitchtecDevice) GetManufacturer() (string, error) {
+	return "MockMfg", nil
+}
+
+func (d MockSwitchtecDevice) GetSerialNumber() (string, error) {
+	return "MockSerialNumber", nil
+}
+
 func (d MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
 
 	for _, port := range d.ports {

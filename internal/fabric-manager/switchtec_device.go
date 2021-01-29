@@ -2,6 +2,7 @@ package fabric
 
 import (
 	"os"
+	"strconv"
 
 	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
 )
@@ -36,6 +37,24 @@ func (d SwitchtecDevice) Close() {
 
 func (d SwitchtecDevice) Identify() (int32, error) {
 	return d.dev.Identify()
+}
+
+func (d SwitchtecDevice) GetFirmwareVersion() (string, error) {
+	return d.dev.GetFirmwareVersion()
+}
+
+func (d SwitchtecDevice) GetModel() (string, error) {
+	id, err := d.dev.GetDeviceId()
+	return strconv.Itoa(int(id)), err
+}
+
+func (d SwitchtecDevice) GetManufacturer() (string, error) {
+	return "Microsemi", nil
+}
+
+func (d SwitchtecDevice) GetSerialNumber() (string, error) {
+	sn, err := d.dev.GetSerialNumber()
+	return strconv.Itoa(int(sn)), err
 }
 
 func (d SwitchtecDevice) EnumerateEndpoint(id uint8, f func(epPort *switchtec.DumpEpPortDevice) error) error {

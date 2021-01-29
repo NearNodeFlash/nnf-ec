@@ -42,6 +42,12 @@ type Switch struct {
 
 	fabric   *Fabric
 	mgmtPort *Port
+
+	// Information is cached on switch initialization
+	model           string
+	manufacturer    string
+	serialNumber    string
+	firmwareVersion string
 }
 
 type Port struct {
@@ -233,6 +239,14 @@ func (s *Switch) identify() error {
 			s.dev = dev
 			s.path = path
 			s.paxId = paxId
+
+			log.Infof("Identify Switch %s: Loading Mfg Info", s.id)
+
+			s.model = s.getModel()
+			s.manufacturer = s.getManufacturer()
+			s.serialNumber = s.getSerialNumber()
+			s.firmwareVersion = s.getFirmwareVersion()
+
 			return nil
 		}
 
@@ -240,6 +254,56 @@ func (s *Switch) identify() error {
 	}
 
 	return fmt.Errorf("Identify Switch %s: Could Not ID Switch", s.id) // TODO: Switch not found
+}
+
+func (s *Switch) getStatus() (stat sf.ResourceStatus) {
+
+	if s.dev == nil {
+		stat.Health = sf.CRITICAL_RH
+		stat.State = sf.UNAVAILABLE_OFFLINE_RST
+	} else {
+		stat.Health = sf.OK_RH
+		stat.State = sf.ENABLED_RST
+	}
+
+	return stat
+}
+
+func (s *Switch) getDeviceStringByFunc(f func(dev SwitchtecDeviceInterface) (string, error)) string {
+	if s.dev != nil {
+		ret, err := f(s.dev)
+		if err != nil {
+			log.WithError(err).Warnf("Failed to retrieve device string")
+		}
+
+		return ret
+	}
+
+	return ""
+}
+
+func (s *Switch) getModel() string {
+	return s.getDeviceStringByFunc(func(dev SwitchtecDeviceInterface) (string, error) {
+		return dev.GetModel()
+	})
+}
+
+func (s *Switch) getManufacturer() string {
+	return s.getDeviceStringByFunc(func(dev SwitchtecDeviceInterface) (string, error) {
+		return dev.GetManufacturer()
+	})
+}
+
+func (s *Switch) getSerialNumber() string {
+	return s.getDeviceStringByFunc(func(dev SwitchtecDeviceInterface) (string, error) {
+		return dev.GetSerialNumber()
+	})
+}
+
+func (s *Switch) getFirmwareVersion() string {
+	return s.getDeviceStringByFunc(func(dev SwitchtecDeviceInterface) (string, error) {
+		return dev.GetFirmwareVersion()
+	})
 }
 
 // findPort - Finds the i'th port of portType in the switch
@@ -390,8 +454,8 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Infof("identify switch %s", switchConf.Id)
 		if err := s.identify(); err != nil {
 			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
-			// TODO: Set Switch Down
 		}
+		
 		log.Infof("Switch %s identified: PAX %d", switchConf.Id, s.paxId)
 
 		for portIdx, portConf := range switchConf.Ports {
@@ -568,23 +632,19 @@ func FabricIdSwitchesSwitchIdGet(fabricId string, switchId string, model *sf.Swi
 		return ec.ErrNotFound
 	}
 
-	model.Id = switchId
-	model.Status.Health = sf.OK_RH
-	model.SwitchType = sf.PC_IE_PP
-
-	_, err := fabric.findSwitch(switchId)
+	s, err := fabric.findSwitch(switchId)
 	if err != nil {
-		model.Status.State = sf.UNAVAILABLE_OFFLINE_RST
-	} else {
-		model.Status.State = sf.ENABLED_RST
+		return ec.ErrNotFound
 	}
 
-	// TODO: None of this is present in the switchtec-user util - how to get this information?
-	model.FirmwareVersion = "TODO"
-	model.Model = "TODO"
-	model.Manufacturer = "TODO"
-	model.PartNumber = "TODO"
-	model.SerialNumber = "TODO"
+	model.Id = switchId
+	model.SwitchType = sf.PC_IE_PP
+
+	model.Status = s.getStatus()
+	model.Model = s.getModel()
+	model.Manufacturer = s.getManufacturer()
+	model.SerialNumber = s.getSerialNumber()
+	model.FirmwareVersion = s.getFirmwareVersion()
 
 	model.Ports.OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s/Ports", fabricId, switchId)
 

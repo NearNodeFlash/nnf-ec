@@ -10,8 +10,13 @@ type SwitchtecControllerInterface interface {
 
 type SwitchtecDeviceInterface interface {
 	Close()
-	
+
 	Identify() (int32, error)
+
+	GetFirmwareVersion() (string, error)
+	GetModel() (string, error)
+	GetManufacturer() (string, error)
+	GetSerialNumber() (string, error)
 
 	EnumerateEndpoint(uint8, func(epPort *switchtec.DumpEpPortDevice) error) error
 
