@@ -52,7 +52,6 @@ type Switch struct {
 
 type Port struct {
 	id     string
-	idx    int
 	typ    sf.PortV130PortType
 	swtch  *Switch
 	config *PortConfig
@@ -455,93 +454,91 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		if err := s.identify(); err != nil {
 			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
 		}
-		
+
 		log.Infof("Switch %s identified: PAX %d", switchConf.Id, s.paxId)
 
 		for portIdx, portConf := range switchConf.Ports {
 			portType := portConf.getPortType()
 
 			s.ports[portIdx] = Port{
+				id:     strconv.Itoa(portIdx),
 				swtch:  &f.switches[switchIdx],
 				config: &switchConf.Ports[portIdx],
 				typ:    portType,
-				idx:    portIdx,
 			}
 		}
 	}
 
-	/*
-		// create the endpoints
+	// create the endpoints
 
-		// Endpoint and Port relation
-		//
-		//       Endpoint         Port           Switch
-		// [0  ] Rabbit           Mgmt           0, 1              One endpoint per mgmt (one mgmt port per switch)
-		// [1  ] Compute 0        USP0			 0                 One endpoint per compuete
-		// [2  ] Compute 1        USP1           0
-		//   ...
-		// [N-1] Compute N        USPN           1
-		// [N  ] Drive 0 PF       DSP0           0 ---------------|
-		// [N+1] Drive 0 VF0      DSP0           0                | Each drive is enumerated out to M endpoints
-		// [N+2] Drive 0 VF1      DSP0           0                |   1 for the physical function (unused)
-		//   ...                                                  |   1 for the rabbit
-		// [N+M] Drive 0 VFM-1    DSP0           0 ---------------|   1 per compute
-		//
+	// Endpoint and Port relation
+	//
+	//       Endpoint         Port           Switch
+	// [0  ] Rabbit           Mgmt           0, 1              One endpoint per mgmt (one mgmt port per switch)
+	// [1  ] Compute 0        USP0			 0                 One endpoint per compuete
+	// [2  ] Compute 1        USP1           0
+	//   ...
+	// [N-1] Compute N        USPN           1
+	// [N  ] Drive 0 PF       DSP0           0 ---------------|
+	// [N+1] Drive 0 VF0      DSP0           0                | Each drive is enumerated out to M endpoints
+	// [N+2] Drive 0 VF1      DSP0           0                |   1 for the physical function (unused)
+	//   ...                                                  |   1 for the rabbit
+	// [N+M] Drive 0 VFM-1    DSP0           0 ---------------|   1 per compute
+	//
 
-			f.managementEndpointCount = 1
-			f.upstreamEndpointCount = f.config.UpstreamPortCount
+	f.managementEndpointCount = 1
+	f.upstreamEndpointCount = f.config.UpstreamPortCount
 
-			mangementAndUpstreamEndpointCount := f.managementEndpointCount + f.upstreamEndpointCount
-			f.downstreamEndpointCount = (1 // PF
-				 + mangementAndUpstreamEndpointCount) * f.config.DownstreamPortCount
+	mangementAndUpstreamEndpointCount := f.managementEndpointCount + f.upstreamEndpointCount
+	f.downstreamEndpointCount = (1 + // PF
+		mangementAndUpstreamEndpointCount) * f.config.DownstreamPortCount
 
-			f.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+f.downstreamEndpointCount)
+	f.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+f.downstreamEndpointCount)
 
-			for endpointIdx := range f.endpoints {
-				endpoint := &f.endpoints[endpointIdx]
+	for endpointIdx := range f.endpoints {
+		endpoint := &f.endpoints[endpointIdx]
 
-				endpoint.id = strconv.Itoa(endpointIdx)
+		endpoint.id = strconv.Itoa(endpointIdx)
 
-				switch {
-				case f.isManagementEndpoint(endpointIdx):
-					endpoint.endpointType = sf.PROCESSOR_EV150ET
-					endpoint.ports = make([]*Port, len(fabric.switches))
-					for switchIdx, s := range fabric.switches {
-						port := s.findPort(sf.MANAGEMENT_PORT_PV130PT, 0)
+		switch {
+		case f.isManagementEndpoint(endpointIdx):
+			endpoint.endpointType = sf.PROCESSOR_EV150ET
+			endpoint.ports = make([]*Port, len(fabric.switches))
+			for switchIdx, s := range fabric.switches {
+				port := s.findPort(sf.MANAGEMENT_PORT_PV130PT, 0)
 
-						endpoint.ports[switchIdx] = port
+				endpoint.ports[switchIdx] = port
 
-						port.endpoints = make([]*Endpoint, 1)
-						port.endpoints[0] = endpoint
-					}
-				case f.isUpstreamEndpoint(endpointIdx):
-					port := f.findPort(sf.UPSTREAM_PORT_PV130PT, f.getUpstreamEndpointRelativePortIndex(endpointIdx))
-
-					endpoint.endpointType = sf.STORAGE_INITIATOR_EV150ET
-					endpoint.ports = make([]*Port, 1)
-					endpoint.ports[0] = port
-
-					port.endpoints = make([]*Endpoint, 1)
-					port.endpoints[0] = endpoint
-
-				case f.isDownstreamEndpoint(endpointIdx):
-					port := f.findPort(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
-
-					endpoint.endpointType = sf.DRIVE_EV150ET
-					endpoint.ports = make([]*Port, 1)
-					endpoint.ports[0] = port
-
-					if len(port.endpoints) == 0 {
-						port.endpoints = make([]*Endpoint, 1 // PF
-							 +mangementAndUpstreamEndpointCount)
-						// we will initialize the port's endpoints when the endpointGroup is initialized
-					}
-
-				default:
-					panic(fmt.Errorf("Unhandled endpoint index %d", endpointIdx))
-				}
+				port.endpoints = make([]*Endpoint, 1)
+				port.endpoints[0] = endpoint
 			}
-	*/
+		case f.isUpstreamEndpoint(endpointIdx):
+			port := f.findPort(sf.UPSTREAM_PORT_PV130PT, f.getUpstreamEndpointRelativePortIndex(endpointIdx))
+
+			endpoint.endpointType = sf.STORAGE_INITIATOR_EV150ET
+			endpoint.ports = make([]*Port, 1)
+			endpoint.ports[0] = port
+
+			port.endpoints = make([]*Endpoint, 1)
+			port.endpoints[0] = endpoint
+
+		case f.isDownstreamEndpoint(endpointIdx):
+			port := f.findPort(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
+
+			endpoint.endpointType = sf.DRIVE_EV150ET
+			endpoint.ports = make([]*Port, 1)
+			endpoint.ports[0] = port
+
+			if len(port.endpoints) == 0 {
+				port.endpoints = make([]*Endpoint, 1+ // PF
+					mangementAndUpstreamEndpointCount)
+				// we will initialize the port's endpoints when the endpointGroup is initialized
+			}
+
+		default:
+			panic(fmt.Errorf("Unhandled endpoint index %d", endpointIdx))
+		}
+	}
 
 	/*
 		// create the endpoint groups & connections
