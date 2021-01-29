@@ -66,6 +66,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1FabricsFabricIdSwitchesSwitchIdPortsGet,
 		},
 		{
+			Name:        "RedfishV1FabricsFabricIdSwitchesSwitchIdPortsPortIdGet",
+			Method:      GET_METHOD,
+			Path:        "/redfish/v1/Fabrics/{FabricId}/Switches/{SwitchId}/Ports/{PortId}",
+			HandlerFunc: s.RedfishV1FabricsFabricIdSwitchesSwitchIdPortsPortIdGet,
+		},
+		{
 			Name:        "RedfishV1FabricsFabricIdEndpointsGet",
 			Method:      GET_METHOD,
 			Path:        "/redfish/v1/Fabrics/{FabricId}/Endpoints",
