@@ -10,6 +10,7 @@ import (
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
 	openapi "stash.us.cray.com/sp/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
+	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
 )
 
 const (
@@ -339,41 +340,42 @@ func (p *Port) Initialize() error {
 		log.WithError(err).Warnf("Failed to read port %d link status", p.id)
 	}
 
-	/*
-		switch p.typ {
-		case sf.DOWNSTREAM_PORT_PV130PT:
+	switch p.typ {
+	case sf.DOWNSTREAM_PORT_PV130PT:
 
-			processPort := func(port *Port) func(*switchtec.DumpEpPortDevice) error {
-				return func(epPort *switchtec.DumpEpPortDevice) error {
-					if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
-						log.Errorf("Port %d is down", p.id)
-						// Port & Associated Endpoints are Down/Unreachable
-						//p.Down() // TODO
-					}
+		processPort := func(port *Port) func(*switchtec.DumpEpPortDevice) error {
+			return func(epPort *switchtec.DumpEpPortDevice) error {
 
-					for idx, f := range epPort.Ep.Functions {
-
-						if int(f.FunctionID) > len(p.endpoints) {
-							break
-						}
-
-						ep := p.endpoints[idx]
-
-						ep.pdfid = f.PDFID
-						ep.bound = f.Bound != 0
-						ep.boundPaxId = f.BoundPAXID
-						ep.boundHvdPhyId = f.BoundHVDPhyPID
-						ep.boundHvdLogId = f.BoundHVDLogPID
-					}
-
-					return nil
+				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
+					log.Errorf("Port %d is down", p.id)
+					// Port & Associated Endpoints are Down/Unreachable
+					//p.Down() // TODO
 				}
-			}
 
-			log.Infof("Switch %s enumerting endpoint %d", p.swtch.id, p.config.Port)
-			p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p))
+				log.Debugf("Processing EP Functions: %d", epPort.Ep.Functions)
+				for idx, f := range epPort.Ep.Functions {
+
+					if int(f.FunctionID) > len(p.endpoints) {
+						break
+					}
+
+					ep := p.endpoints[idx]
+
+					ep.pdfid = f.PDFID
+					ep.bound = f.Bound != 0
+					ep.boundPaxId = f.BoundPAXID
+					ep.boundHvdPhyId = f.BoundHVDPhyPID
+					ep.boundHvdLogId = f.BoundHVDLogPID
+				}
+
+				return nil
+			}
 		}
-	*/
+
+		log.Infof("Switch %s enumerting endpoint %d", p.swtch.id, p.config.Port)
+		p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p))
+	}
+
 	return nil
 }
 
@@ -540,46 +542,44 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		}
 	}
 
-	/*
-		// create the endpoint groups & connections
+	// create the endpoint groups & connections
 
-		f.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
-		f.connections = make([]Connection, mangementAndUpstreamEndpointCount)
-		for endpointGroupIdx := range fabric.endpointGroups {
-			endpointGroup := &fabric.endpointGroups[endpointGroupIdx]
-			connection := &fabric.connections[endpointGroupIdx]
+	f.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
+	f.connections = make([]Connection, mangementAndUpstreamEndpointCount)
+	for endpointGroupIdx := range fabric.endpointGroups {
+		endpointGroup := &fabric.endpointGroups[endpointGroupIdx]
+		connection := &fabric.connections[endpointGroupIdx]
 
-			endpointGroup.id = strconv.Itoa(endpointGroupIdx)
-			endpointGroup.connection = connection
-			endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
-			endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
+		endpointGroup.id = strconv.Itoa(endpointGroupIdx)
+		endpointGroup.connection = connection
+		endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
+		endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
 
-			for idx := range endpointGroup.endpoints[1:] {
-				endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
-			}
-
-			connection.endpointGroup = endpointGroup
-
+		for idx := range endpointGroup.endpoints[1:] {
+			endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
 		}
 
-		// initialize ports
+		connection.endpointGroup = endpointGroup
 
-		for _, s := range f.switches {
-			for _, p := range s.ports {
-				if err := p.Initialize(); err != nil {
-					log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
-				}
+	}
+
+	// initialize ports
+
+	for _, s := range f.switches {
+		for _, p := range s.ports {
+			if err := p.Initialize(); err != nil {
+				log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
 			}
 		}
+	}
 
-		// initialize connections
+	// initialize connections
 
-		for _, c := range f.connections {
-			if err := c.Initialize(); err != nil {
-				log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
-			}
+	for _, c := range f.connections {
+		if err := c.Initialize(); err != nil {
+			log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
 		}
-	*/
+	}
 
 	return nil
 }
