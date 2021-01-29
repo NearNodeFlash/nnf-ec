@@ -34,7 +34,9 @@ type Fabric struct {
 }
 
 type Switch struct {
-	id     string
+	id  string
+	idx int
+
 	paxId  int32
 	path   string
 	dev    SwitchtecDeviceInterface
@@ -62,6 +64,7 @@ type Port struct {
 
 type Endpoint struct {
 	id           string
+	idx          int
 	endpointType sf.EndpointV150EntityType
 	ports        []*Port
 
@@ -324,6 +327,8 @@ func (s *Switch) isDown() bool {
 	return !s.isReady()
 }
 
+func (p *Port) GetBaseEndpointIdx() int { return p.endpoints[0].idx }
+
 func (p *Port) LinkStatus() error {
 	// TODO
 	return nil
@@ -347,7 +352,7 @@ func (p *Port) Initialize() error {
 			return func(epPort *switchtec.DumpEpPortDevice) error {
 
 				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
-					log.Errorf("Port %d is down", p.id)
+					log.Errorf("Port %s is down", p.id)
 					// Port & Associated Endpoints are Down/Unreachable
 					//p.Down() // TODO
 				}
@@ -355,7 +360,7 @@ func (p *Port) Initialize() error {
 				log.Debugf("Processing EP Functions: %d", epPort.Ep.Functions)
 				for idx, f := range epPort.Ep.Functions {
 
-					if int(f.FunctionID) > len(p.endpoints) {
+					if idx >= len(p.endpoints) {
 						break
 					}
 
@@ -445,6 +450,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Infof("Initialize switch %s", switchConf.Id)
 		f.switches[switchIdx] = Switch{
 			id:     switchConf.Id,
+			idx:    switchIdx,
 			fabric: f,
 			config: &c.Switches[switchIdx],
 			ports:  make([]Port, len(switchConf.Ports)),
@@ -495,12 +501,18 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	f.downstreamEndpointCount = (1 + // PF
 		mangementAndUpstreamEndpointCount) * f.config.DownstreamPortCount
 
+	log.Debugf("Creating Endpoints:")
+	log.Debugf("   Management Endpoints: % 3d", f.managementEndpointCount)
+	log.Debugf("   Upstream Endpoints:   % 3d", f.upstreamEndpointCount)
+	log.Debugf("   Downstream Endpoints: % 3d", f.downstreamEndpointCount)
+
 	f.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+f.downstreamEndpointCount)
 
 	for endpointIdx := range f.endpoints {
 		endpoint := &f.endpoints[endpointIdx]
 
 		endpoint.id = strconv.Itoa(endpointIdx)
+		endpoint.idx = endpointIdx
 
 		switch {
 		case f.isManagementEndpoint(endpointIdx):
@@ -527,6 +539,9 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		case f.isDownstreamEndpoint(endpointIdx):
 			port := f.findPort(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
 
+			log.Debugf("Processing DSP Endpoint %d: Port %s", endpointIdx, port.id)
+			log.Debugf("  Relative Port Index:           % 3d", f.getDownstreamEndpointRelativePortIndex(endpointIdx))
+
 			endpoint.endpointType = sf.DRIVE_EV150ET
 			endpoint.ports = make([]*Port, 1)
 			endpoint.ports[0] = port
@@ -534,7 +549,9 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 			if len(port.endpoints) == 0 {
 				port.endpoints = make([]*Endpoint, 1+ // PF
 					mangementAndUpstreamEndpointCount)
-				// we will initialize the port's endpoints when the endpointGroup is initialized
+				port.endpoints[0] = endpoint
+			} else {
+				port.endpoints[endpointIdx-port.GetBaseEndpointIdx()] = endpoint
 			}
 
 		default:
