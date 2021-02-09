@@ -26,5 +26,3 @@ func TestFabricSwitchesDown(t *testing.T) {
 		t.Error(err)
 	}
 }
-
-// TODO: Get all the *Get endponts and test them

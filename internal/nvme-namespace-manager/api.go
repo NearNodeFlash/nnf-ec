@@ -1,8 +1,8 @@
 /*
- * Near Node Flash API
+ * Near Node Flash NVMe Namespace API
  *
  * This file contains the API interface for the Near-Node Flash
- * Element Controller. Each NNF implementation must define these
+ * NVMe Namespace API. Each NNF implementation must define these
  * methods. Please keep the names consisitent with the Redfish
  * API definitions.
  *
@@ -11,7 +11,7 @@
  * Copyright 2020 Hewlett Packard Enterprise Development LP
  */
 
-package nnf
+package nvmenamespace
 
 import (
 	"net/http"
@@ -19,24 +19,6 @@ import (
 
 // Api - defines an interface for Near-Node Flash related methods
 type Api interface {
-	RedfishV1FabricsGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1FabricsFabricIdGet(w http.ResponseWriter, r *http.Request)
-
-	RedfishV1FabricsFabricIdSwitchesGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1FabricsFabricIdSwitchesSwitchIdGet(w http.ResponseWriter, r *http.Request)
-
-	RedfishV1FabricsFabricIdSwitchesSwitchIdPortsGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1FabricsFabricIdSwitchesSwitchIdPortsPortIdGet(w http.ResponseWriter, r *http.Request)
-
-	RedfishV1FabricsFabricIdEndpointsGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1FabricsFabricIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request)
-
-	RedfishV1FabricsFabricIdEndpointGroupsGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1FabricsFabricIdEndpointGroupsEndpointGroupIdGet(w http.ResponseWriter, r *http.Request)
-
-	RedfishV1FabricsFabricIdConnectionsGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1FabricsFabricIdConnectionsConnectionIdGet(w http.ResponseWriter, r *http.Request)
-
 	//RedfishV1ChassisChassisIdDrivesGet(w http.ResponseWriter, r *http.Request)
 	//RedfishV1ChassisChassisIdDrivesDriveIdGet(w http.ResponseWriter, r *http.Request)
 
@@ -54,5 +36,4 @@ type Api interface {
 
 	RedfishV1StorageStorageIdVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageStorageIdVolumesVolumeIdDelete(w http.ResponseWriter, r *http.Request)
-
 }

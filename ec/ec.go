@@ -22,6 +22,13 @@ import (
 	pb "stash.us.cray.com/sp/dp-common/api/proto/v2/dp-ec"
 )
 
+var (
+	GET_METHOD    = strings.ToUpper("Get")
+	POST_METHOD   = strings.ToUpper("Post")
+	PATCH_METHOD  = strings.ToUpper("Patch")
+	DELETE_METHOD = strings.ToUpper("Delete")
+)
+
 // Route
 type Route struct {
 	Name        string
@@ -36,19 +43,21 @@ type Routes []Route
 // Router -
 type Router interface {
 	Routes() Routes
+
+	Init() error
+	Start() error
 }
 
-// ControllerRuntime -
-type InitFunc func() error
+// Routers -
+type Routers []Router
 
 // Controller -
 type Controller struct {
-	Name     string
-	Port     string
-	Version  string
-	InitFunc InitFunc
-	Router   Router
-	Mux      *mux.Router
+	Name    string
+	Port    string
+	Version string
+	Routers Routers
+	Mux     *mux.Router
 }
 
 // ResponseWriter -
@@ -162,18 +171,21 @@ func (c *Controller) ProcessTaskRequest(_ context.Context, in *pb.ECTaskRequest)
 func Run(c *Controller) {
 	log.Infof("Starting %s on port %s", c.Name, c.Port)
 
-	if err := c.InitFunc(); err != nil {
-		log.WithError(err).Errorf("Failed to initialize element controller %s", c.Name)
-		return
-	}
-
 	c.Mux = mux.NewRouter().StrictSlash(true)
-	for _, route := range c.Router.Routes() {
-		c.Mux.
-			Name(route.Name).
-			Methods(route.Method).
-			Path(route.Path).
-			Handler(route.HandlerFunc)
+	for routerIdx, router := range c.Routers {
+
+		if err := router.Init(); err != nil {
+			log.WithError(err).Errorf("Failed to initialize %s router %d", c.Name, routerIdx)
+			return
+		}
+
+		for _, route := range router.Routes() {
+			c.Mux.
+				Name(route.Name).
+				Methods(route.Method).
+				Path(route.Path).
+				Handler(route.HandlerFunc)
+		}
 	}
 
 	listen, err := net.Listen("tcp", "localhost:"+c.Port)

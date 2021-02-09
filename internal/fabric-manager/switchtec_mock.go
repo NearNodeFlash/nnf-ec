@@ -146,6 +146,10 @@ func (c *MockSwitchtecController) allocateNewPDFID() int {
 	return pdfid
 }
 
+func (MockSwitchtecDevice) Get() *switchtec.Device {
+	return nil
+}
+
 func (d MockSwitchtecDevice) Close() {
 	d.path = ""
 	d.id = -1

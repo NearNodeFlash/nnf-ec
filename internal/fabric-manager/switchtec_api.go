@@ -9,6 +9,8 @@ type SwitchtecControllerInterface interface {
 }
 
 type SwitchtecDeviceInterface interface {
+	Get() *switchtec.Device
+	
 	Close()
 
 	Identify() (int32, error)

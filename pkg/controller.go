@@ -13,7 +13,9 @@ package nnf
 
 import (
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
+
 	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
 )
 
 var (
@@ -22,12 +24,23 @@ var (
 		Name:     "Near Node Flash",
 		Port:     "50057",
 		Version:  "v2",
-		Router:   NewDefaultApiRouter(NewDefaultApiService()),
-		InitFunc: ControllerInitialize,
+		Routers:  NewDefaultApiRouters(fabric.NewSwitchtecController()),
 	}
 )
 
-// ControllerInitialize -
-func ControllerInitialize() error {
-	return fabric.Initialize(fabric.NewSwitchtecController())
+// NewDefaultApiRouters -
+func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface) ec.Routers {
+
+	routers := make([]ec.Router, 2)
+	
+	routers[0] = fabric.NewDefaultApiRouter(
+		fabric.NewDefaultApiService(),
+		switchCtrl,
+	)
+
+	routers[1] = nvmenamespace.NewDefaultApiRouter(
+		nvmenamespace.NewDefaultApiService(),
+	)
+
+	return routers
 }

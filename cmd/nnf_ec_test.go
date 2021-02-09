@@ -18,10 +18,7 @@ var (
 		Name:    "Mock NNF Controller",
 		Port:    "8080",
 		Version: "v2",
-		Router:  nnf.NewDefaultApiRouter(nnf.NewDefaultApiService()),
-		InitFunc: func() error {
-			return fabric.Initialize(fabric.NewMockSwitchtecController())
-		},
+		Routers: nnf.NewDefaultApiRouters(fabric.NewMockSwitchtecController()),
 	}
 )
 
@@ -77,7 +74,7 @@ func TestMockController(t *testing.T) {
 	for _, route := range Routes() {
 		url := formatUrl(route.URL)
 
-		r, _ := http.NewRequest(nnf.GET_METHOD, url, strings.NewReader(""))
+		r, _ := http.NewRequest(string(ec.GET_METHOD), url, strings.NewReader(""))
 		r.RequestURI = url // Something about only the URI making it to the EC
 
 		w := ec.NewResponseWriter()
