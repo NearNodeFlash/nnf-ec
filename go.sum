@@ -346,6 +346,8 @@ stash.us.cray.com/sp/rfsf-openapi v0.1.2/go.mod h1:xsXRmedRSRE4bZuM7ldsLFgmZ4wJ3
 stash.us.cray.com/sp/rfsf-openapi v0.1.4-0.20201207185825-d819f87f3915/go.mod h1:po8CtJyW7XRE3/hVck624Krtbx7VBSkJSGB/aA79+Cc=
 stash.us.cray.com/sp/rfsf-openapi v0.1.4-0.20210129215442-2754e76e4805 h1:WdQaLnYtglas8Iv/Pz0Q4rCMruh7f+myJ62gKjALPGc=
 stash.us.cray.com/sp/rfsf-openapi v0.1.4-0.20210129215442-2754e76e4805/go.mod h1:2ETWSeAGfMiDLIwEHKn6c6lztrqRJdYcZtTYnuvzwRE=
+stash.us.cray.com/sp/rfsf-openapi v0.1.4-0.20210217200918-8c94039666bb h1:WdKTboHshTdA6X3H6v4AWP++tkyFlmTdnVvMiPaDZgM=
+stash.us.cray.com/sp/rfsf-openapi v0.1.4-0.20210217200918-8c94039666bb/go.mod h1:2ETWSeAGfMiDLIwEHKn6c6lztrqRJdYcZtTYnuvzwRE=
 stash.us.cray.com/sp/rfsf-openapi/go v0.0.0-20200505175954-7305e80f6c09/go.mod h1:/l3aGfIcZcHWkeMXvCn/0Soo6aGO7dIO5OdS+zwEW4Q=
 stash.us.cray.com/~roiger/structex v1.0.1 h1:8YQi6+Cj8e6PYKiSTHVY2IYglO7ZRAbYdhKM9cREAPo=
 stash.us.cray.com/~roiger/structex v1.0.1/go.mod h1:9Dz7esgFJfw10pOj7k/NZ6XjGX0jK+DfMNhRzc1Senk=

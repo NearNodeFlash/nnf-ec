@@ -1,7 +1,7 @@
 package fabric
 
 import (
-	//"embed" look into embedded go files
+	_ "embed"
 	"fmt"
 
 	"gopkg.in/yaml.v2"
@@ -10,174 +10,7 @@ import (
 )
 
 //go:embed config.yaml
-//var configFile embed.FS
-
-const configFile = `
-version: v1
-metadata:
-  name: Rabbit
-switches:
-  - id: 0
-    metadata:
-      name: PAX 0
-    ports:
-      - name: Interswitch Fabric
-        type: InterswitchPort
-        port: 0
-        width: 16
-      - name: Rabbit
-        type: ManagementPort
-        port: 24
-        width: 16
-      - name: Compute 0
-        type: UpstreamPort
-        port: 32
-        width: 4
-      - name: Compute 1
-        type: UpstreamPort
-        port: 34
-        width: 4
-      - name: Compute 2
-        type: UpstreamPort
-        port: 36
-        width: 4
-      - name: Compute 3
-        type: UpstreamPort
-        port: 38
-        width: 4
-      - name: Compute 4
-        type: UpstreamPort
-        port: 40
-        width: 4
-      - name: Compute 5
-        type: UpstreamPort
-        port: 42
-        width: 4
-      - name: Compute 6
-        type: UpstreamPort
-        port: 44
-        width: 4
-      - name: Compute 7
-        type: UpstreamPort
-        port: 46
-        width: 4
-      - name: SSD 0
-        type: DownstreamPort
-        port: 8
-        width: 4
-      - name: SSD 1
-        type: DownstreamPort
-        port: 10
-        width: 4
-      - name: SSD 2
-        type: DownstreamPort
-        port: 12
-        width: 4
-      - name: SSD 3
-        type: DownstreamPort
-        port: 14
-        width: 4
-      - name: SSD 4
-        type: DownstreamPort
-        port: 16
-        width: 4
-      - name: SSD 5
-        type: DownstreamPort
-        port: 18
-        width: 4
-      - name: SSD 6
-        type: DownstreamPort
-        port: 20
-        width: 4
-      - name: SSD 7
-        type: DownstreamPort
-        port: 22
-        width: 4
-      - name: SSD 8
-        type: DownstreamPort
-        port: 48
-        width: 4
-  - id: 1
-    metadata:
-      name: PAX 1
-    ports:
-      - name: Interswitch Fabric
-        type: InterswitchPort
-        port: 0
-        width: 16
-      - name: Rabbit
-        type: ManagementPort
-        port: 24
-        width: 16
-      - name: Compute 8
-        type: UpstreamPort
-        port: 32
-        width: 4
-      - name: Compute 9
-        type: UpstreamPort
-        port: 34
-        width: 4
-      - name: Compute 10
-        type: UpstreamPort
-        port: 36
-        width: 4
-      - name: Compute 11
-        type: UpstreamPort
-        port: 38
-        width: 4
-      - name: Compute 12
-        type: UpstreamPort
-        port: 40
-        width: 4
-      - name: Compute 13
-        type: UpstreamPort
-        port: 42
-        width: 4
-      - name: Compute 14
-        type: UpstreamPort
-        port: 44
-        width: 4
-      - name: Compute 15
-        type: UpstreamPort
-        port: 46
-        width: 4
-      - name: SSD 9
-        type: DownstreamPort
-        port: 8
-        width: 4
-      - name: SSD 10
-        type: DownstreamPort
-        port: 10
-        width: 4
-      - name: SSD 11
-        type: DownstreamPort
-        port: 12
-        width: 4
-      - name: SSD 12
-        type: DownstreamPort
-        port: 14
-        width: 4
-      - name: SSD 13
-        type: DownstreamPort
-        port: 16
-        width: 4
-      - name: SSD 14
-        type: DownstreamPort
-        port: 18
-        width: 4
-      - name: SSD 15
-        type: DownstreamPort
-        port: 20
-        width: 4
-      - name: SSD 16
-        type: DownstreamPort
-        port: 22
-        width: 4
-      - name: SSD 17
-        type: DownstreamPort
-        port: 48
-        width: 4
-`
+var configFile []byte
 
 type ConfigFile struct {
 	Version  string
@@ -213,16 +46,8 @@ type PortConfig struct {
 
 func loadConfig() (*ConfigFile, error) {
 
-	/*
-		data, err := configFile.ReadFile("config.yaml")
-		if err != nil {
-			return err
-		}
-	*/
-	data := []byte(configFile)
-
 	var config = new(ConfigFile)
-	if err := yaml.Unmarshal(data, config); err != nil {
+	if err := yaml.Unmarshal(configFile, config); err != nil {
 		return config, err
 	}
 
