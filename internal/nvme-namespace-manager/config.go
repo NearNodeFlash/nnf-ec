@@ -12,8 +12,9 @@ metadata:
   name: Rabbit
 storage:
   controller:
-    virtualFunctions: 17
-  devices:
+    functions: 17
+    resources: 2
+  devices: [
     # Switch 0
     '0000:19:00.0', '0000:1a:00.0', '0000:1b:00.0', '0000:1c:00.0', '0000:1d:00.0', '0000:1e:00.0', '0000:1f:00.0', '0000:20:00.0', '0000:21:00.0',
     # Switch 1
@@ -22,7 +23,13 @@ storage:
 `
 
 type ControllerConfig struct {
-	VirtualFunctions int
+	Functions int
+	Resources int
+}
+
+type StorageConfig struct {
+	Controller ControllerConfig
+	Devices    []string `yaml:",flow"`
 }
 
 type ConfigFile struct {
@@ -30,8 +37,7 @@ type ConfigFile struct {
 	Metadata struct {
 		Name string
 	}
-	ControllerConfig ControllerConfig
-	Devices          []string `yaml:",flow"`
+	Storage StorageConfig
 }
 
 func loadConfig() (*ConfigFile, error) {

@@ -18,18 +18,28 @@ import (
 	"stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
 )
 
-var (
-	// Controller - the Near-Node Flash Element Controller
-	Controller = &ec.Controller{
+// NewController - Create a new NNF Element Controller with the desired mocking behavior
+func NewController(mock bool) (*ec.Controller) {
+	switchCtrl := fabric.NewSwitchtecController()
+	nvmeCtrl := nvmenamespace.NewNvmeController()
+
+	if (mock) {
+		switchCtrl = fabric.NewMockSwitchtecController()
+		nvmeCtrl = nvmenamespace.NewMockNvmeController()
+	}
+
+	return &ec.Controller{
 		Name:     "Near Node Flash",
 		Port:     "50057",
 		Version:  "v2",
-		Routers:  NewDefaultApiRouters(fabric.NewSwitchtecController()),
+		Routers:  NewDefaultApiRouters(switchCtrl, nvmeCtrl),
 	}
-)
+}
 
 // NewDefaultApiRouters -
-func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface) ec.Routers {
+func NewDefaultApiRouters(
+	switchCtrl fabric.SwitchtecControllerInterface,
+	nvmeCtrl nvmenamespace.NvmeControllerInterface) ec.Routers {
 
 	routers := make([]ec.Router, 2)
 	
@@ -40,6 +50,7 @@ func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface) ec.Rou
 
 	routers[1] = nvmenamespace.NewDefaultApiRouter(
 		nvmenamespace.NewDefaultApiService(),
+		nvmeCtrl,
 	)
 
 	return routers

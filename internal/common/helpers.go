@@ -33,22 +33,28 @@ func EncodeResponse(s interface{}, err error, w http.ResponseWriter) {
 		log.WithError(err).Warn("Element Controller Error")
 	}
 
-	var e *ec.ControllerError
-	if errors.As(err, &e) {
-		w.WriteHeader(e.StatusCode)
-		return
+	if err != nil {
+		// If the supplied error is of an Element Controller Controller Error type,
+		// extract the status code from the error to return as the response.
+		var e *ec.ControllerError
+		if errors.As(err, &e) {
+			// TODO: Make some form of a redfish error response
+			w.WriteHeader(e.StatusCode)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 
 	if s != nil {
 		response, err := json.Marshal(s)
 		if err != nil {
 			log.WithError(err).Error("Failed to marshal json response")
-			// TODO
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 		_, err = w.Write(response)
 		if err != nil {
 			log.WithError(err).Error("Failed to write json response")
-			// TODO
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
 }

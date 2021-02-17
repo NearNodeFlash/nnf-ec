@@ -8,6 +8,7 @@ import (
 
 	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
 
+	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 )
 
@@ -214,6 +215,24 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsConnectionIdGet(w h
 	}
 
 	err := FabricIdConnectionsConnectionIdGet(fabricId, connectionId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
+// RedfishV1FabricsFabricIdConnectionsConnectionIdPatch -
+func (*DefaultApiService) RedfishV1FabricsFabricIdConnectionsConnectionIdPatch(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	fabricId := params["FabricId"]
+	connectionId := params["ConnectionId"]
+
+	model := sf.ConnectionV100Connection{}
+
+	if err := UnmarshalRequest(r, &model); err != nil {
+		EncodeResponse(model, ec.ErrBadRequest, w)
+		return
+	}
+
+	err := FabricIdConnectionsConnectionIdPatch(fabricId, connectionId, &model)
 
 	EncodeResponse(model, err, w)
 }

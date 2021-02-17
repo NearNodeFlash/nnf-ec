@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
-
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
+	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
 )
 
 // DefaultApiService -
@@ -139,14 +138,22 @@ func (*DefaultApiService) RedfishV1StorageStorageIdVolumesPost(w http.ResponseWr
 
 	if err := UnmarshalRequest(r, &model); err != nil {
 		EncodeResponse(model, err, w)
+		return
 	}
 
-	_, err := StorageIdVolumePost(storageId, &model)
+	if err := StorageIdVolumePost(storageId, &model); err != nil {
+		EncodeResponse(model, err, w)
+		return
+	}
 
-	EncodeResponse(model, err, w)
+	model.OdataId = fmt.Sprintf("/redfish/v1/Storage/%s/Volumes/%s", storageId, model.Id)
+	model.OdataType = "#Volume.v1_6_1.Volume"
+	model.Name = "Volume"
+
+	EncodeResponse(model, nil, w)
 }
 
-// RedfishV1StorageStorageIdVolumesVolumeIdGet
+// RedfishV1StorageStorageIdVolumesVolumeIdGet -
 func (*DefaultApiService) RedfishV1StorageStorageIdVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageId := params["StorageId"]
@@ -163,7 +170,7 @@ func (*DefaultApiService) RedfishV1StorageStorageIdVolumesVolumeIdGet(w http.Res
 	EncodeResponse(model, err, w)
 }
 
-// RedfishV1StorageStorageIdVolumesVolumeIdDelete
+// RedfishV1StorageStorageIdVolumesVolumeIdDelete -
 func (*DefaultApiService) RedfishV1StorageStorageIdVolumesVolumeIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageId := params["StorageId"]

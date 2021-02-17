@@ -57,27 +57,30 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 			return nil
 		}
 
-		dev := MockSwitchtecDevice{
+		ctrl.devices[switchIdx] = MockSwitchtecDevice{
 			ctrl:   ctrl,
 			id:     devId,
-			path:   "",
+			path:   "", // Path becomes valid when opened
 			config: &config.Switches[switchIdx],
 			open:   false,
 			exists: true,
 		}
 
-		ctrl.devices[switchIdx] = dev
+		dev := &ctrl.devices[switchIdx]
 
 		dev.ports = make([]MockSwitchtecPort, len(switchConfig.Ports))
 		for portIdx, portConfig := range switchConfig.Ports {
 
-			port := MockSwitchtecPort{
+			dev.ports[portIdx] = MockSwitchtecPort{
 				id:     portIdx,
 				pdfid:  uint16(ctrl.allocateNewPDFID()),
 				config: &switchConfig.Ports[portIdx],
 			}
+			port := &dev.ports[portIdx]
 
 			switch portConfig.getPortType() {
+			case sf.INTERSWITCH_PORT_PV130PT:
+				continue
 			case sf.MANAGEMENT_PORT_PV130PT:
 				port.bindings = make([]*switchtec.DumpEpPortAttachedDeviceFunction, switchConfig.DownstreamPortCount)
 			case sf.UPSTREAM_PORT_PV130PT:
@@ -107,19 +110,19 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 						}
 
 						port.functions[idx] = f
-
 					}
 				}
+			default:
+				panic("Unhandled port type")
 			}
 
-			dev.ports[portIdx] = port
 		}
 	}
 
 	return ctrl
 }
 
-func (c MockSwitchtecController) Open(path string) (SwitchtecDeviceInterface, error) {
+func (c *MockSwitchtecController) Open(path string) (SwitchtecDeviceInterface, error) {
 	for deviceIdx := range c.devices {
 		device := &c.devices[deviceIdx]
 		if device.path == "" || device.path == path {
@@ -135,7 +138,7 @@ func (c MockSwitchtecController) Open(path string) (SwitchtecDeviceInterface, er
 	return nil, fmt.Errorf("Device %s not found", path)
 }
 
-func (c MockSwitchtecController) SetSwitchNotExists(switchIdx int) {
+func (c *MockSwitchtecController) SetSwitchNotExists(switchIdx int) {
 	c.devices[switchIdx].exists = false
 
 }
@@ -146,36 +149,36 @@ func (c *MockSwitchtecController) allocateNewPDFID() int {
 	return pdfid
 }
 
-func (MockSwitchtecDevice) Get() *switchtec.Device {
+func (*MockSwitchtecDevice) Get() *switchtec.Device {
 	return nil
 }
 
-func (d MockSwitchtecDevice) Close() {
+func (d *MockSwitchtecDevice) Close() {
 	d.path = ""
 	d.id = -1
 }
 
-func (d MockSwitchtecDevice) Identify() (int32, error) {
+func (d *MockSwitchtecDevice) Identify() (int32, error) {
 	return int32(d.id), nil
 }
 
-func (d MockSwitchtecDevice) GetFirmwareVersion() (string, error) {
+func (d *MockSwitchtecDevice) GetFirmwareVersion() (string, error) {
 	return "MockFirmware", nil
 }
 
-func (d MockSwitchtecDevice) GetModel() (string, error) {
+func (d *MockSwitchtecDevice) GetModel() (string, error) {
 	return "MockModel", nil
 }
 
-func (d MockSwitchtecDevice) GetManufacturer() (string, error) {
+func (d *MockSwitchtecDevice) GetManufacturer() (string, error) {
 	return "MockMfg", nil
 }
 
-func (d MockSwitchtecDevice) GetSerialNumber() (string, error) {
+func (d *MockSwitchtecDevice) GetSerialNumber() (string, error) {
 	return "MockSerialNumber", nil
 }
 
-func (d MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
+func (d *MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
 
 	for _, port := range d.ports {
 		if uint8(port.id) == id {
@@ -192,7 +195,7 @@ func (d MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPort
 	return nil
 }
 
-func (d MockSwitchtecDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uint16) error {
+func (d *MockSwitchtecDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uint16) error {
 
 	bindPort := func(hostPort *MockSwitchtecPort, hostLogPortId uint8, pdfid uint16) error {
 		for _, port := range d.ports {

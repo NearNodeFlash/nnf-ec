@@ -97,7 +97,6 @@ switches:
         type: DownstreamPort
         port: 48
         width: 4
-
   - id: 1
     metadata:
       name: PAX 1

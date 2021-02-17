@@ -14,12 +14,7 @@ import (
 )
 
 var (
-	MockController = ec.Controller{
-		Name:    "Mock NNF Controller",
-		Port:    "8080",
-		Version: "v2",
-		Routers: nnf.NewDefaultApiRouters(fabric.NewMockSwitchtecController()),
-	}
+	MockController = nnf.NewController(true)
 )
 
 type TestRoute struct {
@@ -64,7 +59,7 @@ func Routes() []TestRoute {
 
 func TestMockController(t *testing.T) {
 
-	go ec.Run(&MockController)
+	go MockController.Run()
 
 	formatUrl := func(path string) string {
 		path = strings.Replace(path, "{FabricId}", fabric.FabricId, 1)

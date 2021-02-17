@@ -14,17 +14,23 @@ import (
 
 // DefaultApiRouter -
 type DefaultApiRouter struct {
-	servicer Api
+	servicer   Api
+	controller NvmeControllerInterface
 }
 
 // NewDefaultApiRouter -
-func NewDefaultApiRouter(s Api) ec.Router {
-	return &DefaultApiRouter{servicer: s}
+func NewDefaultApiRouter(s Api, c NvmeControllerInterface) ec.Router {
+	return &DefaultApiRouter{servicer: s, controller: c}
+}
+
+// Name -
+func (*DefaultApiRouter) Name() string {
+	return "NVMe Namespace Manager"
 }
 
 // Init -
 func (r *DefaultApiRouter) Init() error {
-	return Initialize(NewNvmeController())
+	return Initialize(r.controller)
 }
 
 // Start -
@@ -79,16 +85,16 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageStorageIdVolumesGet,
 		},
 		{
-			Name:        "RedfishV1StorageStorageIdVolumesPost",
-			Method:      ec.POST_METHOD,
-			Path:        "/redfish/v1/Storage/{StorageId}/Volumes",
-			HandlerFunc: s.RedfishV1StorageStorageIdVolumesPost,
-		},
-		{
 			Name:        "RedfishV1StorageStorageIdVolumesVolumeIdGet",
 			Method:      ec.GET_METHOD,
 			Path:        "/redfish/v1/Storage/{StorageId}/Volumes/{VolumeId}",
 			HandlerFunc: s.RedfishV1StorageStorageIdVolumesVolumeIdGet,
+		},
+		{
+			Name:        "RedfishV1StorageStorageIdVolumesPost",
+			Method:      ec.POST_METHOD,
+			Path:        "/redfish/v1/Storage/{StorageId}/Volumes",
+			HandlerFunc: s.RedfishV1StorageStorageIdVolumesPost,
 		},
 		{
 			Name:        "RedfishV1StorageStorageIdVolumesVolumeIdDelete",

@@ -14,18 +14,23 @@ import (
 
 // DefaultApiRouter -
 type DefaultApiRouter struct {
-	servicer Api
-	ctrl SwitchtecControllerInterface
+	servicer   Api
+	controller SwitchtecControllerInterface
 }
 
 // NewDefaultApiRouter -
 func NewDefaultApiRouter(s Api, c SwitchtecControllerInterface) ec.Router {
-	return &DefaultApiRouter{servicer: s}
+	return &DefaultApiRouter{servicer: s, controller: c}
+}
+
+// Name -
+func (*DefaultApiRouter) Name() string {
+	return "Fabric Manager"
 }
 
 // Init -
 func (r *DefaultApiRouter) Init() error {
-	return Initialize(r.ctrl)
+	return Initialize(r.controller)
 }
 
 // Start -
@@ -108,6 +113,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			Method:      ec.GET_METHOD,
 			Path:        "/redfish/v1/Fabrics/{FabricId}/Connections/{ConnectionId}",
 			HandlerFunc: s.RedfishV1FabricsFabricIdConnectionsConnectionIdGet,
+		},
+		{
+			Name:        "RedfishV1FabricsFabricIdConnectionsConnectionIdPatch",
+			Method:      ec.PATCH_METHOD,
+			Path:        "/redfish/v1/Fabrics/{FabricId}/Connections/{ConnectionId}",
+			HandlerFunc: s.RedfishV1FabricsFabricIdConnectionsConnectionIdPatch,
 		},
 	}
 }

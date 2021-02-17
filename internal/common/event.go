@@ -43,12 +43,12 @@ type portEventManager struct {
 }
 
 // Subscribe -
-func (mgr portEventManager) Subscribe(s PortEventSubscriber) {
+func (mgr *portEventManager) Subscribe(s PortEventSubscriber) {
 	mgr.subscribers = append(mgr.subscribers, s)
 }
 
 // Publish
-func (mgr portEventManager) Publish(event PortEvent) {
+func (mgr *portEventManager) Publish(event PortEvent) {
 	for _, s := range mgr.subscribers {
 		s.HandlerFunc(event, s.Data)
 	}
