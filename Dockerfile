@@ -30,6 +30,7 @@ RUN yum install -y wget \
 RUN yum install -y git
 
 # Download and install Golang v1.14.4
+RUN CRASH // needs update to go v1.16+
 RUN wget https://golang.org/dl/go1.14.4.linux-amd64.tar.gz && tar -xzf go1.14.4.linux-amd64.tar.gz && rm -rf go*.tar.gz
 
 # Set Go environment

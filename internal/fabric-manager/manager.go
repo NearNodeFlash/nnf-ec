@@ -56,15 +56,26 @@ type Switch struct {
 
 type Port struct {
 	id       string
-	fabricId string // This is the absolute ID within the fabricP
+	fabricId string
 
-	portType   sf.PortV130PortType
-	linkStatus sf.PortV130LinkStatus // TODO: Link Width, Link Speed etc
+	portType sf.PortV130PortType
+	portStatus
 
 	swtch  *Switch
 	config *PortConfig
 
 	endpoints []*Endpoint
+}
+
+type portStatus struct {
+	cfgLinkWidth uint8
+	negLinkWidth uint8
+
+	curLinkRateGBps float64
+	maxLinkRateGBps float64
+
+	linkStatus sf.PortV130LinkStatus
+	linkState  sf.PortV130LinkState
 }
 
 type Endpoint struct {
@@ -161,10 +172,10 @@ func (f *Fabric) ConvertPortEventToRelativePortIndex(event PortEvent) (int, erro
 
 			var correctType = false
 			switch event.PortType {
-			case USP_PORT_TYPE:
+			case PORT_TYPE_USP:
 				correctType = (p.portType == sf.MANAGEMENT_PORT_PV130PT ||
 					p.portType == sf.UPSTREAM_PORT_PV130PT)
-			case DSP_PORT_TYPE:
+			case PORT_TYPE_DSP:
 				correctType = p.portType == sf.DOWNSTREAM_PORT_PV130PT
 
 			}
@@ -201,15 +212,9 @@ func (f *Fabric) FindDownstreamEndpoint(portId, functionId string) (string, erro
 }
 
 func (f *Fabric) findSwitch(switchId string) (*Switch, error) {
-	for _, s := range f.switches {
-		if !s.isReady() {
-			if err := s.identify(); err != nil {
-				return nil, err
-			}
-		}
-
+	for switchIdx, s := range f.switches {
 		if s.id == switchId {
-			return &s, nil
+			return &f.switches[switchIdx], nil
 		}
 	}
 
@@ -222,9 +227,9 @@ func (f *Fabric) findSwitchPort(switchId string, portId string) (*Port, error) {
 		return nil, err
 	}
 
-	for _, p := range s.ports {
+	for portIdx, p := range s.ports {
 		if p.id == portId {
-			return &p, nil
+			return &s.ports[portIdx], nil
 		}
 	}
 
@@ -364,6 +369,56 @@ func (s *Switch) identify() error {
 	return fmt.Errorf("Identify Switch %s: Could Not ID Switch", s.id) // TODO: Switch not found
 }
 
+func (s *Switch) refreshPortStatus() error {
+
+	status, err := s.dev.GetPortStatus()
+	if err != nil {
+		return err
+	}
+
+StatusLoop:
+	for _, st := range status {
+		for portIdx := range s.ports {
+			p := &s.ports[portIdx]
+
+			if st.PhysPortId == uint8(p.config.Port) {
+
+				getStatusFromState := func(state switchtec.PortLinkState) sf.PortV130LinkStatus {
+					switch state {
+					case switchtec.PortLinkState_Disable:
+						return sf.NO_LINK_PV130LS
+					case switchtec.PortLinkState_L0:
+						return sf.LINK_UP_PV130LS
+					case switchtec.PortLinkState_Detect:
+						return sf.LINK_DOWN_PV130LS
+					case switchtec.PortLinkState_Polling:
+						return sf.STARTING_PV130LS
+					case switchtec.PortLinkState_Config:
+						return sf.TRAINING_PV130LS
+					default:
+						return sf.PortV130LinkStatus("Unknown")
+					}
+				}
+
+				p.portStatus = portStatus{
+					cfgLinkWidth:    st.CfgLinkWidth,
+					negLinkWidth:    st.NegLinkWidth,
+					curLinkRateGBps: st.CurLinkRateGBps,
+					maxLinkRateGBps: 0, // TODO: Look at switch and get the Gen Version - then covert to GBps for the width
+					linkStatus:      getStatusFromState(st.LinkState),
+					linkState:       sf.ENABLED_PV130LST,
+				}
+
+				continue StatusLoop
+			}
+		}
+
+		log.Fatalf("Port not found for Physical Port ID %d", st.PhysPortId)
+	}
+
+	return nil
+}
+
 func (s *Switch) getStatus() (stat sf.ResourceStatus) {
 
 	if s.dev == nil {
@@ -454,22 +509,17 @@ func (p *Port) findEndpoint(functionId string) *Endpoint {
 	return p.endpoints[id]
 }
 
-func (p *Port) LinkStatus() error {
-	// TODO
-	p.linkStatus = sf.LINK_UP_PV130LS
-	return nil
-}
-
 func (p *Port) Initialize() error {
-	log.Infof("Initialize port %s: %s %d", p.id, p.config.Name, p.config.Port)
+	log.Infof("Initialize Port %s: Name: %s Physical Port: %d", p.id, p.config.Name, p.config.Port)
 
 	if p.swtch.isDown() {
-		log.Warnf("port %s switch is down", p.id)
+		log.Warnf("Initialize Port %s: Switch Down", p.id)
 		return nil
 	}
 
-	if err := p.LinkStatus(); err != nil {
-		return err
+	if p.linkStatus != sf.LINK_UP_PV130LS {
+		log.Warnf("Initilalize Port %s: No Link", p.id)
+		return nil
 	}
 
 	switch p.portType {
@@ -479,12 +529,9 @@ func (p *Port) Initialize() error {
 			return func(epPort *switchtec.DumpEpPortDevice) error {
 
 				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
-					log.Errorf("Port %s is down", p.id)
-					// Port & Associated Endpoints are Down/Unreachable
-					//p.Down() // TODO
+					return fmt.Errorf("Port non-device type (%02x)", epPort.Hdr.Typ)
 				}
 
-				//log.Debugf("Processing EP Functions: %d", epPort.Ep.Functions)
 				for idx, f := range epPort.Ep.Functions {
 
 					if idx >= len(p.endpoints) {
@@ -505,8 +552,9 @@ func (p *Port) Initialize() error {
 			}
 		}
 
-		log.Infof("Switch %s enumerting DSP %d", p.swtch.id, p.config.Port)
+		log.Infof("Initialize Port: Switch %s enumerting DSP %d", p.swtch.id, p.config.Port)
 		if err := p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p)); err != nil {
+			log.WithError(err).Errorf("Initialize Port: Port Enumeration Failed: Physical Port %d", p.config.Port)
 			return err
 		}
 	}
@@ -575,6 +623,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	f := &fabric
 
 	log.SetLevel(log.DebugLevel)
+
 	log.Infof("Initialize %s Fabric", f.id)
 
 	c, err := loadConfig()
@@ -609,6 +658,8 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 		s := &f.switches[switchIdx]
 
+		// TODO: This should probably move to Start() routine, although
+		// if we can't find the switch Start() won't really do anything anyways.
 		log.Infof("identify switch %s", switchConf.Id)
 		if err := s.identify(); err != nil {
 			log.WithError(err).Warnf("Failed to identify switch %s", s.id)
@@ -620,12 +671,20 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 			portType := portConf.getPortType()
 
 			s.ports[portIdx] = Port{
-				id:         strconv.Itoa(portIdx),
-				fabricId:   strconv.Itoa(fabricPortId),
-				swtch:      &f.switches[switchIdx],
-				config:     &switchConf.Ports[portIdx],
-				portType:   portType,
-				linkStatus: sf.NO_LINK_PV130LS,
+				id:       strconv.Itoa(portIdx),
+				fabricId: strconv.Itoa(fabricPortId),
+				portType: portType,
+				portStatus: portStatus{
+					cfgLinkWidth:    0,
+					negLinkWidth:    0,
+					curLinkRateGBps: 0,
+					maxLinkRateGBps: 0,
+					linkStatus:      sf.NO_LINK_PV130LS,
+					linkState:       sf.DISABLED_PV130LST,
+				},
+				swtch:     &f.switches[switchIdx],
+				config:    &switchConf.Ports[portIdx],
+				endpoints: []*Endpoint{},
 			}
 
 			fabricPortId++
@@ -758,33 +817,44 @@ func Start() error {
 
 	// Enumerate over the switch ports and report events to the event
 	// manager
-	for _, s := range f.switches {
-		for _, p := range s.ports {
+	for switchIdx := range f.switches {
 
-			if err := p.Initialize(); err != nil {
-				log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
-			}
+		s := &f.switches[switchIdx]
+
+		if s.isDown() {
+			log.Errorf("Failed to start switch %s: Switch is Down", s.id)
+			continue
+		}
+
+		if err := s.refreshPortStatus(); err != nil {
+			log.WithError(err).Errorf("Failed to retrive port status for switch %s", s.id)
+		}
+
+		for portIdx := range s.ports {
+			p := &s.ports[portIdx]
 
 			event := PortEvent{
-				FabricId: f.id,
-				SwitchId: s.id,
-				PortId:   p.id,
+				FabricId:  f.id,
+				SwitchId:  s.id,
+				PortId:    p.id,
+				PortType:  PORT_TYPE_UNKNOWN,
+				EventType: PORT_EVENT_UNKNOWN,
 			}
 
 			switch p.portType {
 			case sf.UPSTREAM_PORT_PV130PT, sf.MANAGEMENT_PORT_PV130PT:
-				event.PortType = USP_PORT_TYPE
+				event.PortType = PORT_TYPE_USP
 			case sf.DOWNSTREAM_PORT_PV130PT:
-				event.PortType = DSP_PORT_TYPE
+				event.PortType = PORT_TYPE_DSP
 			default: // Ignore unintersting port types
 				continue
 			}
 
-			switch p.linkStatus {
-			case sf.LINK_UP_PV130LS:
+			event.EventType = PORT_EVENT_DOWN
+			if err := p.Initialize(); err != nil {
+				log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
+			} else if p.linkStatus == sf.LINK_UP_PV130LS {
 				event.EventType = PORT_EVENT_UP
-			default:
-				event.EventType = PORT_EVENT_DOWN
 			}
 
 			log.Infof("Publishing port event %+v", event)
@@ -1088,7 +1158,6 @@ func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, mo
 
 	endpointGroup := connection.endpointGroup
 	initiator := *endpointGroup.initiator
-
 
 	model.Id = connectionId
 	model.ConnectionType = sf.STORAGE_CV100CT

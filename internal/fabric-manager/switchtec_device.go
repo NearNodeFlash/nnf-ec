@@ -61,6 +61,10 @@ func (d *SwitchtecDevice) GetSerialNumber() (string, error) {
 	return strconv.Itoa(int(sn)), err
 }
 
+func (d *SwitchtecDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
+	return d.dev.LinkStat()
+}
+
 func (d *SwitchtecDevice) EnumerateEndpoint(id uint8, f func(epPort *switchtec.DumpEpPortDevice) error) error {
 	return d.dev.GfmsEpPortDeviceEnumerate(id, f)
 }

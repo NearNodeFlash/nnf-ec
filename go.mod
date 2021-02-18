@@ -12,5 +12,5 @@ require (
 	stash.us.cray.com/sp/dp-api v0.1.2
 	stash.us.cray.com/sp/dp-common v0.1.5
 	stash.us.cray.com/sp/rfsf-openapi v0.1.4-0.20210217200918-8c94039666bb
-	stash.us.cray.com/~roiger/switchtec-fabric v1.0.7
+	stash.us.cray.com/~roiger/switchtec-fabric v1.0.10
 )

@@ -354,3 +354,7 @@ stash.us.cray.com/~roiger/structex v1.0.1/go.mod h1:9Dz7esgFJfw10pOj7k/NZ6XjGX0j
 stash.us.cray.com/~roiger/switchtec-fabric v1.0.2/go.mod h1:LQDxS+iU5slVIzzv+cBNHO15VBYtsc8gJb5yLmY9WOA=
 stash.us.cray.com/~roiger/switchtec-fabric v1.0.7 h1:l6ZgQPnmFBkJWLDI65ZRBUN3UN9k3rL8EBa1Lx2MCYo=
 stash.us.cray.com/~roiger/switchtec-fabric v1.0.7/go.mod h1:LQDxS+iU5slVIzzv+cBNHO15VBYtsc8gJb5yLmY9WOA=
+stash.us.cray.com/~roiger/switchtec-fabric v1.0.8 h1:4c26HpkhyXP4423fvo3Ygk05kx3vSYWipgrnwHiaeLg=
+stash.us.cray.com/~roiger/switchtec-fabric v1.0.8/go.mod h1:LQDxS+iU5slVIzzv+cBNHO15VBYtsc8gJb5yLmY9WOA=
+stash.us.cray.com/~roiger/switchtec-fabric v1.0.10 h1:Miv0R9CurOGW2dTdgTm1esDQMByLdAnVeb2ZZ2TWu+s=
+stash.us.cray.com/~roiger/switchtec-fabric v1.0.10/go.mod h1:LQDxS+iU5slVIzzv+cBNHO15VBYtsc8gJb5yLmY9WOA=

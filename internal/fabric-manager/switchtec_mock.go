@@ -178,6 +178,28 @@ func (d *MockSwitchtecDevice) GetSerialNumber() (string, error) {
 	return "MockSerialNumber", nil
 }
 
+func (d *MockSwitchtecDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
+	stats := make([]switchtec.PortLinkStat, len(d.ports))
+
+	for idx := range stats {
+		p := d.ports[idx]
+		stats[idx] = switchtec.PortLinkStat{
+			PhysPortId: uint8(p.config.Port),
+
+			CfgLinkWidth: uint8(p.config.Width),
+			NegLinkWidth: uint8(p.config.Width),
+
+			LinkUp:    true,
+			LinkGen:   4,
+			LinkState: switchtec.PortLinkState_L0,
+
+			CurLinkRateGBps: switchtec.GetDataRateGBps(4) * float64(p.config.Width),
+		}
+	}
+
+	return stats, nil
+}
+
 func (d *MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
 
 	for _, port := range d.ports {

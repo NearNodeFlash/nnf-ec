@@ -79,7 +79,7 @@ func (*DefaultApiService) RedfishV1FabricsFabricIdSwitchesSwitchIdGet(w http.Res
 	model := sf.SwitchV140Switch{
 		OdataId:   fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s", fabricId, switchId),
 		OdataType: "#Switch.v1_4_0.Switch",
-		Name:      "Swtich",
+		Name:      "Switch",
 	}
 
 	err := FabricIdSwitchesSwitchIdGet(fabricId, switchId, &model)

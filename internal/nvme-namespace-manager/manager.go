@@ -48,7 +48,7 @@ type Storage struct {
 	// Fabric Controller
 	fabricId string
 	switchId string
-	portId string
+	portId   string
 
 	device NvmeDeviceInterface
 }
@@ -257,7 +257,8 @@ func Initialize(ctrl NvmeControllerInterface) error {
 	}
 
 	log.SetLevel(log.DebugLevel)
-	log.Infof("Initialize %s Resource Block Manager", mgr.id)
+
+	log.Infof("Initialize %s NVMe Namespace Manager", mgr.id)
 
 	conf, err := loadConfig()
 	if err != nil {
@@ -283,7 +284,6 @@ func Initialize(ctrl NvmeControllerInterface) error {
 		}
 	}
 
-	log.Info("Subscribing to Port Event Manager")
 	PortEventManager.Subscribe(PortEventSubscriber{
 		HandlerFunc: PortEventHandler,
 		Data:        &mgr,
@@ -298,7 +298,7 @@ func PortEventHandler(event PortEvent, data interface{}) {
 
 	log.Infof("%s Port Event Received %+v", m.id, event)
 
-	if event.PortType != DSP_PORT_TYPE {
+	if event.PortType != PORT_TYPE_DSP {
 		return
 	}
 

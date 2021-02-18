@@ -1,20 +1,21 @@
 package common
 
-type PortType int
+type PortType string
 
 const (
-	UNKNOWN_PORT_TYPE PortType = iota
-	USP_PORT_TYPE
-	DSP_PORT_TYPE
+	PORT_TYPE_UNKNOWN PortType = "Unknown"
+	PORT_TYPE_USP              = "USP"
+	PORT_TYPE_DSP              = "DSP"
+	PORT_TYPE_INTERSWITCH      = "Interswitch"
 )
 
-type PortEventType int
+type PortEventType string
 
 const (
-	PORT_EVENT_UNKNOWN PortEventType = iota
-	PORT_EVENT_UP
-	PORT_EVENT_DOWN
-	PORT_EVENT_READY
+	PORT_EVENT_UNKNOWN PortEventType = "Unknown"
+	PORT_EVENT_UP                    = "Up"
+	PORT_EVENT_DOWN                  = "Down"
+	PORT_EVENT_READY                 = "Ready"
 )
 
 // PortEvent -
