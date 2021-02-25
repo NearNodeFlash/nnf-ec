@@ -818,7 +818,6 @@ func Start() error {
 	// Enumerate over the switch ports and report events to the event
 	// manager
 	for switchIdx := range f.switches {
-
 		s := &f.switches[switchIdx]
 
 		if s.isDown() {
