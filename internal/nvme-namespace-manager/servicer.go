@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
-	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
+	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
 // DefaultApiService -

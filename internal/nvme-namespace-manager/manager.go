@@ -11,8 +11,8 @@ import (
 
 	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
-	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/nvme"
+	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 )
 
 const (

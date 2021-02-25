@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	sf "stash.us.cray.com/sp/rfsf-openapi/pkg/models"
+	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
 //go:embed config.yaml

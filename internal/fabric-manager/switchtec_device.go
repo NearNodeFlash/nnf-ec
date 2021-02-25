@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 )
 
 type SwitchtecController struct{}
@@ -31,7 +31,7 @@ type SwitchtecDevice struct {
 	dev *switchtec.Device
 }
 
-func (d *SwitchtecDevice) Get() (*switchtec.Device) {
+func (d *SwitchtecDevice) Get() *switchtec.Device {
 	return d.dev
 }
 

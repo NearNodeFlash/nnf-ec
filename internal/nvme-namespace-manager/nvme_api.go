@@ -1,7 +1,7 @@
 package nvmenamespace
 
 import (
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/nvme"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 )
 
 // NvmeControllerInterface -

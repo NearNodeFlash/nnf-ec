@@ -3,8 +3,8 @@ package nvmenamespace
 import (
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/nvme"
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 )
 
 type NvmeController struct {

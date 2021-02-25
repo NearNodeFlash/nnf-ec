@@ -1,7 +1,7 @@
 package common
 
 import (
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 )
 
 // FabricApi - Presents an API into the fabric outside of the fabric manager

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/nvme"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 )
 
 type NvmeMockController struct{}

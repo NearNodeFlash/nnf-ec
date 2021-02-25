@@ -1,7 +1,7 @@
 package fabric
 
 import (
-	"stash.us.cray.com/~roiger/switchtec-fabric/pkg/switchtec"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 )
 
 type SwitchtecControllerInterface interface {
