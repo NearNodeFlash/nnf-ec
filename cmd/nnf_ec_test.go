@@ -59,7 +59,7 @@ func Routes() []TestRoute {
 
 func TestMockController(t *testing.T) {
 
-	go MockController.Run()
+	go MockController.Run(nil)
 
 	formatUrl := func(path string) string {
 		path = strings.Replace(path, "{FabricId}", fabric.FabricId, 1)
