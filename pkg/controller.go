@@ -12,7 +12,7 @@
 package nnf
 
 import (
-	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
+	ec "stash.us.cray.com/rabsw/ec"
 
 	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"

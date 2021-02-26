@@ -89,11 +89,7 @@ func (d *NvmeMockDevice) IsVirtualizationManagement() (bool, error) {
 func (d *NvmeMockDevice) EnumerateSecondaryControllers(initFunc SecondaryControllersInitFunc, handlerFunc SecondaryControllerHandlerFunc) error {
 	initFunc(uint8(mockSecondaryControllerCount))
 
-	for idx, ctrl := range d.controllers {
-		if idx == 0 {
-			continue
-		}
-
+	for _, ctrl := range d.controllers {
 		handlerFunc(ctrl.id, ctrl.online, ctrl.id, ctrl.vqresources, ctrl.viresources)
 	}
 

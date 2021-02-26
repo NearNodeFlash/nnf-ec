@@ -9,10 +9,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
+	"stash.us.cray.com/rabsw/ec"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
+
+	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 )
 
 const (
@@ -338,11 +339,23 @@ func PortEventHandler(event PortEvent, data interface{}) {
 				}
 
 				s.controllers = make([]StorageController, 1 /*PF*/ +count)
+
+				// Initialize the PF
+				s.controllers[0] = StorageController{
+					id:             "0",
+					controllerId:   0,
+					functionNumber: 0,
+				}
 			}
 		}
 
 		handlerFunc := func(s *Storage) SecondaryControllerHandlerFunc {
 			return func(controllerId uint16, controllerOnline bool, virtualFunctionNumber uint16, numVQResourcesAssinged, numVIResourcesAssigned uint16) error {
+
+				if controllerId == s.controllers[0].controllerId {
+					return fmt.Errorf("Controller ID overlaps with PF")
+				}
+
 				if !(controllerId < uint16(len(s.controllers))) {
 					return nil
 				}

@@ -6,9 +6,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"stash.us.cray.com/rabsw/ec"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 )
 

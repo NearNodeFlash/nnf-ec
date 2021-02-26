@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
+	"stash.us.cray.com/rabsw/ec"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"

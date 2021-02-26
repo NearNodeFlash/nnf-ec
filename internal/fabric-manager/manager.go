@@ -7,7 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/ec"
+	"stash.us.cray.com/rabsw/ec"
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
@@ -83,7 +83,8 @@ type Endpoint struct {
 	idx int
 
 	endpointType sf.EndpointV150EntityType
-	controllerId string // For Target Endpoints, this represents the VF
+	controllerId string // For Initiator Endpoints, this represents the initator index
+	// For Target Endpoints, this represents the VF.
 
 	ports []*Port
 
@@ -731,6 +732,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		switch {
 		case f.isManagementEndpoint(endpointIdx):
 			endpoint.endpointType = sf.PROCESSOR_EV150ET
+
 			endpoint.ports = make([]*Port, len(fabric.switches))
 			for switchIdx, s := range fabric.switches {
 				port := s.findPortByType(sf.MANAGEMENT_PORT_PV130PT, 0)
@@ -741,9 +743,9 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 				port.endpoints[0] = endpoint
 			}
 		case f.isUpstreamEndpoint(endpointIdx):
-			port := f.findPortByType(sf.UPSTREAM_PORT_PV130PT, f.getUpstreamEndpointRelativePortIndex(endpointIdx))
-
 			endpoint.endpointType = sf.STORAGE_INITIATOR_EV150ET
+
+			port := f.findPortByType(sf.UPSTREAM_PORT_PV130PT, f.getUpstreamEndpointRelativePortIndex(endpointIdx))
 			endpoint.ports = make([]*Port, 1)
 			endpoint.ports[0] = port
 
@@ -791,7 +793,9 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 		endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
 		endpointGroup.initiator = &endpointGroup.endpoints[0]
+
 		endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
+		endpointGroup.endpoints[0].controllerId = strconv.Itoa(endpointGroupIdx + 1)
 
 		for idx := range endpointGroup.endpoints[1:] {
 			endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
