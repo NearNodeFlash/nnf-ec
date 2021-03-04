@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
 	"stash.us.cray.com/rabsw/ec"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 
@@ -31,8 +29,6 @@ func (*DefaultApiService) RedfishV1FabricsGet(w http.ResponseWriter, r *http.Req
 	}
 
 	err := Get(&model)
-
-	log.WithError(err).Info("RedfishV1FabricsGet")
 
 	EncodeResponse(model, err, w)
 }

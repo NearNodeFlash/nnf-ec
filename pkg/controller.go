@@ -15,43 +15,38 @@ import (
 	ec "stash.us.cray.com/rabsw/ec"
 
 	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
-	nvmenamespace "stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/nnf-manager"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
 )
 
 // NewController - Create a new NNF Element Controller with the desired mocking behavior
 func NewController(mock bool) *ec.Controller {
 	switchCtrl := fabric.NewSwitchtecController()
 	nvmeCtrl := nvmenamespace.NewNvmeController()
+	nnfCtrl := nnf.NewNnfController()
 
 	if mock {
 		switchCtrl = fabric.NewMockSwitchtecController()
 		nvmeCtrl = nvmenamespace.NewMockNvmeController()
+		nnfCtrl = nnf.NewMockNnfController()
 	}
 
 	return &ec.Controller{
 		Name:    "Near Node Flash",
 		Port:    50057,
 		Version: "v2",
-		Routers: NewDefaultApiRouters(switchCtrl, nvmeCtrl),
+		Routers: NewDefaultApiRouters(switchCtrl, nvmeCtrl, nnfCtrl),
 	}
 }
 
 // NewDefaultApiRouters -
-func NewDefaultApiRouters(
-	switchCtrl fabric.SwitchtecControllerInterface,
-	nvmeCtrl nvmenamespace.NvmeControllerInterface) ec.Routers {
+func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface, nvmeCtrl nvmenamespace.NvmeControllerInterface, nnfCtrl nnf.NnfControllerInterface) ec.Routers {
 
-	routers := make([]ec.Router, 2)
-
-	routers[0] = fabric.NewDefaultApiRouter(
-		fabric.NewDefaultApiService(),
-		switchCtrl,
-	)
-
-	routers[1] = nvmenamespace.NewDefaultApiRouter(
-		nvmenamespace.NewDefaultApiService(),
-		nvmeCtrl,
-	)
+	routers := []ec.Router{
+		fabric.NewDefaultApiRouter(fabric.NewDefaultApiService(), switchCtrl),
+		nvmenamespace.NewDefaultApiRouter(nvmenamespace.NewDefaultApiService(), nvmeCtrl),
+		nnf.NewDefaultApiRouter(nnf.NewDefaultApiService(), nnfCtrl),
+	}
 
 	return routers
 }
