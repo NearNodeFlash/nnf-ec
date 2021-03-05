@@ -116,6 +116,59 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	EncodeResponse(nil, err, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet -
+func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	storagePoolId := params["StoragePoolId"]
+
+	model := sf.CapacitySourceCollectionCapacitySourceCollection{
+		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources", storageServiceId, storagePoolId),
+		OdataType: "#CapacitySourceCollection.v1_0_0.CapacitySourceCollection",
+		Name: "Capacity Source Collection",
+	}
+
+	err := StorageServiceIdStoragePoolIdCapacitySourcesGet(storageServiceId, storagePoolId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet -
+func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	storagePoolId := params["StoragePoolId"]
+	capacitySourceId := params["CapacitySourceId"]
+
+	model := sf.CapacityCapacitySource{
+		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources/%s", storageServiceId, storagePoolId, capacitySourceId),
+		OdataType: "#CapacitySource.v1_0_0.CapacitySource",
+		Name: "Capacity Source",
+	}
+
+	err := StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storagePoolId, capacitySourceId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request)
+func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	storagePoolId := params["StoragePoolId"]
+	capacitySourceId := params["CapacitySourceId"]
+
+	model := sf.VolumeCollectionVolumeCollection{
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources/%s/ProvidingVolumes", storageServiceId, storagePoolId, capacitySourceId),
+		OdataType: "#VolumeCollection.v1_0_0.VolumeCollection",
+		Name: "Providing Volume Collection",
+	}
+
+	err := StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageServiceId, storagePoolId, capacitySourceId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet -
 func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
@@ -123,7 +176,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	storagePoolId := params["StoragePoolId"]
 
 	model := sf.VolumeCollectionVolumeCollection{
-		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/AllocateVolumes", storageServiceId, storagePoolId),
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/AllocatedVolumes", storageServiceId, storagePoolId),
 		OdataType: "#VolumeCollection.v1_0_0.VolumeCollection",
 		Name:      "Allocated Volume Collection",
 	}
@@ -133,69 +186,20 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	EncodeResponse(model, err, w)
 }
 
-// RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdProvidingVolumesGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request) {
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet
+func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
-
-	model := sf.VolumeCollectionVolumeCollection{
-		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/ProvidingVolumes", storageServiceId, storagePoolId),
-		OdataType: "#VolumeCollection.v1_0_0.VolumeCollection",
-		Name:      "Providing Volume Collection",
-	}
-
-	err := StorageServiceIdStoragePoolIdProvidingVolumesGet(storageServiceId, storagePoolId, &model)
-
-	EncodeResponse(model, err, w)
-}
-
-// RedfishV1StorageServicesStorageServiceIdVolumesGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdVolumesGet(w http.ResponseWriter, r *http.Request) {
-	params := Params(r)
-	storageServiceId := params["StorageServiceId"]
-
-	model := sf.VolumeCollectionVolumeCollection{
-		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/Volumes", storageServiceId),
-		OdataType: "#VolumeCollection.v1_0_0.VolumeCollection",
-		Name:      "Volume Collection",
-	}
-
-	err := StorageServiceIdVolumesGet(storageServiceId, &model)
-
-	EncodeResponse(model, err, w)
-}
-
-// RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request) {
-	params := Params(r)
-	storageServiceId := params["StorageServiceId"]
 	volumeId := params["VolumeId"]
 
 	model := sf.VolumeV161Volume{
-		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/Volumes/%s", storageServiceId, volumeId),
+		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/AllocatedVolumes/%s", storageServiceId, storagePoolId, volumeId),
 		OdataType: "#Volume.v1_6_1.Volume",
-		Name:      "Volume",
+		Name: "Volume",
 	}
 
-	err := StorageServiceIdVolumeIdGet(storageServiceId, volumeId, &model)
-
-	EncodeResponse(model, err, w)
-}
-
-// RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdProvidingPoolsGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdProvidingPoolsGet(w http.ResponseWriter, r *http.Request) {
-	params := Params(r)
-	storageServiceId := params["StorageServiceId"]
-	volumeId := params["VolumeId"]
-
-	model := sf.StoragePoolCollectionStoragePoolCollection{
-		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/Volumes/%s/ProvidingPools", storageServiceId, volumeId),
-		OdataType: "#StoragePoolCollection.v1_0_0.StoragePoolCollection",
-		Name:      "Storage Pool Collection",
-	}
-
-	err := StorageServiceIdVolumeIdProvidingPoolsGet(storageServiceId, volumeId, &model)
+	err := StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storagePoolId, volumeId, &model)
 
 	EncodeResponse(model, err, w)
 }

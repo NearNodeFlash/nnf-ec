@@ -28,23 +28,23 @@ func StorageServiceIdStoragePoolIdDelete(storageServiceId, storagePoolId string)
 	return nil
 }
 
+func StorageServiceIdStoragePoolIdCapacitySourcesGet(storageServiceId, storagePoolId string, model *sf.CapacitySourceCollectionCapacitySourceCollection) error {
+	return nil
+}
+
+func StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storagePoolId, capacitySourceId string, model *sf.CapacityCapacitySource) error {
+	return nil
+}
+
+func StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(torageServiceId, storagePoolId, capacitySourceId string, model *sf.VolumeCollectionVolumeCollection) error {
+	return nil
+}
+
 func StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
 	return nil
 }
 
-func StorageServiceIdStoragePoolIdProvidingVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
-	return nil
-}
-
-func StorageServiceIdVolumesGet(storageServiceId string, model *sf.VolumeCollectionVolumeCollection) error {
-	return nil
-}
-
-func StorageServiceIdVolumeIdGet(storageServiceId, volumeId string, model *sf.VolumeV161Volume) error {
-	return nil
-}
-
-func StorageServiceIdVolumeIdProvidingPoolsGet(storageServiceId, volumeId string, model *sf.StoragePoolCollectionStoragePoolCollection) error {
+func StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storagePoolId, volumeId string, model *sf.VolumeV161Volume) error {
 	return nil
 }
 

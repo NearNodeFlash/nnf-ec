@@ -12,12 +12,11 @@ type Api interface {
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsPost(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request)
-
-	RedfishV1StorageServicesStorageServiceIdVolumesGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request)
-	RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdProvidingPoolsGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request)
 
 	RedfishV1StorageServicesStorageServiceIdStorageGroupsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStorageGroupsPost(w http.ResponseWriter, r *http.Request)

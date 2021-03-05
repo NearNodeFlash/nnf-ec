@@ -68,39 +68,36 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete,
 		},
 		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/CapacitySources",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet,
+		},
+		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/CapacitySources/{CapacitySourceId}",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet,
+		},
+		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/CapacitySources/{CapacitySourceId}/ProvidingVolumes",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet,
+		},
+		{
 			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet",
 			Method:      ec.GET_METHOD,
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/AllocatedVolumes",
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet,
 		},
 		{
-			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdProvidingVolumesGet",
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet",
 			Method:      ec.GET_METHOD,
-			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/ProvidingVolumes",
-			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdProvidingVolumesGet,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/AllocatedVolumes/{VolumeId}",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet,
 		},
-
-		/* ----------------------------- VOLUMES ---------------------------- */
-
-		{
-			Name:        "RedfishV1StorageServicesStorageServiceIdVolumesGet",
-			Method:      ec.GET_METHOD,
-			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/Volumes",
-			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdVolumesGet,
-		},
-		{
-			Name:        "RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdGet",
-			Method:      ec.GET_METHOD,
-			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/Volumes/{VolumeId}",
-			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdGet,
-		},
-		{
-			Name:        "RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdProvidingPoolsGet",
-			Method:      ec.GET_METHOD,
-			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/Volumes/{VolumeId}/ProvidingPools",
-			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdVolumesVolumeIdProvidingPoolsGet,
-		},
-
+		
 		/* ------------------------- STORAGE GROUPS ------------------------ */
 
 		{
