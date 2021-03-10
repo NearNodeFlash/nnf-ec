@@ -1,7 +1,7 @@
 package nvmenamespace
 
 import (
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/api"
 
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
@@ -15,12 +15,12 @@ func NewNvmeController() NvmeControllerInterface {
 }
 
 func (*NvmeController) NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceInterface, error) {
-	switchDev, err := FabricController.GetSwitchtecDevice(fabricId, switchId)
+	switchDev, err := api.FabricController.GetSwitchtecDevice(fabricId, switchId)
 	if err != nil {
 		return nil, err
 	}
 
-	pdfid, err := FabricController.GetPortPDFID(fabricId, switchId, portId, 0)
+	pdfid, err := api.FabricController.GetPortPDFID(fabricId, switchId, portId, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -57,14 +57,14 @@ func (d *NvmeDevice) NewNvmeDeviceController(controllerId uint16) NvmeDeviceCont
 	return ctrl
 }
 
-// IsVirtualizationManagement -
-func (d *NvmeDevice) IsVirtualizationManagement() (bool, error) {
-	ctrl, err := d.dev.IdentifyController()
-	if err != nil {
-		return false, err
-	}
+// IdentifyController -
+func (d *NvmeDevice) IdentifyController() (*nvme.IdCtrl, error) {
+	return d.dev.IdentifyController()
+}
 
-	return ctrl.GetCapability(nvme.VirtualiztionManagementSupport), nil
+// IdentifyNamespace -
+func (d *NvmeDevice) IdentifyNamespace() (*nvme.IdNs, error) {
+	return d.dev.IdentifyNamespace(uint32(nvme.COMMON_NAMESPACE_IDENTIFIER), false)
 }
 
 // EnumerateSecondaryControllers -
@@ -203,7 +203,7 @@ type NvmeDeviceController struct {
 // ListNamespaces -
 func (c *NvmeDeviceController) ListNamespaces() ([]nvme.NamespaceIdentifier, error) {
 	if c.dev == nil {
-		pdfid, err := FabricController.GetPortPDFID(c.parent.fabricId, c.parent.switchId, c.parent.portId, c.controllerId)
+		pdfid, err := api.FabricController.GetPortPDFID(c.parent.fabricId, c.parent.switchId, c.parent.portId, c.controllerId)
 		if err != nil {
 			return nil, err
 		}

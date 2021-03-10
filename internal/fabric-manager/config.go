@@ -61,6 +61,9 @@ func loadConfig() (*ConfigFile, error) {
 			switch p.getPortType() {
 			case sf.MANAGEMENT_PORT_PV130PT:
 				s.ManagementPortCount++
+				if s.UpstreamPortCount != 0 {
+					return nil, fmt.Errorf("Management USP must be listed first in config.yaml")
+				}
 			case sf.UPSTREAM_PORT_PV130PT:
 				s.UpstreamPortCount++
 			case sf.DOWNSTREAM_PORT_PV130PT:
@@ -68,7 +71,7 @@ func loadConfig() (*ConfigFile, error) {
 			case sf.INTERSWITCH_PORT_PV130PT:
 				continue
 			default:
-				return config, fmt.Errorf("Unhandled port type %s", p.Type)
+				return nil, fmt.Errorf("Unhandled port type %s in config.yaml", p.Type)
 			}
 		}
 
@@ -79,7 +82,7 @@ func loadConfig() (*ConfigFile, error) {
 
 	// Only a single management endpoint for ALL switches (but unique ports)
 	if config.ManagementPortCount != len(config.Switches) {
-		return config, fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(config.Switches), config.ManagementPortCount)
+		return nil, fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(config.Switches), config.ManagementPortCount)
 	}
 
 	return config, nil

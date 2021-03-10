@@ -29,7 +29,8 @@ type VolumeId uint32
 type NvmeDeviceInterface interface {
 	NewNvmeDeviceController(controllerId uint16) NvmeDeviceControllerInterface
 
-	IsVirtualizationManagement() (bool, error)
+	IdentifyController() (*nvme.IdCtrl, error)
+	IdentifyNamespace() (*nvme.IdNs, error)
 
 	EnumerateSecondaryControllers(
 		SecondaryControllersInitFunc,

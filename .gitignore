@@ -1,5 +1,6 @@
 *.DS_Store
 .vscode/
+!.vscode/launch.json
 
 vendor/
 nnf_ec

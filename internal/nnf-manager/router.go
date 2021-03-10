@@ -13,13 +13,12 @@ func NewDefaultApiRouter(servicer Api, ctrl NnfControllerInterface) ec.Router {
 	return &DefaultApiRouter{servicer: servicer, controller: ctrl}
 }
 
-// Name -
 func (*DefaultApiRouter) Name() string {
 	return "NNF Storage Service Manager"
 }
 
 func (r *DefaultApiRouter) Init() error {
-	return nil //Initialize(r.controller)
+	return Initialize(r.controller)
 }
 
 func (r *DefaultApiRouter) Start() error {
@@ -43,6 +42,7 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 		},
 
 		/* ------------------------- STORAGE POOLS ------------------------- */
+
 		{
 			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsGet",
 			Method:      ec.GET_METHOD,
@@ -97,7 +97,7 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/AllocatedVolumes/{VolumeId}",
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet,
 		},
-		
+
 		/* ------------------------- STORAGE GROUPS ------------------------ */
 
 		{
@@ -145,6 +145,8 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/Endpoints",
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdEndpointsGet,
 		},
+
+		// TODO: Get Endpoint (singular)
 
 		/* -------------------------- FILE SYSTEMS ------------------------- */
 

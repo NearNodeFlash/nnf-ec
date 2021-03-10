@@ -1,6 +1,7 @@
 package nvmenamespace
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 
@@ -23,7 +24,7 @@ const (
 
 	mockSecondaryControllerCount  = 17
 	mockMaximumNamespaceCount     = 32
-	mockControllerCapcaityInBytes = 2 << 20
+	mockControllerCapacityInBytes = 2 << 20
 )
 
 type NvmeMockDevice struct {
@@ -39,7 +40,7 @@ func NewMockDevice() *NvmeMockDevice {
 	for idx := range mock.controllers {
 		mock.controllers[idx] = NvmeMockDeviceController{
 			id:          uint16(idx),
-			capacity:    mockControllerCapcaityInBytes,
+			capacity:    mockControllerCapacityInBytes,
 			online:      false,
 			vqresources: 0,
 			viresources: 0,
@@ -80,9 +81,28 @@ func (d *NvmeMockDevice) NewNvmeDeviceController(controllerId uint16) NvmeDevice
 	return nil
 }
 
-// IsVirtualizationManagement -
-func (d *NvmeMockDevice) IsVirtualizationManagement() (bool, error) {
-	return d.virtualizationManagement, nil
+// IdentifyController -
+func (d *NvmeMockDevice) IdentifyController() (*nvme.IdCtrl, error) {
+	ctrl := new(nvme.IdCtrl)
+
+	binary.LittleEndian.PutUint64(ctrl.TotalNVMCapacity[:], mockControllerCapacityInBytes)
+	binary.LittleEndian.PutUint64(ctrl.UnallocatedNVMCapacity[:], mockControllerCapacityInBytes)
+
+	ctrl.OptionalAdminCommandSupport = nvme.VirtualiztionManagementSupport
+
+	return ctrl, nil
+}
+
+// IdentifyNamespace -
+func (d *NvmeMockDevice) IdentifyNamespace() (*nvme.IdNs, error) {
+	ns := new(nvme.IdNs)
+
+	ns.NumberOfLBAFormats = 1
+	ns.LBAFormats[0].LBADataSize = uint8(math.Log2(4096))
+	ns.LBAFormats[0].MetadataSize = 0
+	ns.LBAFormats[0].RelativePerformance = 0
+
+	return ns, nil
 }
 
 // EnumerateSecondaryControllers -

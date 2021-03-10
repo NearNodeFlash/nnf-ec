@@ -1,12 +1,12 @@
-package common
+package events
 
 type PortType string
 
 const (
-	PORT_TYPE_UNKNOWN PortType = "Unknown"
-	PORT_TYPE_USP              = "USP"
-	PORT_TYPE_DSP              = "DSP"
-	PORT_TYPE_INTERSWITCH      = "Interswitch"
+	PORT_TYPE_UNKNOWN     PortType = "Unknown"
+	PORT_TYPE_USP                  = "USP"
+	PORT_TYPE_DSP                  = "DSP"
+	PORT_TYPE_INTERSWITCH          = "Interswitch"
 )
 
 type PortEventType string

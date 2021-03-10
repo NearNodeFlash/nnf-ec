@@ -1,6 +1,8 @@
-package common
+package api
 
 import (
+	"stash.us.cray.com/rabsw/nnf-ec/internal/events"
+
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 )
 
@@ -16,14 +18,12 @@ type FabricControllerApi interface {
 	// For example, if the fabric consists of a single switch USP and 4 DSPs labeled 0,1,2,3  then
 	// a port event of type DSP with event attributes: <FabricId = 0, SwitchId = 0, PortId = 2>
 	// would return 2 as the DSP index is 2 is the second DSP type within the fabric.
-	ConvertPortEventToRelativePortIndex(PortEvent) (int, error)
-
+	ConvertPortEventToRelativePortIndex(events.PortEvent) (int, error)
 
 	FindDownstreamEndpoint(portId, functionId string) (string, error)
 }
 
 type FabricNvmeDeviceApi interface {
-
 }
 
 var FabricController FabricControllerApi

@@ -1,0 +1,11 @@
+version: v1
+metadata:
+  name: Rabbit Storage Manager
+id: NNF
+serverConfig:
+  count: 17
+  startingIndex: 0
+allocationConfig:
+  policy: spares
+  standard: strict
+  

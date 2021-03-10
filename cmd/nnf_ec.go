@@ -10,6 +10,7 @@ import (
 func main() {
 	
 	mock := flag.Bool("mock", false, "enable mock interfaces and devices")
+	
 	opts := ec.BindFlags(flag.CommandLine)
 	flag.Parse()
 

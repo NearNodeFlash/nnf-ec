@@ -1,19 +1,20 @@
 package nvmenamespace
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
+
+	. "stash.us.cray.com/rabsw/nnf-ec/internal/api"
+	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
 
 	log "github.com/sirupsen/logrus"
 
 	"stash.us.cray.com/rabsw/ec"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
-
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 )
 
 const (
@@ -45,8 +46,23 @@ type Storage struct {
 	controllers           []StorageController
 	volumes               []Volume
 
+	// Capacity in bytes of the storage device. This value is read once and is fixed for
+	// the life of the object.
+	capacityBytes uint64
+
+	// Unallocted capacity in bytes. This value is updated for any namespaces create or
+	// delete operation that might shrink or grow the byte count as expected.
+	unallocatedBytes uint64
+
+	// Namespace Properties - Read using the Common Namespace Identifier (0xffffffff)
+	// These are properties common to all namespaces for this controller (we use controller
+	// zero as the basis for all other controllers - technically the spec supports uinque
+	// LBA Formats per controller, but this is not done in practice by drive vendors.)
+	lbaFormatIndex uint8
+	blockSizeBytes uint32
+
 	// These values allow us to communicate a storage device with its corresponding
-	// Fabric Controller
+	// Fabric Controller. Read once during Port Up Events and remain fixed thereafter.
 	fabricId string
 	switchId string
 	portId   string
@@ -67,6 +83,9 @@ type StorageController struct {
 type Volume struct {
 	id          string
 	namespaceId nvme.NamespaceIdentifier
+
+	storage             *Storage
+	AttachedControllers []*StorageController
 }
 
 // TODO: We may want to put this manager under a resource block
@@ -83,38 +102,52 @@ func init() {
 	RegisterNvmeInterface(&mgr)
 }
 
-func isStorageId(id string) bool     { _, err := mgr.findStorage(id); return err == nil }
-func isStoragePoolId(id string) bool { return id == defaultStoragePoolId }
-
-func (m *Manager) findStorage(storageId string) (*Storage, error) {
+func findStorage(storageId string) *Storage {
 	id, err := strconv.Atoi(storageId)
 	if err != nil {
-		return nil, ec.ErrNotFound
+		return nil
 	}
 
-	if !(id < len(m.storage)) {
-		return nil, ec.ErrNotFound
+	if !(id < len(mgr.storage)) {
+		return nil
 	}
 
-	return &m.storage[id], nil
+	return &mgr.storage[id]
 }
 
-func (m *Manager) findStorageController(storageId string, controllerId string) (*StorageController, error) {
-	s, err := m.findStorage(storageId)
-	if err != nil {
-		return nil, err
+func findStorageController(storageId, controllerId string) (*Storage, *StorageController) {
+	s := findStorage(storageId)
+	if s == nil {
+		return nil, nil
 	}
 
-	return s.findController(controllerId)
+	return s, s.findController(controllerId)
+}
+
+func findStorageVolume(storageId, volumeId string) (*Storage, *Volume) {
+	s := findStorage(storageId)
+	if s == nil {
+		return nil, nil
+	}
+
+	return s, s.findVolume(volumeId)
+}
+
+func findStoragePool(storageId, storagePoolId string) (*Storage, *interface{}) {
+	return nil, nil
+}
+
+func (m *Manager) fmt(format string, a ...interface{}) string {
+	return fmt.Sprintf("/redfish/v1") + fmt.Sprintf(format, a...)
 }
 
 // GetVolumes -
 func (m *Manager) GetVolumes(controllerId string) ([]string, error) {
 	volumes := []string{}
 	for _, s := range m.storage {
-		c, err := s.findController(controllerId)
-		if err != nil {
-			return volumes, err
+		c := s.findController(controllerId)
+		if c == nil {
+			return volumes, ec.ErrNotFound
 		}
 
 		nsids, err := s.device.ListNamespaces(c.functionNumber)
@@ -135,43 +168,46 @@ func (m *Manager) GetVolumes(controllerId string) ([]string, error) {
 	return volumes, nil
 }
 
-// AttachVolumeToStorageController - Will attempt to decode the (StorageId, VolumeId) defined in
-// the odataid string and attach that volume to the given controller.
-func (m *Manager) AttachVolume(odataid string, controllerId string) error {
-
-	// Wish I could use the router for this one, but all the hooks seem trapped to an http.Request
-	// so manual extraction is needed. TODO: Add this to a unit test.
-	fields := strings.Split(odataid, "/")
-	if len(fields) != len(strings.Split("/redfish/v1/Storage/0/Volumes/0", "/")) {
-		return ec.ErrBadRequest
+func ConvertRelativePortIndexToControllerIndex(index int) (uint16, error) {
+	if !(index < mgr.config.Storage.Controller.Functions) {
+		return 0, fmt.Errorf("Port Index %d is beyond supported controller count (%d)",
+			index, mgr.config.Storage.Controller.Functions)
 	}
 
-	storageId := fields[4]
-	volumeId := fields[6]
+	return uint16(index + 1), nil
+}
 
-	s, err := m.findStorage(storageId)
-	if err != nil {
-		return ec.ErrBadRequest
+func GetStorage() []*Storage {
+	storage := make([]*Storage, len(mgr.storage))
+	for idx := range storage {
+		storage[idx] = &mgr.storage[idx]
 	}
 
-	v, err := s.findVolume(volumeId)
-	if err != nil {
-		return ec.ErrBadRequest
-	}
+	return storage
+}
 
-	c, err := s.findController(controllerId)
-	if err != nil {
-		return ec.ErrBadRequest
-	}
+func CreateVolume(s *Storage, capacityBytes uint64) (*Volume, error) {
+	return s.createVolume(capacityBytes)
+}
 
-	// TODO: Check if volume is already attached to the storage controller and return failure
+func DeleteVolume(v *Volume) error {
+	return v.storage.deleteVolume(v.id)
+}
 
-	if err := s.device.AttachNamespace(v.namespaceId, c.controllerId); err != nil {
-		log.WithError(err).Errorf("Attach namespace failed")
-		return ec.ErrInternalServerError
-	}
+func AttachControllers(volume *Volume, controllers []uint16) error {
+	return fmt.Errorf("Not Yet Implemented")
+}
 
-	return nil
+func DetachControllers(volume *Volume, controllers []uint16) error {
+	return fmt.Errorf("Not Yet Implemented")
+}
+
+func (s *Storage) UnallocatedBytes() uint64 {
+	return s.unallocatedBytes
+}
+
+func (s *Storage) fmt(format string, a ...interface{}) string {
+	return fmt.Sprintf("/redfish/v1/Storage/%s", s.id) + fmt.Sprintf(format, a...)
 }
 
 func (s *Storage) initialize(conf *ControllerConfig, device string) error {
@@ -181,14 +217,51 @@ func (s *Storage) initialize(conf *ControllerConfig, device string) error {
 	return nil
 }
 
-func (s *Storage) findController(controllerId string) (*StorageController, error) {
+func (s *Storage) initializeController() error {
+	ctrl, err := s.device.IdentifyController()
+	if err != nil {
+		return err
+	}
+
+	s.capacityBytes = binary.LittleEndian.Uint64(ctrl.TotalNVMCapacity[:])
+	if binary.LittleEndian.Uint64(ctrl.TotalNVMCapacity[8:]) != 0 {
+		return fmt.Errorf("Unsupported capacity: will overflow uint64 definition")
+	}
+
+	s.unallocatedBytes = binary.LittleEndian.Uint64(ctrl.UnallocatedNVMCapacity[:])
+	if binary.LittleEndian.Uint64(ctrl.UnallocatedNVMCapacity[8:]) != 0 {
+		return fmt.Errorf("Unsuppored unallocated bytes, will overflow uint64 definition")
+	}
+
+	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
+
+	ns, err := s.device.IdentifyNamespace()
+	if err != nil {
+		return err
+	}
+
+	bestIndex := 0
+	bestRelativePerformance := ^uint8(0)
+	for i := 0; i < int(ns.NumberOfLBAFormats); i++ {
+		if ns.LBAFormats[i].MetadataSize == 0 &&
+			ns.LBAFormats[i].RelativePerformance < bestRelativePerformance {
+			bestIndex = i
+		}
+	}
+	s.lbaFormatIndex = uint8(bestIndex)
+	s.blockSizeBytes = 1 << ns.LBAFormats[bestIndex].LBADataSize
+
+	return nil
+}
+
+func (s *Storage) findController(controllerId string) *StorageController {
 	for idx, ctrl := range s.controllers {
 		if ctrl.id == controllerId {
-			return &s.controllers[idx], nil
+			return &s.controllers[idx]
 		}
 	}
 
-	return nil, ec.ErrNotFound
+	return nil
 }
 
 func (s *Storage) getStatus() (stat sf.ResourceStatus) {
@@ -202,30 +275,27 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 	return stat
 }
 
-func (s *Storage) createVolume(sizeInBytes uint64) (string, error) {
-	namespaceId, err := s.device.CreateNamespace(sizeInBytes)
+func (s *Storage) createVolume(capacityBytes uint64) (*Volume, error) {
+	namespaceId, err := s.device.CreateNamespace(capacityBytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	id := strconv.Itoa(int(namespaceId))
 	s.volumes = append(s.volumes, Volume{
 		id:          id,
 		namespaceId: namespaceId,
+		storage:     s,
 	})
 
-	sort.Slice(s.volumes, func(i, j int) bool {
-		return s.volumes[i].id < s.volumes[j].id
-	})
-
-	return id, nil
+	return &s.volumes[len(s.volumes)-1], nil
 }
 
 func (s *Storage) deleteVolume(volumeId string) error {
 	for idx, volume := range s.volumes {
 		if volume.id == volumeId {
 			if err := s.device.DeleteNamespace(volume.namespaceId); err != nil {
-				return ec.ErrInternalServerError
+				return err
 			}
 
 			// remove the volume from the array
@@ -239,14 +309,22 @@ func (s *Storage) deleteVolume(volumeId string) error {
 	return ec.ErrNotFound
 }
 
-func (s *Storage) findVolume(volumeId string) (*Volume, error) {
+func (s *Storage) findVolume(volumeId string) *Volume {
 	for idx, v := range s.volumes {
 		if v.id == volumeId {
-			return &s.volumes[idx], nil
+			return &s.volumes[idx]
 		}
 	}
 
-	return nil, ec.ErrNotFound
+	return nil
+}
+
+func (v *Volume) GetOdataId() string {
+	return v.storage.fmt("/Volumes/%s", v.id)
+}
+
+func (v *Volume) GetCapaityBytes() int64 {
+	return 0
 }
 
 // Initialize
@@ -329,7 +407,12 @@ func PortEventHandler(event PortEvent, data interface{}) {
 		}
 
 		s.device = device
-		s.virtManagementEnabled, err = device.IsVirtualizationManagement()
+
+		err = s.initializeController()
+		if err != nil {
+			log.WithError(err).Errorf("Failied to initialize device controller")
+			return
+		}
 
 		// Initialize a Storage object with the required number of controllers
 		initFunc := func(s *Storage) SecondaryControllersInitFunc {
@@ -417,10 +500,9 @@ func Get(model *sf.StorageCollectionStorageCollection) error {
 
 // StorageIdGet -
 func StorageIdGet(storageId string, model *sf.StorageV190Storage) error {
-
-	s, err := mgr.findStorage(storageId)
-	if err != nil {
-		return err
+	s := findStorage(storageId)
+	if s == nil {
+		return ec.ErrNotFound
 	}
 
 	model.Status = s.getStatus()
@@ -437,7 +519,8 @@ func StorageIdGet(storageId string, model *sf.StorageV190Storage) error {
 
 // StorageIdStoragePoolsGet -
 func StorageIdStoragePoolsGet(storageId string, model *sf.StoragePoolCollectionStoragePoolCollection) error {
-	if !isStorageId(storageId) {
+	s := findStorage(storageId)
+	if s == nil {
 		return ec.ErrNotFound
 	}
 
@@ -450,7 +533,8 @@ func StorageIdStoragePoolsGet(storageId string, model *sf.StoragePoolCollectionS
 
 // StorageIdStoragePoolIdGet -
 func StorageIdStoragePoolIdGet(storageId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
-	if !isStorageId(storageId) || !isStoragePoolId(storagePoolId) {
+	_, sp := findStoragePool(storageId, storagePoolId)
+	if sp == nil {
 		return ec.ErrNotFound
 	}
 
@@ -472,10 +556,9 @@ func StorageIdStoragePoolIdGet(storageId, storagePoolId string, model *sf.Storag
 
 // StorageIdControllersGet -
 func StorageIdControllersGet(storageId string, model *sf.StorageControllerCollectionStorageControllerCollection) error {
-
-	s, err := mgr.findStorage(storageId)
-	if err != nil {
-		return err
+	s := findStorage(storageId)
+	if s == nil {
+		return ec.ErrNotFound
 	}
 
 	model.MembersodataCount = int64(len(s.controllers))
@@ -489,10 +572,9 @@ func StorageIdControllersGet(storageId string, model *sf.StorageControllerCollec
 
 // StorageIdControllerIdGet -
 func StorageIdControllerIdGet(storageId, controllerId string, model *sf.StorageControllerV100StorageController) error {
-
-	_, err := mgr.findStorageController(storageId, controllerId)
-	if err != nil {
-		return err
+	_, c := findStorageController(storageId, controllerId)
+	if c == nil {
+		return ec.ErrNotFound
 	}
 
 	// Fill in the relative endpoint for this storage controller
@@ -533,9 +615,9 @@ func StorageIdControllerIdGet(storageId, controllerId string, model *sf.StorageC
 
 // StorageIdVolumesGet -
 func StorageIdVolumesGet(storageId string, model *sf.VolumeCollectionVolumeCollection) error {
-	s, err := mgr.findStorage(storageId)
-	if err != nil {
-		return err
+	s := findStorage(storageId)
+	if s == nil {
+		return ec.ErrNotFound
 	}
 
 	// TODO: If s.ctrl is down - fail
@@ -543,7 +625,7 @@ func StorageIdVolumesGet(storageId string, model *sf.VolumeCollectionVolumeColle
 	model.MembersodataCount = int64(len(s.volumes))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
 	for idx, volume := range s.volumes {
-		model.Members[idx].OdataId = fmt.Sprintf("/redfish/v1/Storage/%s/Volumes/%s", storageId, volume.id)
+		model.Members[idx].OdataId = s.fmt("/Volumes/%s", volume.id)
 	}
 
 	return nil
@@ -551,14 +633,9 @@ func StorageIdVolumesGet(storageId string, model *sf.VolumeCollectionVolumeColle
 
 // StorageIdVolumeIdGet -
 func StorageIdVolumeIdGet(storageId, volumeId string, model *sf.VolumeV161Volume) error {
-	s, err := mgr.findStorage(storageId)
-	if err != nil {
-		return err
-	}
-
-	v, err := s.findVolume(volumeId)
-	if err != nil {
-		return err
+	s, v := findStorageVolume(storageId, volumeId)
+	if v == nil {
+		return ec.ErrNotFound
 	}
 
 	// TODO: If s.ctrl is down - fail
@@ -625,26 +702,26 @@ func StorageIdVolumeIdGet(storageId, volumeId string, model *sf.VolumeV161Volume
 
 // StorageIdVolumePost -
 func StorageIdVolumePost(storageId string, model *sf.VolumeV161Volume) error {
-	s, err := mgr.findStorage(storageId)
-	if err != nil {
-		return err
+	s := findStorage(storageId)
+	if s == nil {
+		return ec.ErrNotFound
 	}
 
-	volumeId, err := s.createVolume(uint64(model.CapacityBytes))
+	volume, err := s.createVolume(uint64(model.CapacityBytes))
 
 	// TODO: We should parse the error and make it more obvious (404, 405, etc)
 	if err != nil {
 		return err
 	}
 
-	return StorageIdVolumeIdGet(storageId, volumeId, model)
+	return StorageIdVolumeIdGet(storageId, volume.id, model)
 }
 
 // StorageIdVolumeIdDelete -
 func StorageIdVolumeIdDelete(storageId, volumeId string) error {
-	s, err := mgr.findStorage(storageId)
-	if err != nil {
-		return err
+	s, v := findStorageVolume(storageId, volumeId)
+	if v == nil {
+		return ec.ErrBadRequest
 	}
 
 	return s.deleteVolume(volumeId)

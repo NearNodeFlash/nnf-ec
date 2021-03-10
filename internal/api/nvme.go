@@ -1,8 +1,7 @@
-package common
+package api
 
 type NvmeApi interface {
 	GetVolumes(controllerId string) ([]string, error)
-	AttachVolume(odataid string, controllerId string) error
 }
 
 var NvmeInterface NvmeApi

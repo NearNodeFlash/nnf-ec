@@ -7,8 +7,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	. "stash.us.cray.com/rabsw/nnf-ec/internal/api"
+	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
+
 	"stash.us.cray.com/rabsw/ec"
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/common"
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
@@ -178,12 +180,15 @@ func (f *Fabric) ConvertPortEventToRelativePortIndex(event PortEvent) (int, erro
 					p.portType == sf.UPSTREAM_PORT_PV130PT)
 			case PORT_TYPE_DSP:
 				correctType = p.portType == sf.DOWNSTREAM_PORT_PV130PT
-
 			}
 
 			if correctType == true {
 				if s.id == event.SwitchId && p.id == event.PortId {
 					return idx, nil
+				}
+
+				if p.portType == sf.MANAGEMENT_PORT_PV130PT {
+					return 0, nil
 				}
 
 				idx++
@@ -1197,23 +1202,26 @@ func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, mo
 
 // FabricIdConnectionsConnectionIdPatch -
 func FabricIdConnectionsConnectionIdPatch(fabricId string, connectionId string, model *sf.ConnectionV100Connection) error {
-	if !isFabric(fabricId) {
-		return ec.ErrNotFound
-	}
+	return ec.ErrNotAcceptable
+	/*
+		if !isFabric(fabricId) {
+			return ec.ErrNotFound
+		}
 
-	c, err := fabric.findConnection(connectionId)
-	if err != nil {
-		return err
-	}
-
-	initiator := *c.endpointGroup.initiator
-
-	for _, volumeInfo := range model.VolumeInfo {
-		odataid := volumeInfo.Volume.OdataId
-		if err := NvmeInterface.AttachVolume(odataid, initiator.controllerId); err != nil {
+		c, err := fabric.findConnection(connectionId)
+		if err != nil {
 			return err
 		}
-	}
 
-	return nil
+		initiator := *c.endpointGroup.initiator
+
+		for _, volumeInfo := range model.VolumeInfo {
+			odataid := volumeInfo.Volume.OdataId
+			if err := NvmeInterface.AttachVolume(odataid, initiator.controllerId); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	*/
 }
