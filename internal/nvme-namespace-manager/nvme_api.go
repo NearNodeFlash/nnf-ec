@@ -47,7 +47,7 @@ type NvmeDeviceInterface interface {
 
 	GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error)
 
-	CreateNamespace(sizeInBytes uint64) (nvme.NamespaceIdentifier, error)
+	CreateNamespace(capacityBytes uint64) (nvme.NamespaceIdentifier, error)
 	DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error
 
 	AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllerId uint16) error

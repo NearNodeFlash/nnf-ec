@@ -1,7 +1,6 @@
 package nvmenamespace
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
@@ -202,9 +201,8 @@ func DetachControllers(volume *Volume, controllers []uint16) error {
 	return fmt.Errorf("Not Yet Implemented")
 }
 
-func (s *Storage) UnallocatedBytes() uint64 {
-	return s.unallocatedBytes
-}
+func (s *Storage) UnallocatedBytes() uint64 { return s.unallocatedBytes }
+func (s *Storage) IsEnabled() bool          { return s.getStatus().State == sf.ENABLED_RST }
 
 func (s *Storage) fmt(format string, a ...interface{}) string {
 	return fmt.Sprintf("/redfish/v1/Storage/%s", s.id) + fmt.Sprintf(format, a...)
@@ -223,14 +221,29 @@ func (s *Storage) initializeController() error {
 		return err
 	}
 
-	s.capacityBytes = binary.LittleEndian.Uint64(ctrl.TotalNVMCapacity[:])
-	if binary.LittleEndian.Uint64(ctrl.TotalNVMCapacity[8:]) != 0 {
-		return fmt.Errorf("Unsupported capacity: will overflow uint64 definition")
+	capacityToUint64s := func(c [16]byte) (lo uint64, hi uint64) {
+		lo, hi = 0, 0
+		for i := 0; i < 8; i++ {
+			lo, hi = lo<<8, hi<<8
+			lo += uint64(c[7-i])
+			hi += uint64(c[15-i])
+		}
+
+		return lo, hi
 	}
 
-	s.unallocatedBytes = binary.LittleEndian.Uint64(ctrl.UnallocatedNVMCapacity[:])
-	if binary.LittleEndian.Uint64(ctrl.UnallocatedNVMCapacity[8:]) != 0 {
-		return fmt.Errorf("Unsuppored unallocated bytes, will overflow uint64 definition")
+	totalCapBytesLo, totalCapBytesHi := capacityToUint64s(ctrl.TotalNVMCapacity)
+
+	s.capacityBytes = totalCapBytesLo
+	if totalCapBytesHi != 0 {
+		return fmt.Errorf("Unsupported capacity 0x%x_%x: will overflow uint64 definition", totalCapBytesHi, totalCapBytesLo)
+	}
+
+	unallocatedCapBytesLo, unallocatedCapBytesHi := capacityToUint64s(ctrl.UnallocatedNVMCapacity)
+
+	s.unallocatedBytes = unallocatedCapBytesLo
+	if unallocatedCapBytesHi != 0 {
+		return fmt.Errorf("Unsupported unallocated 0x%x_%x, will overflow uint64 definition", unallocatedCapBytesHi, unallocatedCapBytesLo)
 	}
 
 	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
@@ -269,7 +282,7 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 		stat.State = sf.UNAVAILABLE_OFFLINE_RST
 	} else {
 		stat.Health = sf.OK_RH
-		stat.State = sf.ENABLED_RST
+		stat.State = sf.ENABLED_RST // TODO: Need some different Unavailable / Offline state maybe?
 	}
 
 	return stat
@@ -277,6 +290,9 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 
 func (s *Storage) createVolume(capacityBytes uint64) (*Volume, error) {
 	namespaceId, err := s.device.CreateNamespace(capacityBytes)
+	// TODO: CreateNamespace can round up the requested capacity
+	// Need to pass in a pointer here and then get the updated capacity
+	// bytes programmed into the volume.
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +339,7 @@ func (v *Volume) GetOdataId() string {
 	return v.storage.fmt("/Volumes/%s", v.id)
 }
 
-func (v *Volume) GetCapaityBytes() int64 {
+func (v *Volume) GetCapaityBytes() uint64 {
 	return 0
 }
 

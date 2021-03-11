@@ -136,41 +136,55 @@ func (d *NvmeDevice) ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdenti
 	return ret[:count], nil
 }
 
-// GetNamespace
+// GetNamespace -
 func (d *NvmeDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
 	return d.dev.IdentifyNamespace(uint32(namespaceId), true)
 }
 
 // CreateNamespace -
-func (d *NvmeDevice) CreateNamespace(size uint64) (nvme.NamespaceIdentifier, error) {
+func (d *NvmeDevice) CreateNamespace(capacityBytes uint64) (nvme.NamespaceIdentifier, error) {
 
 	// Want to get the best LBA format for creating a Namespace
 	// We first read the unique namespace ID that describes common namespace properties
-	dns, err := d.GetNamespace(0xFFFFFFFF)
+	dns, err := d.dev.IdentifyNamespace(uint32(nvme.COMMON_NAMESPACE_IDENTIFIER), false)
 	if err != nil {
 		return 0, err
 	}
 
 	// We then iterate over the LBA formats presented by the drive and look for
 	// the best performing LBA format that has no metadata.
-	var currentBestPerformance = uint8(0xFF) // Performance improves as the RelativePerformance value gets lower
-	var currentBestIndex = 0
-	for idx, lbaf := range dns.LBAFormats {
-		if lbaf.MetadataSize == 0 &&
-			lbaf.RelativePerformance < currentBestPerformance {
-			currentBestIndex = idx
+	var bestPerformance = ^uint8(0) // Performance improves as the RelativePerformance value gets lower
+	var bestIndex = 0
+	for i := 0; i < int(dns.NumberOfLBAFormats); i++ {
+		if dns.LBAFormats[i].MetadataSize != 0 {
+			continue
+		}
+		if dns.LBAFormats[i].RelativePerformance < bestPerformance {
+			bestIndex = i
+			bestPerformance = dns.LBAFormats[i].RelativePerformance
 		}
 	}
 
+	// TODO: We should probably do the above only once when identifying the drive
+	// and then check at certain points the requested CapacityBytes is a good
+	// value.
+
+	roundUpToMultiple := func(n, m uint64) uint64 {
+		return ((n + m - 1) / m) * m
+	}
+
+	dataSizeBytes := uint64(1 << dns.LBAFormats[bestIndex].LBADataSize)
+	size := roundUpToMultiple(capacityBytes/dataSizeBytes, dataSizeBytes)
+
 	id, err := d.dev.CreateNamespace(
-		size,                    // Size in Bytes
-		size,                    // Capacity in Bytes,
-		uint8(currentBestIndex), // LBA Format Index (see above)
-		0,                       // Data Protection Capaiblities (none)
-		0x1,                     // Capabilities (sharing = 1b)
-		0,                       // ANA Group Identifier (none)
-		0,                       // NVM Set Identifier (non)
-		100,                     // Timeout (???)
+		size,             // Size in Data Size Units (usually 4096)
+		size,             // Capacity in Data Size Units (usually 4096),
+		uint8(bestIndex), // LBA Format Index (see above)
+		0,                // Data Protection Capaiblities (none)
+		0x1,              // Capabilities (sharing = 1b)
+		0,                // ANA Group Identifier (none)
+		0,                // NVM Set Identifier (non)
+		100,              // Timeout (???)
 	)
 
 	return nvme.NamespaceIdentifier(id), err

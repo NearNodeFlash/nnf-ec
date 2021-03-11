@@ -24,7 +24,7 @@ const (
 
 	mockSecondaryControllerCount  = 17
 	mockMaximumNamespaceCount     = 32
-	mockControllerCapacityInBytes = 2 << 20
+	mockControllerCapacityInBytes = 2 << 40 // 2TiB
 )
 
 type NvmeMockDevice struct {

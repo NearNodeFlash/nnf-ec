@@ -419,7 +419,7 @@ func StorageServiceIdGet(storageServiceId string, model *sf.StorageServiceV150St
 	}
 
 	model.Id = s.id
-	model.StoragePools = sf.OdataV4IdRef{OdataId: s.fmt("/StorgePools")}
+	model.StoragePools = sf.OdataV4IdRef{OdataId: s.fmt("/StoragePools")}
 	model.StorageGroups = sf.OdataV4IdRef{OdataId: s.fmt("/StorageGroups")}
 	model.Endpoints = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints")}
 	model.FileSystems = sf.OdataV4IdRef{OdataId: s.fmt("/FileSystems")}
@@ -442,6 +442,7 @@ func StorageServiceIdStoragePoolsGet(storageServiceId string, model *sf.StorageP
 	return nil
 }
 
+// StorageServiceIdStoragePoolPost -
 func StorageServiceIdStoragePoolPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -452,17 +453,26 @@ func StorageServiceIdStoragePoolPost(storageServiceId string, model *sf.StorageP
 
 	policy := NewAllocationPolicy(s.config.AllocationConfig, model.Oem)
 	if policy == nil {
-		log.Errorf("Failed to allocate storage policy.")
-		return ec.ErrInternalServerError
+		log.Errorf("Failed to allocate storage policy. Config: %+v Oem: %+v", s.config.AllocationConfig, model.Oem)
+		return ec.ErrNotAcceptable
 	}
 
-	if err := policy.Initialize(uint64(model.Capacity.Data.AllocatedBytes)); err != nil {
+	capacityBytes := model.CapacityBytes
+	if capacityBytes == 0 {
+		capacityBytes = model.Capacity.Data.AllocatedBytes
+	}
+
+	if capacityBytes == 0 {
+		return ec.ErrNotAcceptable
+	}
+
+	if err := policy.Initialize(uint64(capacityBytes)); err != nil {
 		log.WithError(err).Errorf("Failed to initialize storage policy")
 		return ec.ErrInternalServerError
 	}
 
-	if !policy.CheckCapacity() {
-		log.Warnf("Storage Policy does not provide sufficient capacity to support requested bytes")
+	if err := policy.CheckCapacity(); err != nil {
+		log.WithError(err).Warnf("Storage Policy does not provide sufficient capacity to support requested %d bytes", capacityBytes)
 		return ec.ErrNotAcceptable
 	}
 

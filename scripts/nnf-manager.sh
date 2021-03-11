@@ -1,9 +1,11 @@
 #!/bin/bash
 
-PORT=8080
-./nnf_ec --mock --http --port $PORT &
+HOST=${1:-"localhost"}
+PORT=${2:-"8080"}
 
-SS="http://localhost:$PORT/redfish/v1/StorageServices"
+../nnf_ec --mock --http --port $PORT &
+
+SS="http://$HOST:$PORT/redfish/v1/StorageServices"
 NNF="$SS/NNF"
 
 curl -Ss $SS | jq
