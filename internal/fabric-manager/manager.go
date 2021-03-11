@@ -7,13 +7,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/api"
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
-
 	"stash.us.cray.com/rabsw/ec"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/api"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/events"
+	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
+
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
-	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 )
 
 const (
@@ -85,10 +85,14 @@ type Endpoint struct {
 	idx int
 
 	endpointType sf.EndpointV150EntityType
-	controllerId string // For Initiator Endpoints, this represents the initator index
-	// For Target Endpoints, this represents the VF.
 
-	ports []*Port
+	// For Initiator Endpoints, this represents the USP index within the Fabric starting at zero
+	// For Target Endpoints, this represents the Physical Controller (if zero) and the
+	// Secondary Controller (VF) Id (if non-zero)
+	controllerId uint16
+
+	ports  []*Port
+	fabric *Fabric
 
 	// OEM fields -  marshalled?
 	pdfid         uint16
@@ -118,7 +122,7 @@ type VolumeInfo struct {
 var fabric Fabric
 
 func init() {
-	RegisterFabricController(&fabric)
+	api.RegisterFabricController(&fabric)
 }
 
 func isFabric(id string) bool        { return id == FabricId }
@@ -164,7 +168,7 @@ func (f *Fabric) GetPortPDFID(fabricId, switchId, portId string, controllerId ui
 }
 
 // ConvertPortEventToRelativePortIndex
-func (f *Fabric) ConvertPortEventToRelativePortIndex(event PortEvent) (int, error) {
+func (f *Fabric) ConvertPortEventToRelativePortIndex(event events.PortEvent) (int, error) {
 	if event.FabricId != f.id {
 		return -1, fmt.Errorf("Fabric %s not found for event %+v", event.FabricId, event)
 	}
@@ -175,10 +179,10 @@ func (f *Fabric) ConvertPortEventToRelativePortIndex(event PortEvent) (int, erro
 
 			var correctType = false
 			switch event.PortType {
-			case PORT_TYPE_USP:
+			case events.PORT_TYPE_USP:
 				correctType = (p.portType == sf.MANAGEMENT_PORT_PV130PT ||
 					p.portType == sf.UPSTREAM_PORT_PV130PT)
-			case PORT_TYPE_DSP:
+			case events.PORT_TYPE_DSP:
 				correctType = p.portType == sf.DOWNSTREAM_PORT_PV130PT
 			}
 
@@ -545,7 +549,7 @@ func (p *Port) Initialize() error {
 					}
 
 					ep := p.endpoints[idx]
-					ep.controllerId = strconv.Itoa(int(f.VFNum))
+					ep.controllerId = uint16(f.VFNum)
 
 					ep.pdfid = f.PDFID
 					ep.bound = f.Bound != 0
@@ -566,6 +570,16 @@ func (p *Port) Initialize() error {
 	}
 
 	return nil
+}
+
+// Getters for common endpoint calls
+func (e *Endpoint) GetEndpointId() string                      { return e.id }
+func (e *Endpoint) GetEndpointType() sf.EndpointV150EntityType { return e.endpointType }
+func (e *Endpoint) GetEndpointIndex() int                      { return e.idx }
+func (e *Endpoint) GetControllerId() uint16                    { return e.controllerId }
+
+func (e *Endpoint) GetEndpointOdataId() string {
+	return fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", e.fabric.id, e.id)
 }
 
 // Initialize - Will create the bindings between initiator and downstream ports
@@ -733,6 +747,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 		endpoint.id = strconv.Itoa(endpointIdx)
 		endpoint.idx = endpointIdx
+		endpoint.fabric = f
 
 		switch {
 		case f.isManagementEndpoint(endpointIdx):
@@ -800,7 +815,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		endpointGroup.initiator = &endpointGroup.endpoints[0]
 
 		endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
-		endpointGroup.endpoints[0].controllerId = strconv.Itoa(endpointGroupIdx + 1)
+		endpointGroup.endpoints[0].controllerId = uint16(endpointGroupIdx + 1)
 
 		for idx := range endpointGroup.endpoints[1:] {
 			endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
@@ -810,7 +825,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		connection.endpointGroup = endpointGroup
 	}
 
-	PortEventManager.Subscribe(PortEventSubscriber{
+	events.PortEventManager.Subscribe(events.PortEventSubscriber{
 		HandlerFunc: PortEventHandler,
 		Data:        f,
 	})
@@ -841,32 +856,32 @@ func Start() error {
 		for portIdx := range s.ports {
 			p := &s.ports[portIdx]
 
-			event := PortEvent{
+			event := events.PortEvent{
 				FabricId:  f.id,
 				SwitchId:  s.id,
 				PortId:    p.id,
-				PortType:  PORT_TYPE_UNKNOWN,
-				EventType: PORT_EVENT_UNKNOWN,
+				PortType:  events.PORT_TYPE_UNKNOWN,
+				EventType: events.PORT_EVENT_UNKNOWN,
 			}
 
 			switch p.portType {
 			case sf.UPSTREAM_PORT_PV130PT, sf.MANAGEMENT_PORT_PV130PT:
-				event.PortType = PORT_TYPE_USP
+				event.PortType = events.PORT_TYPE_USP
 			case sf.DOWNSTREAM_PORT_PV130PT:
-				event.PortType = PORT_TYPE_DSP
+				event.PortType = events.PORT_TYPE_DSP
 			default: // Ignore unintersting port types
 				continue
 			}
 
-			event.EventType = PORT_EVENT_DOWN
+			event.EventType = events.PORT_EVENT_DOWN
 			if err := p.Initialize(); err != nil {
 				log.WithError(err).Errorf("Switch %s Port %s failed to initialize", s.id, p.id)
 			} else if p.linkStatus == sf.LINK_UP_PV130LS {
-				event.EventType = PORT_EVENT_UP
+				event.EventType = events.PORT_EVENT_UP
 			}
 
 			log.Infof("Publishing port event %+v", event)
-			PortEventManager.Publish(event)
+			events.PortEventManager.Publish(event)
 		}
 	}
 
@@ -876,7 +891,7 @@ func Start() error {
 }
 
 // PortEventHandler -
-func PortEventHandler(event PortEvent, data interface{}) {
+func PortEventHandler(event events.PortEvent, data interface{}) {
 	f := data.(*Fabric)
 
 	port, err := f.findSwitchPort(event.SwitchId, event.PortId)
@@ -889,7 +904,7 @@ func PortEventHandler(event PortEvent, data interface{}) {
 	// between a port's endpoints and its USP
 
 	switch event.EventType {
-	case PORT_EVENT_READY:
+	case events.PORT_EVENT_READY:
 		if port.portType == sf.DOWNSTREAM_PORT_PV130PT {
 			/*
 				// TODO: Bind this port to its initiators
@@ -901,7 +916,7 @@ func PortEventHandler(event PortEvent, data interface{}) {
 			*/
 		}
 
-	case PORT_EVENT_DOWN:
+	case events.PORT_EVENT_DOWN:
 		// Set the port down & and all its connections
 	}
 
@@ -912,6 +927,26 @@ func PortEventHandler(event PortEvent, data interface{}) {
 			log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
 		}
 	}
+}
+
+// GetEndpointIdFromPortEvent - Returns the first endpoint Id for the given
+// port event. For USP, there will only ever be one ID. For DSP there will
+// be an endpoint for each Physical and Virtual Functions on the DSP, but the
+// first ID (corresponding to the PF) is what is returned.
+func GetEndpointFromPortEvent(event events.PortEvent) (*Endpoint, error) {
+	if !isFabric(event.FabricId) {
+		return nil, ec.ErrNotFound
+	}
+
+	for _, s := range fabric.switches {
+		for _, p := range s.ports {
+			if s.id == event.SwitchId && p.id == event.PortId {
+				return p.endpoints[0], nil
+			}
+		}
+	}
+
+	return nil, ec.ErrNotFound
 }
 
 // Get -
@@ -1061,12 +1096,20 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 		return err
 	}
 
+	role := func(ep *Endpoint) sf.EndpointV150EntityRole {
+		if ep.endpointType == sf.DRIVE_EV150ET {
+			return sf.TARGET_EV150ER
+		}
+
+		return sf.INITIATOR_EV150ER
+	}
+
 	model.Id = ep.id
 	model.EndpointProtocol = sf.PC_IE_PP
 	model.ConnectedEntities = make([]sf.EndpointV150ConnectedEntity, 1)
 	model.ConnectedEntities = []sf.EndpointV150ConnectedEntity{{
 		EntityType: ep.endpointType,
-		EntityRole: sf.TARGET_EV150ER, // TODO
+		EntityRole: role(ep),
 	}}
 
 	model.PciId = sf.EndpointV150PciId{
@@ -1180,7 +1223,9 @@ func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, mo
 		model.Links.TargetEndpoints[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, endpoint.id)
 	}
 
-	volumes, err := NvmeInterface.GetVolumes(initiator.controllerId)
+	// TODO: This should be by controllerId uint16 (not a string)
+	controllerId := strconv.Itoa(int(initiator.controllerId))
+	volumes, err := api.NvmeInterface.GetVolumes(controllerId)
 	if err != nil {
 		return err
 	}

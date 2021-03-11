@@ -5,10 +5,12 @@ import (
 	"strconv"
 	"strings"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/api"
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
+
+	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
 	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"stash.us.cray.com/rabsw/ec"
@@ -33,6 +35,7 @@ type StorageService struct {
 
 type StoragePool struct {
 	id     string
+	guid   uuid.UUID
 	policy AllocationPolicy
 
 	allocatedVolume  AllocatedVolume
@@ -53,9 +56,11 @@ type ProvidingVolume struct {
 }
 
 type Endpoint struct {
-	id              string
-	controllerIndex uint16
-	state           sf.ResourceState
+	id           string
+	controllerId uint16
+	state        sf.ResourceState
+
+	fabricId string
 
 	storageService *StorageService
 }
@@ -120,6 +125,15 @@ func findStorageGroup(storageServiceId, storageGroupId string) (*StorageService,
 	return s, s.findStorageGroup(storageGroupId)
 }
 
+func findEndpoint(storageServiecId, endpointId string) (*StorageService, *Endpoint) {
+	s := findStorageService(storageServiecId)
+	if s == nil {
+		return nil, nil
+	}
+
+	return s, s.findEndpoint(endpointId)
+}
+
 func findFileSystem(storageServiceId, fileSystemId string) (*StorageService, *FileSystem) {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -182,7 +196,7 @@ func (s *StorageService) findFileSystem(fileSystemId string) *FileSystem {
 	return nil
 }
 
-func (s *StorageService) createStoragePool(policy AllocationPolicy, providingVolumes []ProvidingVolume) *StoragePool {
+func (s *StorageService) createStoragePool(guid uuid.UUID, policy AllocationPolicy, providingVolumes []ProvidingVolume) *StoragePool {
 
 	// Find a free Storage Pool Id
 	var poolId = -1
@@ -198,6 +212,7 @@ func (s *StorageService) createStoragePool(policy AllocationPolicy, providingVol
 
 	p := &StoragePool{
 		id:               strconv.Itoa(poolId),
+		guid:             guid,
 		policy:           policy,
 		providingVolumes: providingVolumes,
 		storageService:   s,
@@ -236,6 +251,21 @@ func (s *StorageService) createStorageGroup(volume *AllocatedVolume, endpoints [
 		storageService: s,
 		volume:         volume,
 		endpoints:      endpoints,
+	}
+}
+
+func (s *StorageService) allocateStoragePoolGuid() uuid.UUID {
+	for {
+	GuidRetry:
+		guid := uuid.New()
+
+		for _, p := range s.pools {
+			if p.guid == guid {
+				goto GuidRetry
+			}
+		}
+
+		return guid
 	}
 }
 
@@ -374,31 +404,26 @@ func PortEventHandler(event PortEvent, data interface{}) {
 		return
 	}
 
-	idx, err := api.FabricController.ConvertPortEventToRelativePortIndex(event)
+	ep, err := fabric.GetEndpointFromPortEvent(event)
 	if err != nil {
-		log.WithError(err).Errorf("Unable to find port index for event %+v", event)
+		log.WithError(err).Errorf("Unable to find endpoint for event %+v", event)
 		return
 	}
 
-	if !(idx < len(s.endpoints)) {
-		log.Errorf("Port index %d exceeds endpoint count for event %+v", idx, event)
+	endpointIdx := ep.GetEndpointIndex()
+	if !(endpointIdx < len(s.endpoints)) {
+		log.Errorf("Endpoint index %d beyond supported endpoint count %d", endpointIdx, len(s.endpoints))
 		return
 	}
 
-	controllerIndex, err := nvme.ConvertRelativePortIndexToControllerIndex(idx)
-	if err != nil {
-		log.WithError(err).Errorf("Could not convert port index to controller index")
-		return
+	endpoint := Endpoint{
+		id:           ep.GetEndpointId(),
+		fabricId:     event.FabricId,
+		controllerId: ep.GetControllerId(),
+		state:        sf.ENABLED_RST, // TODO: Port Down Ev
 	}
 
-	endpoint := &s.endpoints[idx]
-	endpoint.controllerIndex = controllerIndex
-	switch event.EventType {
-	case PORT_EVENT_UP:
-		endpoint.state = sf.ENABLED_RST
-	default:
-		endpoint.state = sf.UNAVAILABLE_OFFLINE_RST
-	}
+	s.endpoints[endpointIdx] = endpoint
 }
 
 func Get(model *sf.StorageServiceCollectionStorageServiceCollection) error {
@@ -476,21 +501,34 @@ func StorageServiceIdStoragePoolPost(storageServiceId string, model *sf.StorageP
 		return ec.ErrNotAcceptable
 	}
 
+	// All checks have completed; we're ready to create the storage pool
+	guid := s.allocateStoragePoolGuid()
+
+	// TODO: GUID and other metadata should be added to the allocated volumes
+	//       so we can identify them after power-on for recovery.
+	//       Should probably keep a common header with versioning information
+	//       and use structex for encoding and decoding.
 	volumes, err := policy.Allocate()
 	if err != nil {
 		log.WithError(err).Errorf("Storage Policy allocation failed.")
 		return ec.ErrInternalServerError
 	}
 
-	p := s.createStoragePool(policy, volumes)
+	p := s.createStoragePool(guid, policy, volumes)
 	s.pools = append(s.pools, *p)
 
 	model.Id = p.id
 	model.OdataId = p.fmt("")
 	model.AllocatedVolumes.OdataId = p.fmt("/AllocatedVolumes")
 
+	model.CapacityBytes = p.allocatedVolume.capacityBytes
 	model.CapacitySources = p.capacitySourcesGet()
 	model.CapacitySourcesodataCount = int64(len(model.CapacitySources))
+
+	model.Identifier = sf.ResourceIdentifier{
+		DurableName:       p.guid.String(),
+		DurableNameFormat: sf.UUID_RV1100DNF,
+	}
 
 	return nil
 }
@@ -577,6 +615,7 @@ func StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storageP
 	return nil
 }
 
+// StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet -
 func StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageServiceId, storagePoolId, capacitySourceId string, model *sf.VolumeCollectionVolumeCollection) error {
 	_, p := findStoragePool(storageServiceId, storagePoolId)
 	if p == nil {
@@ -596,6 +635,7 @@ func StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageSer
 	return nil
 }
 
+// StorageServiceIdStoragePoolIdAlloctedVolumesGet -
 func StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
 	_, p := findStoragePool(storageServiceId, storagePoolId)
 	if p == nil {
@@ -610,6 +650,7 @@ func StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePo
 	return nil
 }
 
+// StorageServiceIdStoragePoolIdAllocatedVolumeIdGet -
 func StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storagePoolId, volumeId string, model *sf.VolumeV161Volume) error {
 	_, p := findStoragePool(storageServiceId, storagePoolId)
 	if p == nil {
@@ -629,6 +670,7 @@ func StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storage
 	return nil
 }
 
+// StorageServiceIdStorageGroupsGet -
 func StorageServiceIdStorageGroupsGet(storageServiceId string, model *sf.StorageGroupCollectionStorageGroupCollection) error {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -644,6 +686,7 @@ func StorageServiceIdStorageGroupsGet(storageServiceId string, model *sf.Storage
 	return nil
 }
 
+// StorageServiceIdStorageGroupPost -
 func StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.StorageGroupV150StorageGroup) error {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -716,6 +759,7 @@ func StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, 
 	return nil
 }
 
+// StorageServiceIdStorageGroupIdDelete -
 func StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId string) error {
 	_, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if sg == nil {
@@ -729,15 +773,16 @@ func StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId strin
 	return nil
 }
 
+// StorageServiceIdStorageGroupIdExposeVolumesPost -
 func StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGroupId string, model *sf.StorageGroupV150ExposeVolumes) error {
 	_, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if sg == nil {
 		return ec.ErrNotFound
 	}
 
-	controllers := make([]uint16, len(sg.endpoints))
+	controllers := make([]uint32, len(sg.endpoints))
 	for endpointIdx, endpoint := range sg.endpoints {
-		controllers[endpointIdx] = uint16(endpoint.controllerIndex)
+		controllers[endpointIdx] = uint32(endpoint.controllerId)
 	}
 
 	sp := sg.volume.storagePool
@@ -753,6 +798,7 @@ func StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGr
 	return nil
 }
 
+// StorageServiceIdStorageGroupIdHideVolumesPost -
 func StorageServiceIdStorageGroupIdHideVolumesPost(storageServiceId, storageGroupId string, model *sf.StorageGroupV150HideVolumes) error {
 	_, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if sg == nil {
@@ -764,6 +810,7 @@ func StorageServiceIdStorageGroupIdHideVolumesPost(storageServiceId, storageGrou
 	return nil
 }
 
+// StorageServiceIdEndpointsGet -
 func StorageServiceIdEndpointsGet(storageServiceId string, model *sf.EndpointCollectionEndpointCollection) error {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -772,13 +819,28 @@ func StorageServiceIdEndpointsGet(storageServiceId string, model *sf.EndpointCol
 
 	model.MembersodataCount = int64(len(s.endpoints))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
-	for idx, endpoint := range s.endpoints {
-		model.Members[idx] = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", endpoint.id)}
+	for idx, ep := range s.endpoints {
+		model.Members[idx] = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", ep.id)}
 	}
 
 	return nil
 }
 
+// StorageServiceIdEndpointIdGet -
+func StorageServiceIdEndpointIdGet(storageServiceId, endpointId string, model *sf.EndpointV150Endpoint) error {
+	_, e := findEndpoint(storageServiceId, endpointId)
+	if e == nil {
+		return ec.ErrNotFound
+	}
+
+	if err := fabric.FabricIdEndpointsEndpointIdGet(e.fabricId, e.id, model); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// StorageServiceIdFileSystemsGet -
 func StorageServiceIdFileSystemsGet(storageServiceId string, model *sf.FileSystemCollectionFileSystemCollection) error {
 	s := findStorageService(storageServiceId)
 	if s == nil {

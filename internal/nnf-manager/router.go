@@ -146,7 +146,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdEndpointsGet,
 		},
 
-		// TODO: Get Endpoint (singular)
+		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/Endpoints/{EndpointId}",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet,
+		},
 
 		/* -------------------------- FILE SYSTEMS ------------------------- */
 

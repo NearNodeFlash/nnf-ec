@@ -62,7 +62,7 @@ func NewAllocationPolicy(config AllocationConfig, oem map[string]interface{}) Al
 
 	if oem != nil {
 		overrides := AllocationPolicyOem{
-			Policy:  DefaultAlloctionPolicy,
+			Policy:   DefaultAlloctionPolicy,
 			Standard: DefaultAlloctionStandard,
 		}
 
@@ -166,6 +166,7 @@ func (p *SpareAllocationPolicy) Allocate() ([]ProvidingVolume, error) {
 			capacityBytes = remainingCapacityBytes
 		}
 
+		// TODO: We should be branding the volume with the GUID
 		v, err := nvme.CreateVolume(storage, capacityBytes)
 
 		if err != nil {

@@ -26,6 +26,7 @@ type Api interface {
 	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost(w http.ResponseWriter, r *http.Request)
 
 	RedfishV1StorageServicesStorageServiceIdEndpointsGet(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request)
 
 	RedfishV1StorageServicesStorageServiceIdFileSystemsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdFileSystemsPost(w http.ResponseWriter, r *http.Request)

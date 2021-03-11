@@ -71,7 +71,8 @@ type Storage struct {
 
 // StorageController -
 type StorageController struct {
-	id             string
+	id string
+
 	controllerId   uint16
 	functionNumber uint16
 
@@ -193,11 +194,11 @@ func DeleteVolume(v *Volume) error {
 	return v.storage.deleteVolume(v.id)
 }
 
-func AttachControllers(volume *Volume, controllers []uint16) error {
+func AttachControllers(volume *Volume, controllers []uint32) error {
 	return fmt.Errorf("Not Yet Implemented")
 }
 
-func DetachControllers(volume *Volume, controllers []uint16) error {
+func DetachControllers(volume *Volume, controllers []uint32) error {
 	return fmt.Errorf("Not Yet Implemented")
 }
 

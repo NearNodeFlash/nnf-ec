@@ -324,6 +324,23 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsGet(w
 	EncodeResponse(model, err, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet
+func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	endpointId := params["EndpointId"]
+
+	model := sf.EndpointV150Endpoint{
+		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/Endpoints/%s", storageServiceId, endpointId),
+		OdataType: "#Endpoint.v1_5_0.Endpoint",
+		Name: "Endpoint",
+	}
+
+	err := StorageServiceIdEndpointIdGet(storageServiceId, endpointId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdFileSystemsGet -
 func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
