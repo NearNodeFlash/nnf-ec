@@ -142,7 +142,7 @@ func (d *NvmeDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.I
 }
 
 // CreateNamespace -
-func (d *NvmeDevice) CreateNamespace(capacityBytes uint64) (nvme.NamespaceIdentifier, error) {
+func (d *NvmeDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error) {
 
 	// Want to get the best LBA format for creating a Namespace
 	// We first read the unique namespace ID that describes common namespace properties
@@ -196,15 +196,13 @@ func (d *NvmeDevice) DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error
 }
 
 // AttachNamespace -
-func (d *NvmeDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllerId uint16) error {
-	ctrls := [1]uint16{controllerId}
-	return d.dev.AttachNamespace(uint32(namespaceId), ctrls[:])
+func (d *NvmeDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
+	return d.dev.AttachNamespace(uint32(namespaceId), controllers)
 }
 
 // DetachNamespace -
-func (d *NvmeDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllerId uint16) error {
-	ctrls := [1]uint16{controllerId}
-	return d.dev.DetachNamespace(uint32(namespaceId), ctrls[:])
+func (d *NvmeDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
+	return d.dev.DetachNamespace(uint32(namespaceId), controllers)
 }
 
 // NvmeDeviceController -

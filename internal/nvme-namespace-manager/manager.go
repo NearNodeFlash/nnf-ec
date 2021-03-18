@@ -81,11 +81,12 @@ type StorageController struct {
 
 // Volumes -
 type Volume struct {
-	id          string
-	namespaceId nvme.NamespaceIdentifier
+	id            string
+	namespaceId   nvme.NamespaceIdentifier
+	capacityBytes uint64
 
 	storage             *Storage
-	AttachedControllers []*StorageController
+	attachedControllers []*StorageController
 }
 
 // TODO: We may want to put this manager under a resource block
@@ -186,20 +187,20 @@ func GetStorage() []*Storage {
 	return storage
 }
 
-func CreateVolume(s *Storage, capacityBytes uint64) (*Volume, error) {
-	return s.createVolume(capacityBytes)
+func CreateVolume(s *Storage, capacityBytes uint64, data []byte) (*Volume, error) {
+	return s.createVolume(capacityBytes, data)
 }
 
 func DeleteVolume(v *Volume) error {
 	return v.storage.deleteVolume(v.id)
 }
 
-func AttachControllers(volume *Volume, controllers []uint32) error {
-	return fmt.Errorf("Not Yet Implemented")
+func AttachControllers(v *Volume, controllers []uint16) error {
+	return v.attach(controllers)
 }
 
-func DetachControllers(volume *Volume, controllers []uint32) error {
-	return fmt.Errorf("Not Yet Implemented")
+func DetachControllers(v *Volume, controllers []uint16) error {
+	return v.detach(controllers)
 }
 
 func (s *Storage) UnallocatedBytes() uint64 { return s.unallocatedBytes }
@@ -289,8 +290,8 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 	return stat
 }
 
-func (s *Storage) createVolume(capacityBytes uint64) (*Volume, error) {
-	namespaceId, err := s.device.CreateNamespace(capacityBytes)
+func (s *Storage) createVolume(capacityBytes uint64, metadata []byte) (*Volume, error) {
+	namespaceId, err := s.device.CreateNamespace(capacityBytes, metadata)
 	// TODO: CreateNamespace can round up the requested capacity
 	// Need to pass in a pointer here and then get the updated capacity
 	// bytes programmed into the volume.
@@ -300,9 +301,10 @@ func (s *Storage) createVolume(capacityBytes uint64) (*Volume, error) {
 
 	id := strconv.Itoa(int(namespaceId))
 	s.volumes = append(s.volumes, Volume{
-		id:          id,
-		namespaceId: namespaceId,
-		storage:     s,
+		id:            id,
+		namespaceId:   namespaceId,
+		capacityBytes: capacityBytes,
+		storage:       s,
 	})
 
 	return &s.volumes[len(s.volumes)-1], nil
@@ -341,7 +343,42 @@ func (v *Volume) GetOdataId() string {
 }
 
 func (v *Volume) GetCapaityBytes() uint64 {
-	return 0
+	return uint64(v.capacityBytes)
+}
+
+func (v *Volume) attach(controllerIds []uint16) error {
+	if err := v.storage.device.AttachNamespace(v.namespaceId, controllerIds); err != nil {
+		return err
+	}
+
+	for _, controllerId := range controllerIds {
+		for ctrlIdx, ctrl := range v.storage.controllers {
+			if ctrl.controllerId == controllerId {
+				v.attachedControllers = append(v.attachedControllers, &v.storage.controllers[ctrlIdx])
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+func (v *Volume) detach(controllerIds []uint16) error {
+	if err := v.storage.device.DetachNamespace(v.namespaceId, controllerIds); err != nil {
+		return err
+	}
+
+	for _, controllerId := range controllerIds {
+		for ctrlIdx, ctrl := range v.attachedControllers {
+			if ctrl.controllerId == controllerId {
+				v.attachedControllers =
+					append(v.attachedControllers[:ctrlIdx], v.attachedControllers[ctrlIdx+1:]...)
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // Initialize
@@ -724,7 +761,7 @@ func StorageIdVolumePost(storageId string, model *sf.VolumeV161Volume) error {
 		return ec.ErrNotFound
 	}
 
-	volume, err := s.createVolume(uint64(model.CapacityBytes))
+	volume, err := s.createVolume(uint64(model.CapacityBytes), nil)
 
 	// TODO: We should parse the error and make it more obvious (404, 405, etc)
 	if err != nil {

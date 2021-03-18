@@ -83,7 +83,6 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPo
 
 	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s", storageServiceId, model.Id)
 	model.OdataType = "#StoragePool.v1_5_0.StoragePool"
-	model.Name = "Storage Pool"
 
 	EncodeResponse(model, nil, w)
 }
@@ -123,9 +122,9 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	storagePoolId := params["StoragePoolId"]
 
 	model := sf.CapacitySourceCollectionCapacitySourceCollection{
-		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources", storageServiceId, storagePoolId),
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources", storageServiceId, storagePoolId),
 		OdataType: "#CapacitySourceCollection.v1_0_0.CapacitySourceCollection",
-		Name: "Capacity Source Collection",
+		Name:      "Capacity Source Collection",
 	}
 
 	err := StorageServiceIdStoragePoolIdCapacitySourcesGet(storageServiceId, storagePoolId, &model)
@@ -141,9 +140,9 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	capacitySourceId := params["CapacitySourceId"]
 
 	model := sf.CapacityCapacitySource{
-		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources/%s", storageServiceId, storagePoolId, capacitySourceId),
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources/%s", storageServiceId, storagePoolId, capacitySourceId),
 		OdataType: "#CapacitySource.v1_0_0.CapacitySource",
-		Name: "Capacity Source",
+		Name:      "Capacity Source",
 	}
 
 	err := StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storagePoolId, capacitySourceId, &model)
@@ -161,7 +160,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	model := sf.VolumeCollectionVolumeCollection{
 		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/CapacitySources/%s/ProvidingVolumes", storageServiceId, storagePoolId, capacitySourceId),
 		OdataType: "#VolumeCollection.v1_0_0.VolumeCollection",
-		Name: "Providing Volume Collection",
+		Name:      "Providing Volume Collection",
 	}
 
 	err := StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageServiceId, storagePoolId, capacitySourceId, &model)
@@ -194,9 +193,9 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 	volumeId := params["VolumeId"]
 
 	model := sf.VolumeV161Volume{
-		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/AllocatedVolumes/%s", storageServiceId, storagePoolId, volumeId),
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s/AllocatedVolumes/%s", storageServiceId, storagePoolId, volumeId),
 		OdataType: "#Volume.v1_6_1.Volume",
-		Name: "Volume",
+		Name:      "Volume",
 	}
 
 	err := StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storagePoolId, volumeId, &model)
@@ -237,7 +236,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsP
 		return
 	}
 
-	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/StorageGroup/%s", storageServiceId, model.Id)
+	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/StorageGroups/%s", storageServiceId, model.Id)
 	model.OdataType = "#StorageGroup.v1_5_0.StorageGroup"
 	model.Name = "Storage Group"
 
@@ -251,7 +250,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsS
 	storageGroupId := params["StorageGroupId"]
 
 	model := sf.StorageGroupV150StorageGroup{
-		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StorageGroup/%s", storageServiceId, storageGroupId),
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/StorageGroups/%s", storageServiceId, storageGroupId),
 		OdataType: "#StorageGroup.v1_5_0.StorageGroup",
 		Name:      "Storage Group",
 	}
@@ -331,9 +330,9 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsEndpo
 	endpointId := params["EndpointId"]
 
 	model := sf.EndpointV150Endpoint{
-		OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/Endpoints/%s", storageServiceId, endpointId),
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/Endpoints/%s", storageServiceId, endpointId),
 		OdataType: "#Endpoint.v1_5_0.Endpoint",
-		Name: "Endpoint",
+		Name:      "Endpoint",
 	}
 
 	err := StorageServiceIdEndpointIdGet(storageServiceId, endpointId, &model)

@@ -81,8 +81,9 @@ type portStatus struct {
 }
 
 type Endpoint struct {
-	id  string
-	idx int
+	id    string
+	index int
+	name  string
 
 	endpointType sf.EndpointV150EntityType
 
@@ -506,7 +507,7 @@ func (s *Switch) isDown() bool {
 	return !s.isReady()
 }
 
-func (p *Port) GetBaseEndpointIdx() int { return p.endpoints[0].idx }
+func (p *Port) GetBaseEndpointIndex() int { return p.endpoints[0].index }
 
 func (p *Port) findEndpoint(functionId string) *Endpoint {
 	id, err := strconv.Atoi(functionId)
@@ -573,10 +574,11 @@ func (p *Port) Initialize() error {
 }
 
 // Getters for common endpoint calls
-func (e *Endpoint) GetEndpointId() string                      { return e.id }
-func (e *Endpoint) GetEndpointType() sf.EndpointV150EntityType { return e.endpointType }
-func (e *Endpoint) GetEndpointIndex() int                      { return e.idx }
-func (e *Endpoint) GetControllerId() uint16                    { return e.controllerId }
+func (e *Endpoint) Id() string                      { return e.id }
+func (e *Endpoint) Type() sf.EndpointV150EntityType { return e.endpointType }
+func (e *Endpoint) Name() string                    { return e.name }
+func (e *Endpoint) Index() int                      { return e.index }
+func (e *Endpoint) ControllerId() uint16            { return e.controllerId }
 
 func (e *Endpoint) GetEndpointOdataId() string {
 	return fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", e.fabric.id, e.id)
@@ -743,34 +745,36 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	f.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+f.downstreamEndpointCount)
 
 	for endpointIdx := range f.endpoints {
-		endpoint := &f.endpoints[endpointIdx]
+		e := &f.endpoints[endpointIdx]
 
-		endpoint.id = strconv.Itoa(endpointIdx)
-		endpoint.idx = endpointIdx
-		endpoint.fabric = f
+		e.id = strconv.Itoa(endpointIdx)
+		e.index = endpointIdx
+		e.fabric = f
 
 		switch {
 		case f.isManagementEndpoint(endpointIdx):
-			endpoint.endpointType = sf.PROCESSOR_EV150ET
+			e.endpointType = sf.PROCESSOR_EV150ET
 
-			endpoint.ports = make([]*Port, len(fabric.switches))
+			e.ports = make([]*Port, len(fabric.switches))
 			for switchIdx, s := range fabric.switches {
 				port := s.findPortByType(sf.MANAGEMENT_PORT_PV130PT, 0)
 
-				endpoint.ports[switchIdx] = port
+				e.ports[switchIdx] = port
+				e.name = port.config.Name
 
 				port.endpoints = make([]*Endpoint, 1)
-				port.endpoints[0] = endpoint
+				port.endpoints[0] = e
 			}
 		case f.isUpstreamEndpoint(endpointIdx):
-			endpoint.endpointType = sf.STORAGE_INITIATOR_EV150ET
+			e.endpointType = sf.STORAGE_INITIATOR_EV150ET
 
 			port := f.findPortByType(sf.UPSTREAM_PORT_PV130PT, f.getUpstreamEndpointRelativePortIndex(endpointIdx))
-			endpoint.ports = make([]*Port, 1)
-			endpoint.ports[0] = port
+			e.ports = make([]*Port, 1)
+			e.ports[0] = port
+			e.name = port.config.Name
 
 			port.endpoints = make([]*Endpoint, 1)
-			port.endpoints[0] = endpoint
+			port.endpoints[0] = e
 
 		case f.isDownstreamEndpoint(endpointIdx):
 			port := f.findPortByType(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
@@ -778,21 +782,24 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 			//log.Debugf("Processing DSP Endpoint %d: Port %s", endpointIdx, port.id)
 			//log.Debugf("  Relative Port Index:           % 3d", f.getDownstreamEndpointRelativePortIndex(endpointIdx))
 
-			endpoint.endpointType = sf.DRIVE_EV150ET
-			endpoint.ports = make([]*Port, 1)
-			endpoint.ports[0] = port
+			e.endpointType = sf.DRIVE_EV150ET
+			e.ports = make([]*Port, 1)
+			e.ports[0] = port
 
 			if len(port.endpoints) == 0 {
 				port.endpoints = make([]*Endpoint, 1+ // PF
 					mangementAndUpstreamEndpointCount)
-				port.endpoints[0] = endpoint
+				port.endpoints[0] = e
 			} else {
-				port.endpoints[endpointIdx-port.GetBaseEndpointIdx()] = endpoint
+				port.endpoints[endpointIdx-port.GetBaseEndpointIndex()] = e
 			}
+
+			e.name = fmt.Sprintf("%s - Function %d", port.config.Name, endpointIdx-port.GetBaseEndpointIndex()) // must be after endpoint port assignment
 
 		default:
 			panic(fmt.Errorf("Unhandled endpoint index %d", endpointIdx))
 		}
+
 	}
 
 	// create the endpoint groups & connections
@@ -1105,6 +1112,7 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 	}
 
 	model.Id = ep.id
+	model.Name = ep.name
 	model.EndpointProtocol = sf.PC_IE_PP
 	model.ConnectedEntities = make([]sf.EndpointV150ConnectedEntity, 1)
 	model.ConnectedEntities = []sf.EndpointV150ConnectedEntity{{

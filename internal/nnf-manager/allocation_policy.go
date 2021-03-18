@@ -1,8 +1,11 @@
 package nnf
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
+
+	"github.com/google/uuid"
 
 	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
 
@@ -13,7 +16,7 @@ import (
 type AllocationPolicy interface {
 	Initialize(capacityBytes uint64) error
 	CheckCapacity() error
-	Allocate() ([]ProvidingVolume, error)
+	Allocate(guid uuid.UUID) ([]ProvidingVolume, error)
 }
 
 // AllocationPolicyType -
@@ -26,30 +29,44 @@ const (
 	ComputeLocalAllocationPolicyType                      = "compute-local"
 )
 
-// AllocationStandardType -
-type AllocationStandardType string
+// AllocationComplianceType -
+type AllocationComplianceType string
 
 const (
-	StrictAllocationStandardType  AllocationStandardType = "strict"
-	RelaxedAllocationStandardType                        = "relaxed"
+	StrictAllocationComplianceType  AllocationComplianceType = "strict"
+	RelaxedAllocationComplianceType                          = "relaxed"
 )
 
-// Default AllocationPolicy and AllocationStandard
+// Default AllocationPolicy and AllocationCompliance
 const (
-	DefaultAlloctionPolicy   = SpareAllocationPolicyType
-	DefaultAlloctionStandard = StrictAllocationStandardType
+	DefaultAlloctionPolicy     = SpareAllocationPolicyType
+	DefaultAlloctionCompliance = StrictAllocationComplianceType
 )
 
 // AllocationPolicyOem -
 type AllocationPolicyOem struct {
-	Policy   AllocationPolicyType
-	Standard AllocationStandardType
+	Policy     AllocationPolicyType     `json:"Policy,omitempty"`
+	Compliance AllocationComplianceType `json:"Compliance,omitempty"`
 
 	// This is a hint to the allocation policy on which server endpoint
 	// will be receiving the pool. This is designed for switch-local and
 	// compute-local where placement matters.
-	ServerEndpointId string
+	ServerEndpointId string `json:"ServerEndpoint,omitempty"`
 }
+
+// AllocationMetadata - Describes the metadata that is branded on the drive's namespace
+// when created. This data is used in recovery to identify the belonging storage pools.
+type AllocationMetadata struct {
+	Signature int
+	Index     int
+	Count     int
+	Reserved  int
+	Guid      [16]byte
+}
+
+const (
+	NnfStorageSignature = 0x52424254 // 'RBBT'
+)
 
 // NewAllocationPolicy - Allocates a new Allocation Policy with the desired parameters.
 // The provided config is the defaults as defined by the NNF Config (see config.yaml);
@@ -58,24 +75,24 @@ type AllocationPolicyOem struct {
 func NewAllocationPolicy(config AllocationConfig, oem map[string]interface{}) AllocationPolicy {
 
 	policy := DefaultAlloctionPolicy
-	standard := DefaultAlloctionStandard
+	compliance := DefaultAlloctionCompliance
 
 	if oem != nil {
 		overrides := AllocationPolicyOem{
-			Policy:   DefaultAlloctionPolicy,
-			Standard: DefaultAlloctionStandard,
+			Policy:     DefaultAlloctionPolicy,
+			Compliance: DefaultAlloctionCompliance,
 		}
 
 		if err := openapi.UnmarshalOem(oem, &overrides); err == nil {
 			policy = overrides.Policy
-			standard = overrides.Standard
+			compliance = overrides.Compliance
 		}
 
 	}
 
 	switch policy {
 	case SpareAllocationPolicyType:
-		return &SpareAllocationPolicy{standard: standard}
+		return &SpareAllocationPolicy{compliance: compliance}
 	case GlobalAllocationPolicyType:
 		return nil // TODO?
 	case SwitchLocalAllocationPolicyType:
@@ -90,7 +107,7 @@ func NewAllocationPolicy(config AllocationConfig, oem map[string]interface{}) Al
 /* ------------------------------ Spare Allocation Policy --------------------- */
 
 type SpareAllocationPolicy struct {
-	standard       AllocationStandardType
+	compliance     AllocationComplianceType
 	storage        []*nvme.Storage
 	capacityBytes  uint64
 	allocatedBytes uint64
@@ -135,7 +152,7 @@ func (p *SpareAllocationPolicy) CheckCapacity() error {
 		return fmt.Errorf("Insufficient capacity available. Requested: %#x Available: %#x", p.capacityBytes, availableBytes)
 	}
 
-	if p.standard != RelaxedAllocationStandardType {
+	if p.compliance != RelaxedAllocationComplianceType {
 
 		if len(p.storage) != 16 {
 			return fmt.Errorf("Insufficient drive count. Available %d", len(p.storage))
@@ -149,7 +166,7 @@ func (p *SpareAllocationPolicy) CheckCapacity() error {
 	return nil
 }
 
-func (p *SpareAllocationPolicy) Allocate() ([]ProvidingVolume, error) {
+func (p *SpareAllocationPolicy) Allocate(guid uuid.UUID) ([]ProvidingVolume, error) {
 
 	perStorageCapacityBytes := p.capacityBytes / uint64(len(p.storage))
 	remainingCapacityBytes := p.capacityBytes
@@ -166,8 +183,12 @@ func (p *SpareAllocationPolicy) Allocate() ([]ProvidingVolume, error) {
 			capacityBytes = remainingCapacityBytes
 		}
 
-		// TODO: We should be branding the volume with the GUID
-		v, err := nvme.CreateVolume(storage, capacityBytes)
+		metadata, err := createMetadata(idx, len(p.storage), guid)
+		if err != nil {
+			panic("Error Not Handled")
+		}
+
+		v, err := nvme.CreateVolume(storage, capacityBytes, metadata)
 
 		if err != nil {
 			//TODO: Rollyback i.e. defer policy.Deallocte()
@@ -179,4 +200,17 @@ func (p *SpareAllocationPolicy) Allocate() ([]ProvidingVolume, error) {
 	}
 
 	return volumes, nil
+}
+
+func createMetadata(index, count int, guid uuid.UUID) ([]byte, error) {
+
+	metadata := AllocationMetadata{
+		Signature: NnfStorageSignature,
+		Index:     index,
+		Count:     count,
+		Reserved:  0,
+		Guid:      guid,
+	}
+
+	return json.Marshal(metadata)
 }
