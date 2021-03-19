@@ -10,8 +10,8 @@ import (
 var configFile []byte
 
 type ControllerConfig struct {
-	Functions int
-	Resources int
+	Functions uint32
+	Resources uint32
 }
 
 type StorageConfig struct {

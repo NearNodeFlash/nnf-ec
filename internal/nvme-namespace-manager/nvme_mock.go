@@ -57,8 +57,8 @@ type NvmeMockDeviceController struct {
 	online            bool
 	capacity          uint64
 	allocatedCapacity uint64
-	vqresources       uint16
-	viresources       uint16
+	vqresources       uint32
+	viresources       uint32
 	namespaces        [mockMaximumNamespaceCount]NvmeMockNamespace
 }
 
@@ -121,9 +121,9 @@ func (d *NvmeMockDevice) AssignControllerResources(controllerId uint16, resource
 	ctrl := &d.controllers[int(controllerId)]
 	switch resourceType {
 	case VQResourceType:
-		ctrl.vqresources = uint16(numResources)
+		ctrl.vqresources = numResources
 	case VIResourceType:
-		ctrl.viresources = uint16(numResources)
+		ctrl.viresources = numResources
 	}
 	return nil
 }

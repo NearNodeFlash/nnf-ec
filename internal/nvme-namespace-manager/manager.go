@@ -169,7 +169,7 @@ func (m *Manager) GetVolumes(controllerId string) ([]string, error) {
 	return volumes, nil
 }
 
-func ConvertRelativePortIndexToControllerIndex(index int) (uint16, error) {
+func ConvertRelativePortIndexToControllerIndex(index uint32) (uint16, error) {
 	if !(index < mgr.config.Storage.Controller.Functions) {
 		return 0, fmt.Errorf("Port Index %d is beyond supported controller count (%d)",
 			index, mgr.config.Storage.Controller.Functions)
@@ -487,7 +487,7 @@ func PortEventHandler(event PortEvent, data interface{}) {
 		}
 
 		handlerFunc := func(s *Storage) SecondaryControllerHandlerFunc {
-			return func(controllerId uint16, controllerOnline bool, virtualFunctionNumber uint16, numVQResourcesAssinged, numVIResourcesAssigned uint16) error {
+			return func(controllerId uint16, controllerOnline bool, virtualFunctionNumber uint16, numVQResourcesAssinged, numVIResourcesAssigned uint32) error {
 
 				if controllerId == s.controllers[0].controllerId {
 					return fmt.Errorf("Controller ID overlaps with PF")
@@ -507,14 +507,14 @@ func PortEventHandler(event PortEvent, data interface{}) {
 					return nil
 				}
 
-				if numVQResourcesAssinged != uint16(s.config.Resources) {
-					if err := s.device.AssignControllerResources(controllerId, VQResourceType, uint32(int(numVQResourcesAssinged)-s.config.Resources)); err != nil {
+				if numVQResourcesAssinged != s.config.Resources {
+					if err := s.device.AssignControllerResources(controllerId, VQResourceType, s.config.Resources - numVQResourcesAssinged); err != nil {
 						return err
 					}
 				}
 
-				if numVIResourcesAssigned != uint16(s.config.Resources) {
-					if err := s.device.AssignControllerResources(controllerId, VIResourceType, uint32(int(numVIResourcesAssigned)-s.config.Resources)); err != nil {
+				if numVIResourcesAssigned != s.config.Resources {
+					if err := s.device.AssignControllerResources(controllerId, VIResourceType, s.config.Resources - numVIResourcesAssigned); err != nil {
 						return err
 					}
 				}
@@ -530,7 +530,7 @@ func PortEventHandler(event PortEvent, data interface{}) {
 		}
 
 		if err := device.EnumerateSecondaryControllers(initFunc(s), handlerFunc(s)); err != nil {
-			log.WithError(err).Errorf("Failed to enumerate %s storage controllers ", s.id)
+			log.WithError(err).Errorf("Namespace Manager: Storage %s failed to enumerate storage controllers ", s.id)
 		}
 
 		// Port is ready to make connections

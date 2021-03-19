@@ -85,8 +85,8 @@ func (d *NvmeDevice) EnumerateSecondaryControllers(initFunc SecondaryControllers
 			entry.SecondaryControllerID,
 			entry.SecondaryControllerState&0x1 != 0,
 			entry.VirtualFunctionNumber,
-			entry.VQFlexibleResourcesAssigned,
-			entry.VIFlexibleResourcesAssigned,
+			uint32(entry.VQFlexibleResourcesAssigned),
+			uint32(entry.VIFlexibleResourcesAssigned),
 		)
 
 		if err != nil {
@@ -99,16 +99,12 @@ func (d *NvmeDevice) EnumerateSecondaryControllers(initFunc SecondaryControllers
 
 // AssignControllerResources -
 func (d *NvmeDevice) AssignControllerResources(controllerId uint16, resourceType SecondaryControllerResourceType, numResources uint32) error {
-
-	if err := d.dev.VirtualMgmt(controllerId, nvme.SecondaryAssignAction, nvme.VQResourceType, numResources); err != nil {
-		return err
+	resourceTypeMap := map[SecondaryControllerResourceType]nvme.VirtualManagementResourceType{
+		VQResourceType: nvme.VQResourceType,
+		VIResourceType: nvme.VIResourceType,
 	}
 
-	if err := d.dev.VirtualMgmt(controllerId, nvme.SecondaryAssignAction, nvme.VIResourceType, numResources); err != nil {
-		return err
-	}
-
-	return nil
+	return d.dev.VirtualMgmt(controllerId, nvme.SecondaryAssignAction, resourceTypeMap[resourceType], numResources)
 }
 
 // OnlineController -

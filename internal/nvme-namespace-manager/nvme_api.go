@@ -13,7 +13,7 @@ type NvmeControllerInterface interface {
 type SecondaryControllersInitFunc func(count uint8)
 
 // SecondaryControllerHandlerFunc -
-type SecondaryControllerHandlerFunc func(controllerId uint16, controllerOnline bool, virtualFunctionNumber uint16, numVQResourcesAssinged, numVIResourcesAssigned uint16) error
+type SecondaryControllerHandlerFunc func(controllerId uint16, controllerOnline bool, virtualFunctionNumber uint16, numVQResourcesAssinged, numVIResourcesAssigned uint32) error
 
 // SecondaryControllerResourceType -
 type SecondaryControllerResourceType int

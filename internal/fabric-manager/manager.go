@@ -92,7 +92,10 @@ type Endpoint struct {
 	// Secondary Controller (VF) Id (if non-zero)
 	controllerId uint16
 
-	ports  []*Port
+	// For Rabbit Endpoint, Ports will be two and represents the Rabbit position viewed from both Switches.
+	// For all other Endpoints, Ports will be a singular entry representing the Port of the parent Switch.
+	ports []*Port
+
 	fabric *Fabric
 
 	// OEM fields -  marshalled?
@@ -103,6 +106,11 @@ type Endpoint struct {
 	boundHvdLogId uint8
 }
 
+// Endpoint Group is represents a collection of endpoints and the related Connection. Only one Endpoint Intitator
+// may belong to a group, with the remaining endpoints expected to be Drive types. An Endpoint Group is equivalent
+// to a Host-Virtualization Domain defiend on the Switchtec device, with the exception of the Endpoint Group
+// containing the Processor (i.e Rabbit) - for this EPG contains two, smaller HVDs that point to the switch-local
+// DSPs.
 type EndpointGroup struct {
 	id         string
 	endpoints  []*Endpoint
@@ -540,7 +548,7 @@ func (p *Port) Initialize() error {
 			return func(epPort *switchtec.DumpEpPortDevice) error {
 
 				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
-					return fmt.Errorf("Port non-device type (%02x)", epPort.Hdr.Typ)
+					return fmt.Errorf("Port non-device type (%#02x)", epPort.Hdr.Typ)
 				}
 
 				for idx, f := range epPort.Ep.Functions {
@@ -573,6 +581,93 @@ func (p *Port) Initialize() error {
 	return nil
 }
 
+func (p *Port) bind() error {
+
+	if p.portType != sf.DOWNSTREAM_PORT_PV130PT {
+		panic(fmt.Sprintf("Port Bind Operation not allowed for port %s type %s", p.id, p.portType))
+	}
+
+	// A DSP must belong to an endpoint group
+	for _, endpointGroup := range p.swtch.fabric.endpointGroups {
+
+		initiatorEndpoint := *(endpointGroup.initiator)
+		if (initiatorEndpoint.endpointType != sf.PROCESSOR_EV150ET) && (initiatorEndpoint.endpointType != sf.STORAGE_INITIATOR_EV150ET) {
+			panic(fmt.Sprintf("Initiator endpoint %s must be of type %s or %s and not %s", initiatorEndpoint.id, sf.PROCESSOR_EV150ET, sf.STORAGE_INITIATOR_EV150ET, initiatorEndpoint.endpointType))
+		}
+
+		if initiatorEndpoint != endpointGroup.endpoints[0] {
+			panic(fmt.Sprintf("Initiator endpoint %s must be at index 0 of an endpoint group to support connection algorithm", initiatorEndpoint.id))
+		}
+
+		// Iterative over the Drive endpoints in the endpoint group. Our port must be
+		// somewhere in the endpoint group's list of endpoints.
+		for endpointIdx, endpoint := range endpointGroup.endpoints[1:] {
+
+			if endpoint.endpointType != sf.DRIVE_EV150ET {
+				panic(fmt.Sprintf("Endpoint %s: Endpoint Type %s not expected Drive Type", endpoint.id, endpoint.endpointType))
+			}
+
+			if len(endpoint.ports) != 1 {
+				panic(fmt.Sprintf("Endpoint %s of type %s has incorrect port count %d", endpoint.id, endpoint.endpointType, len(endpoint.ports)))
+			}
+
+			endpointPort := endpoint.ports[0]
+
+			if endpointPort == p {
+
+				// The Logical Port ID is the index into the HVD for the bind to occur.
+				// That is simply the DSP index within the endpoint group (recall that
+				// DSPs start at offset 1 in the EPG, with offset 0 being the initiator)
+				logicalPortId := endpointIdx
+
+				// For normal USPs of type Storage Initiator, the port is bound to the initiator
+				// through the fabric. For the endpoint representing the Processor USP the port is bound
+				// to the local switch and never through the fabric.
+				for _, initiatorPort := range initiatorEndpoint.ports {
+					initiatorSwitch := initiatorPort.swtch
+
+					if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
+						if p.swtch.id != initiatorSwitch.id {
+							logicalPortId -= initiatorPort.swtch.config.DownstreamPortCount
+							continue
+						}
+					}
+
+					if initiatorPort.config.Port > int(^uint8(0)) {
+						panic(fmt.Sprintf("Initiator port %d to large for bind operation", initiatorPort.config.Port))
+					}
+
+					if logicalPortId > int(^uint8(0)) {
+						panic(fmt.Sprintf("Logical port ID %d to large for bind operation", logicalPortId))
+					}
+
+					log.Infof("Bind: Switch %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+
+					if endpoint.bound {
+						logFunc := log.Warnf
+						if endpoint.boundPaxId != uint8(initiatorSwitch.paxId) ||
+							endpoint.boundHvdPhyId != uint8(initiatorPort.config.Port) ||
+							endpoint.boundHvdLogId != uint8(logicalPortId) {
+							logFunc = log.Errorf
+						}
+
+						logFunc("Already Bound: PAX: %d, Physical Port: %d, Logical Port: %d, PDFID: %#04x", endpoint.boundPaxId, endpoint.boundHvdPhyId, endpoint.boundHvdLogId, endpoint.pdfid)
+						break
+					}
+
+					if err := initiatorSwitch.dev.Bind(uint8(initiatorPort.config.Port), uint8(logicalPortId), endpoint.pdfid); err != nil {
+						log.WithError(err).Errorf("Bind Failed: Switch %s: PAX: %d Port: %d, Logical Port: %d, PDFID: %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+					}
+
+					break
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // Getters for common endpoint calls
 func (e *Endpoint) Id() string                      { return e.id }
 func (e *Endpoint) Type() sf.EndpointV150EntityType { return e.endpointType }
@@ -580,59 +675,8 @@ func (e *Endpoint) Name() string                    { return e.name }
 func (e *Endpoint) Index() int                      { return e.index }
 func (e *Endpoint) ControllerId() uint16            { return e.controllerId }
 
-func (e *Endpoint) GetEndpointOdataId() string {
+func (e *Endpoint) OdataId() string {
 	return fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", e.fabric.id, e.id)
-}
-
-// Initialize - Will create the bindings between initiator and downstream ports
-// An Endpoint Group exists for every virtual domain, representing the logical domain
-// for initators and there downstream ports. We perform a BIND operation on the switch
-// to form a connection between initiator and DSP.
-func (c *Connection) Initialize() error {
-
-	endpointGroup := c.endpointGroup
-	initiatorEndpoint := *(c.endpointGroup.initiator)
-
-	if initiatorEndpoint != c.endpointGroup.endpoints[0] {
-		panic("Initiator endpoint must be at index 0 of an endpoint group to support connection algorithm")
-	}
-
-	if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
-		if len(initiatorEndpoint.ports) != 2 {
-			panic("Processor endpoint expected to have two ports for implemented connection algorithm")
-		}
-	}
-
-	// Iterative over all DSP
-	for epIdx, ep := range endpointGroup.endpoints[1:] {
-
-		if ep.endpointType != sf.DRIVE_EV150ET {
-			panic("Expected drive endpoint type for connection")
-		}
-
-		if len(ep.ports) != 1 {
-			panic("Expected port count to be one for Drive Endpoint")
-		}
-
-		for _, port := range initiatorEndpoint.ports {
-
-			if ep.ports[0] == port {
-				swtch := port.swtch
-				dev := swtch.dev
-
-				logicalPortId := uint8(epIdx)
-				if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
-					logicalPortId -= uint8(swtch.idx * swtch.config.DownstreamPortCount)
-				}
-
-				if err := dev.Bind(uint8(port.config.Port), uint8(logicalPortId), ep.pdfid); err != nil {
-					log.WithError(err).Warnf("Failed to bind port")
-				}
-			}
-		}
-	}
-
-	return nil
 }
 
 // Initialize
@@ -913,26 +957,14 @@ func PortEventHandler(event events.PortEvent, data interface{}) {
 	switch event.EventType {
 	case events.PORT_EVENT_READY:
 		if port.portType == sf.DOWNSTREAM_PORT_PV130PT {
-			/*
-				// TODO: Bind this port to its initiators
-				for endpointIdx, endpoint := range port.endpoints {
-					if endpoint.controllerId != "" {
 
-					}
-				}
-			*/
+			if err := port.bind(); err != nil {
+				log.WithError(err).Errorf("Port %s (switch: %s port: %d) failed to bind", port.id, port.swtch.id, port.config.Port)
+			}
 		}
 
 	case events.PORT_EVENT_DOWN:
 		// Set the port down & and all its connections
-	}
-
-	// TODO: Cannot make bindings when under virtualization management
-
-	for _, c := range f.connections {
-		if err := c.Initialize(); err != nil {
-			log.WithError(err).Errorf("Connection %s failed to initialize", c.endpointGroup.id)
-		}
 	}
 }
 
