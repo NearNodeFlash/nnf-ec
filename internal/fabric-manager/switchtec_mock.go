@@ -46,7 +46,7 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 	}
 
 	ctrl := &MockSwitchtecController{
-		globalPdfid: rand.Intn(0x1000),
+		globalPdfid: rand.Intn(0xFF) << 8,
 	}
 
 	ctrl.devices = make([]MockSwitchtecDevice, len(config.Switches))
@@ -87,7 +87,7 @@ func NewMockSwitchtecController() SwitchtecControllerInterface {
 				port.bindings = make([]*switchtec.DumpEpPortAttachedDeviceFunction, config.DownstreamPortCount)
 			case sf.DOWNSTREAM_PORT_PV130PT:
 				{
-					port.functions = make([]switchtec.DumpEpPortAttachedDeviceFunction, 1 /* PF */ +1 /* MGMT */ +config.UpstreamPortCount)
+					port.functions = make([]switchtec.DumpEpPortAttachedDeviceFunction, 1 /* PF */ +1 /*MGMT*/ +config.UpstreamPortCount)
 
 					isPF := func(idx int) uint8 {
 						if idx == 0 {
@@ -200,10 +200,10 @@ func (d *MockSwitchtecDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) 
 	return stats, nil
 }
 
-func (d *MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
+func (d *MockSwitchtecDevice) EnumerateEndpoint(physPortId uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
 
 	for _, port := range d.ports {
-		if uint8(port.id) == id {
+		if uint8(port.config.Port) == physPortId {
 			epPort := switchtec.DumpEpPortDevice{
 				Ep: switchtec.DumpEpPortEp{
 					Functions: port.functions,
@@ -220,23 +220,28 @@ func (d *MockSwitchtecDevice) EnumerateEndpoint(id uint8, handlerFunc func(epPor
 func (d *MockSwitchtecDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uint16) error {
 
 	bindPort := func(hostPort *MockSwitchtecPort, hostLogPortId uint8, pdfid uint16) error {
-		for _, port := range d.ports {
+		for deviceIdx := range d.ctrl.devices {
+			for portIdx := range d.ctrl.devices[deviceIdx].ports {
+				port := &d.ctrl.devices[deviceIdx].ports[portIdx]
 
-			if port.pdfid == pdfid&0xFF00 {
-				for functionIdx := range port.functions {
-					function := &port.functions[functionIdx]
+				if port.pdfid == pdfid&0xFF00 {
+					for functionIdx := range port.functions {
+						function := &port.functions[functionIdx]
 
-					if function.PDFID == pdfid {
-						if function.Bound != 0 {
-							return fmt.Errorf("Device %#04x already bound", pdfid)
+						if function.PDFID == pdfid {
+							if function.Bound != 0 {
+								return fmt.Errorf("Device %#04x already bound", pdfid)
+							}
+
+							function.Bound = 1
+							function.BoundHVDPhyPID = hostPhysPortId
+							function.BoundHVDLogPID = hostLogPortId
+							function.BoundPAXID = uint8(d.id)
+
+							hostPort.bindings[hostLogPortId] = function
+
+							return nil
 						}
-
-						function.Bound = 1
-						function.BoundHVDPhyPID = hostPhysPortId
-						function.BoundHVDLogPID = hostLogPortId
-						function.BoundPAXID = uint8(d.id)
-
-						hostPort.bindings[hostLogPortId] = function
 					}
 				}
 			}

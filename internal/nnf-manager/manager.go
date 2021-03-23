@@ -44,6 +44,9 @@ type StoragePool struct {
 	allocatedVolume  AllocatedVolume
 	providingVolumes []ProvidingVolume
 
+	storageGroups []*StorageGroup
+	fileSystem    *FileSystem
+
 	storageService *StorageService
 }
 
@@ -75,6 +78,7 @@ type StorageGroup struct {
 	volume    *AllocatedVolume
 	endpoints []*Endpoint
 
+	storagePool    *StoragePool
 	storageService *StorageService
 }
 
@@ -90,8 +94,10 @@ type FileSystem struct {
 
 type FileShare struct {
 	id        string
-	endpoint  *Endpoint
 	mountRoot string
+
+	endpoint   *Endpoint
+	fileSystem *FileSystem
 }
 
 const (
@@ -255,12 +261,14 @@ func (s *StorageService) createStorageGroup(volume *AllocatedVolume, endpoints [
 	}
 
 	groupId = groupId + 1
+	storagePool := volume.storagePool
 
 	return &StorageGroup{
 		id:             strconv.Itoa(groupId),
-		storageService: s,
 		volume:         volume,
 		endpoints:      endpoints,
+		storagePool:    storagePool,
+		storageService: s,
 	}
 }
 
@@ -329,6 +337,10 @@ func (p *StoragePool) capacitySourcesGet() []sf.CapacityCapacitySource {
 	}
 }
 
+func (ep *Endpoint) fmt(format string, a ...interface{}) string {
+	return ep.storageService.fmt("/Endpoints/%s", ep.id) + fmt.Sprintf(format, a...)
+}
+
 func (sg *StorageGroup) fmt(format string, a ...interface{}) string {
 	return sg.storageService.fmt("/StorageGroups/%s", sg.id) + fmt.Sprintf(format, a...)
 }
@@ -360,9 +372,10 @@ func (fs *FileSystem) createFileShare(endpoint *Endpoint, mountRoot string) *Fil
 	fileShareId = fileShareId + 1
 
 	return &FileShare{
-		id:        strconv.Itoa(fileShareId),
-		endpoint:  endpoint,
-		mountRoot: mountRoot,
+		id:         strconv.Itoa(fileShareId),
+		endpoint:   endpoint,
+		mountRoot:  mountRoot,
+		fileSystem: fs,
 	}
 }
 
@@ -478,8 +491,8 @@ func StorageServiceIdStoragePoolsGet(storageServiceId string, model *sf.StorageP
 	return nil
 }
 
-// StorageServiceIdStoragePoolPost -
-func StorageServiceIdStoragePoolPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
+// StorageServiceIdStoragePoolsPost -
+func StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
 	s := findStorageService(storageServiceId)
 	if s == nil {
 		return ec.ErrBadRequest
@@ -566,6 +579,12 @@ func StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId string, mo
 	model.CapacityBytes = p.allocatedVolume.capacityBytes
 	model.CapacitySources = p.capacitySourcesGet()
 	model.CapacitySourcesodataCount = int64(len(model.CapacitySources))
+
+	model.Links.StorageGroupsodataCount = int64(len(p.storageGroups))
+	model.Links.StorageGroups = make([]sf.OdataV4IdRef, model.Links.StorageGroupsodataCount)
+	for idx, sg := range p.storageGroups {
+		model.Links.StorageGroups[idx] = sf.OdataV4IdRef{OdataId: sg.fmt("")}
+	}
 
 	return nil
 }
@@ -683,6 +702,13 @@ func StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storage
 		// TODO???
 	}
 
+	model.Identifiers = []sf.ResourceIdentifier{
+		{
+			DurableName:       p.guid.String(),
+			DurableNameFormat: sf.NGUID_RV1100DNF,
+		},
+	}
+
 	return nil
 }
 
@@ -759,10 +785,13 @@ func StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.Storage
 	// Everything validated OK - create the Storage Group
 
 	sg := s.createStorageGroup(&sp.allocatedVolume, endpoints)
+	sp.storageGroups = append(sp.storageGroups, sg)
 	s.groups = append(s.groups, *sg)
 
 	model.Id = sg.id
 	model.OdataId = sg.fmt("")
+
+	model.Links.StoragePool = sf.OdataV4IdRef{OdataId: sp.fmt("")}
 
 	return nil
 }
@@ -786,6 +815,8 @@ func StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, 
 	for endpointIdx, endpoint := range sg.endpoints {
 		model.ServerEndpoints[endpointIdx] = sf.OdataV4IdRef{OdataId: s.fmt("/ServerEndpoints/%s", endpoint.id)}
 	}
+
+	model.Links.StoragePool = sf.OdataV4IdRef{OdataId: sg.storagePool.fmt("")}
 
 	return nil
 }
@@ -909,7 +940,12 @@ func StorageServiceIdFileSystemsPost(storageServiceId string, model *sf.FileSyst
 		return ec.ErrNotAcceptable
 	}
 
+	if sp.fileSystem != nil {
+		return ec.ErrNotAcceptable
+	}
+
 	fs := s.createFileSystem(sp)
+	sp.fileSystem = fs
 	s.fileSystems = append(s.fileSystems, *fs)
 
 	model.Id = fs.id
@@ -918,6 +954,7 @@ func StorageServiceIdFileSystemsPost(storageServiceId string, model *sf.FileSyst
 	return nil
 }
 
+// StorageServiceIdFileSystemIdGet -
 func StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId string, model *sf.FileSystemV122FileSystem) error {
 	s, fs := findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
@@ -931,6 +968,7 @@ func StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId string, mode
 	return nil
 }
 
+// StorageServiceIdFileSystemIdDelete -
 func StorageServiceIdFileSystemIdDelete(storageServiceId, fileSystemId string) error {
 	s, fs := findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
@@ -953,6 +991,7 @@ func StorageServiceIdFileSystemIdDelete(storageServiceId, fileSystemId string) e
 	return nil
 }
 
+// StorageServiceIdFileSystemIdExportedSharesGet -
 func StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemId string, model *sf.FileShareCollectionFileShareCollection) error {
 	_, fs := findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
@@ -967,6 +1006,7 @@ func StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemI
 	return nil
 }
 
+// StorageServiceIdFileSystemIdExportedSharesPost -
 func StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystemId string, model *sf.FileShareV120FileShare) error {
 	s, fs := findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
@@ -989,19 +1029,23 @@ func StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystem
 
 	model.Id = sh.id
 	model.OdataId = fs.fmt("/ExportedShares/%s", sh.id)
+	model.Links.FileSystem = sf.OdataV4IdRef{OdataId: fs.fmt("")}
+	model.Links.Endpoint = sf.OdataV4IdRef{OdataId: ep.fmt("")}
 
 	return nil
 }
 
+// StorageServiceIdFileSystemIdExportedShareIdGet -
 func StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId string, model *sf.FileShareV120FileShare) error {
-	s, fs, sh := findExportedShare(storageServiceId, fileSystemId, exportedShareId)
+	_, fs, sh := findExportedShare(storageServiceId, fileSystemId, exportedShareId)
 	if sh == nil {
 		return ec.ErrNotFound
 	}
 
 	model.FileSharePath = sh.mountRoot
-	model.ServerEndpoint = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", sh.endpoint.id)}
+	// model.ServerEndpoint = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", sh.endpoint.id)} // TODO: Remove this from model
 	model.Links.FileSystem = sf.OdataV4IdRef{OdataId: fs.fmt("")}
+	model.Links.Endpoint = sf.OdataV4IdRef{OdataId: sh.endpoint.fmt("")}
 
 	//model.Status // TODO
 

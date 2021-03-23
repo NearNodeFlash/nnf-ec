@@ -551,6 +551,10 @@ func (p *Port) Initialize() error {
 					return fmt.Errorf("Port non-device type (%#02x)", epPort.Hdr.Typ)
 				}
 
+				if epPort.Ep.Functions == nil {
+					panic(fmt.Sprintf("No EP Functions received for port %+v", port))
+				}
+
 				for idx, f := range epPort.Ep.Functions {
 
 					if idx >= len(p.endpoints) {
@@ -583,20 +587,34 @@ func (p *Port) Initialize() error {
 
 func (p *Port) bind() error {
 
+	log.Debugf("Port Bind Operation Starting: Switch: %s, PAX: %d Physical Port: %d Type: %s", p.swtch.id, p.swtch.paxId, p.config.Port, p.portType)
+
 	if p.portType != sf.DOWNSTREAM_PORT_PV130PT {
 		panic(fmt.Sprintf("Port Bind Operation not allowed for port %s type %s", p.id, p.portType))
 	}
 
 	// A DSP must belong to an endpoint group
+	endpointFound := false
 	for _, endpointGroup := range p.swtch.fabric.endpointGroups {
 
 		initiatorEndpoint := *(endpointGroup.initiator)
+
+		if initiatorEndpoint != endpointGroup.endpoints[0] {
+			panic(fmt.Sprintf("Initiator endpoint %s must be at index 0 of an endpoint group to support connection algorithm", initiatorEndpoint.id))
+		}
+
 		if (initiatorEndpoint.endpointType != sf.PROCESSOR_EV150ET) && (initiatorEndpoint.endpointType != sf.STORAGE_INITIATOR_EV150ET) {
 			panic(fmt.Sprintf("Initiator endpoint %s must be of type %s or %s and not %s", initiatorEndpoint.id, sf.PROCESSOR_EV150ET, sf.STORAGE_INITIATOR_EV150ET, initiatorEndpoint.endpointType))
 		}
 
-		if initiatorEndpoint != endpointGroup.endpoints[0] {
-			panic(fmt.Sprintf("Initiator endpoint %s must be at index 0 of an endpoint group to support connection algorithm", initiatorEndpoint.id))
+		if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
+			if len(initiatorEndpoint.ports) != 2 {
+				panic(fmt.Sprintf("Processor endpoint expected to have two ports"))
+			}
+
+			if initiatorEndpoint.ports[0].swtch.id == initiatorEndpoint.ports[1].swtch.id {
+				panic(fmt.Sprintf("Processor endpoint ports should be on two different switches"))
+			}
 		}
 
 		// Iterative over the Drive endpoints in the endpoint group. Our port must be
@@ -614,6 +632,12 @@ func (p *Port) bind() error {
 			endpointPort := endpoint.ports[0]
 
 			if endpointPort == p {
+				endpointFound = true
+
+				if endpointPort.id != p.id ||
+					endpointPort.swtch.id != p.swtch.id {
+					panic("Endpoint Port not equal to port")
+				}
 
 				// The Logical Port ID is the index into the HVD for the bind to occur.
 				// That is simply the DSP index within the endpoint group (recall that
@@ -641,7 +665,7 @@ func (p *Port) bind() error {
 						panic(fmt.Sprintf("Logical port ID %d to large for bind operation", logicalPortId))
 					}
 
-					log.Infof("Bind: Switch %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+					log.Infof("Bind: Switch: %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
 
 					if endpoint.bound {
 						logFunc := log.Warnf
@@ -661,7 +685,13 @@ func (p *Port) bind() error {
 
 					break
 				}
-			}
+
+				break
+			} // // if endpointPort == p
+		}
+
+		if !endpointFound {
+			panic(fmt.Sprintf("Endpoint not found for port %+v", p))
 		}
 	}
 
@@ -677,6 +707,13 @@ func (e *Endpoint) ControllerId() uint16            { return e.controllerId }
 
 func (e *Endpoint) OdataId() string {
 	return fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", e.fabric.id, e.id)
+}
+
+func (epg *EndpointGroup) debugPrint() {
+	log.Debugf("Endpoint Group %s", epg.id)
+	for _, ep := range epg.endpoints {
+		log.Debugf("%-3s %-20s %-8s", ep.id, ep.name, ep.endpointType)
+	}
 }
 
 // Initialize
@@ -823,9 +860,6 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		case f.isDownstreamEndpoint(endpointIdx):
 			port := f.findPortByType(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
 
-			//log.Debugf("Processing DSP Endpoint %d: Port %s", endpointIdx, port.id)
-			//log.Debugf("  Relative Port Index:           % 3d", f.getDownstreamEndpointRelativePortIndex(endpointIdx))
-
 			e.endpointType = sf.DRIVE_EV150ET
 			e.ports = make([]*Port, 1)
 			e.ports[0] = port
@@ -862,18 +896,21 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 		endpointGroup.id = strconv.Itoa(endpointGroupIdx)
 
-		endpointGroup.endpoints = make([]*Endpoint, 1+f.config.DownstreamPortCount)
+		endpointGroup.endpoints = make([]*Endpoint, 1 /*Initiator*/ +f.config.DownstreamPortCount)
 		endpointGroup.initiator = &endpointGroup.endpoints[0]
 
 		endpointGroup.endpoints[0] = &f.endpoints[endpointGroupIdx] // Mgmt or USP
 		endpointGroup.endpoints[0].controllerId = uint16(endpointGroupIdx + 1)
 
 		for idx := range endpointGroup.endpoints[1:] {
-			endpointGroup.endpoints[1+idx] = &f.endpoints[endpointGroupIdx+mangementAndUpstreamEndpointCount+idx*(mangementAndUpstreamEndpointCount)]
+			endpointGroup.endpoints[1+idx] =
+				&f.endpoints[mangementAndUpstreamEndpointCount+idx*(1 /*PF*/ +mangementAndUpstreamEndpointCount)+endpointGroupIdx]
 		}
 
 		endpointGroup.connection = connection
 		connection.endpointGroup = endpointGroup
+
+		endpointGroup.debugPrint()
 	}
 
 	events.PortEventManager.Subscribe(events.PortEventSubscriber{

@@ -76,7 +76,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPo
 		return
 	}
 
-	if err := StorageServiceIdStoragePoolPost(storageServiceId, &model); err != nil {
+	if err := StorageServiceIdStoragePoolsPost(storageServiceId, &model); err != nil {
 		EncodeResponse(model, err, w)
 		return
 	}
