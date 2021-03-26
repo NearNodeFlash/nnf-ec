@@ -15,11 +15,11 @@ import (
 // DefaultApiRouter -
 type DefaultApiRouter struct {
 	servicer   Api
-	controller NvmeControllerInterface
+	controller NvmeController
 }
 
 // NewDefaultApiRouter -
-func NewDefaultApiRouter(s Api, c NvmeControllerInterface) ec.Router {
+func NewDefaultApiRouter(s Api, c NvmeController) ec.Router {
 	return &DefaultApiRouter{servicer: s, controller: c}
 }
 

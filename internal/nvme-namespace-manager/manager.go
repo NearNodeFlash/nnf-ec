@@ -26,12 +26,12 @@ const (
 
 // Manager -
 type Manager struct {
-	id   string
-	ctrl NvmeControllerInterface
+	id string
 
 	config *ConfigFile
 
 	storage []Storage
+	ctrl    NvmeDeviceController
 }
 
 // Storage -
@@ -66,7 +66,7 @@ type Storage struct {
 	switchId string
 	portId   string
 
-	device NvmeDeviceInterface
+	device NvmeDeviceApi
 }
 
 // StorageController -
@@ -75,8 +75,6 @@ type StorageController struct {
 
 	controllerId   uint16
 	functionNumber uint16
-
-	deviceCtrl NvmeDeviceControllerInterface
 }
 
 // Volumes -
@@ -218,7 +216,7 @@ func (s *Storage) initialize(conf *ControllerConfig, device string) error {
 }
 
 func (s *Storage) initializeController() error {
-	ctrl, err := s.device.IdentifyController()
+	ctrl, err := s.device.IdentifyController(0)
 	if err != nil {
 		return err
 	}
@@ -250,7 +248,7 @@ func (s *Storage) initializeController() error {
 
 	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
 
-	ns, err := s.device.IdentifyNamespace()
+	ns, err := s.device.IdentifyNamespace(nvme.COMMON_NAMESPACE_IDENTIFIER)
 	if err != nil {
 		return err
 	}
@@ -382,11 +380,11 @@ func (v *Volume) detach(controllerIds []uint16) error {
 }
 
 // Initialize
-func Initialize(ctrl NvmeControllerInterface) error {
+func Initialize(ctrl NvmeController) error {
 
 	mgr = Manager{
 		id:   ResourceBlockId,
-		ctrl: ctrl,
+		ctrl: ctrl.NewNvmeDeviceController(),
 	}
 
 	log.SetLevel(log.DebugLevel)
@@ -508,13 +506,13 @@ func PortEventHandler(event PortEvent, data interface{}) {
 				}
 
 				if numVQResourcesAssinged != s.config.Resources {
-					if err := s.device.AssignControllerResources(controllerId, VQResourceType, s.config.Resources - numVQResourcesAssinged); err != nil {
+					if err := s.device.AssignControllerResources(controllerId, VQResourceType, s.config.Resources-numVQResourcesAssinged); err != nil {
 						return err
 					}
 				}
 
 				if numVIResourcesAssigned != s.config.Resources {
-					if err := s.device.AssignControllerResources(controllerId, VIResourceType, s.config.Resources - numVIResourcesAssigned); err != nil {
+					if err := s.device.AssignControllerResources(controllerId, VIResourceType, s.config.Resources-numVIResourcesAssigned); err != nil {
 						return err
 					}
 				}
@@ -694,7 +692,7 @@ func StorageIdVolumeIdGet(storageId, volumeId string, model *sf.VolumeV161Volume
 
 	// TODO: If s.ctrl is down - fail
 
-	ns, err := s.device.GetNamespace(nvme.NamespaceIdentifier(v.namespaceId))
+	ns, err := s.device.IdentifyNamespace(nvme.NamespaceIdentifier(v.namespaceId))
 	if err != nil {
 		return ec.ErrNotFound
 	}

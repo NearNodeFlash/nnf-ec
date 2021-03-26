@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -40,9 +41,10 @@ type Switch struct {
 	id  string
 	idx int
 
-	paxId  int32
-	path   string
-	dev    SwitchtecDeviceInterface
+	paxId int32
+	path  string
+	dev   SwitchtecDeviceInterface
+
 	config *SwitchConfig
 	ports  []Port
 
@@ -135,31 +137,30 @@ func init() {
 }
 
 func isFabric(id string) bool        { return id == FabricId }
-func isSwitch(id string) bool        { _, err := fabric.findSwitch(id); return err == nil }
+func isSwitch(id string) bool        { s := fabric.findSwitch(id); return s != nil }
+
+// TODO: Move these to the newer find functions
 func isEndpoint(id string) bool      { _, err := fabric.findEndpoint(id); return err == nil }
 func isEndpointGroup(id string) bool { _, err := fabric.findEndpointGroup(id); return err == nil }
 func isConnection(id string) bool    { _, err := fabric.findConnection(id); return err == nil }
 
-// GetSwitchtecDevice -
-func (f *Fabric) GetSwitchtecDevice(fabricId, switchId string) (*switchtec.Device, error) {
-	if fabricId != f.id {
-		return nil, fmt.Errorf("Fabric %s not found", fabricId)
+func FindSwitchDevice(fabricId, switchId string) (*switchtec.Device){
+	_, s := findSwitch(fabricId, switchId)
+	if s == nil {
+		return nil
 	}
 
-	s, err := f.findSwitch(switchId)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.dev.Get(), nil
+	return s.dev.Device()
 }
 
-// GetPortPDFID
-func (f *Fabric) GetPortPDFID(fabricId, switchId, portId string, controllerId uint16) (uint16, error) {
-	if fabricId != f.id {
-		return 0, fmt.Errorf("Fabric %s not found", fabricId)
-	}
 
+// GetPortPDFID
+func GetPortPDFID(fabricId, switchId, portId string, controllerId uint16) (uint16, error) {
+	f := findFabric(fabricId)
+	if f == nil {
+		return 0, fmt.Errorf("Fabric not found")
+	}
+	
 	p, err := f.findSwitchPort(switchId, portId)
 	if err != nil {
 		return 0, err
@@ -175,6 +176,34 @@ func (f *Fabric) GetPortPDFID(fabricId, switchId, portId string, controllerId ui
 
 	return p.endpoints[int(controllerId)].pdfid, nil
 }
+
+func findFabric(fabricId string) (*Fabric) { 
+	if !isFabric(fabricId) {
+		return nil
+	}
+
+	return &fabric
+}
+
+func findSwitch(fabricId, switchId string) (*Fabric, *Switch) {
+	f := findFabric(fabricId)
+	if f == nil {
+		return nil, nil
+	}
+
+	return f, f.findSwitch(switchId)
+}
+
+func (f *Fabric) findSwitch(switchId string) (*Switch) {
+	for idx, s := range f.switches {
+		if s.id == switchId {
+			return &f.switches[idx]
+		}
+	}
+	
+	return nil
+}
+
 
 // ConvertPortEventToRelativePortIndex
 func (f *Fabric) ConvertPortEventToRelativePortIndex(event events.PortEvent) (int, error) {
@@ -230,20 +259,11 @@ func (f *Fabric) FindDownstreamEndpoint(portId, functionId string) (string, erro
 	return fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", f.id, ep.id), nil
 }
 
-func (f *Fabric) findSwitch(switchId string) (*Switch, error) {
-	for switchIdx, s := range f.switches {
-		if s.id == switchId {
-			return &f.switches[switchIdx], nil
-		}
-	}
-
-	return nil, fmt.Errorf("Could not find switch %s", switchId)
-}
 
 func (f *Fabric) findSwitchPort(switchId string, portId string) (*Port, error) {
-	s, err := f.findSwitch(switchId)
-	if err != nil {
-		return nil, err
+	s := f.findSwitch(switchId)
+	if s == nil {
+		return nil, ec.ErrNotFound
 	}
 
 	for portIdx, p := range s.ports {
@@ -555,9 +575,14 @@ func (p *Port) Initialize() error {
 					panic(fmt.Sprintf("No EP Functions received for port %+v", port))
 				}
 
+				f := port.swtch.fabric
+				if len(epPort.Ep.Functions) < 1 /*PF*/ +f.managementEndpointCount+f.upstreamEndpointCount {
+					log.Warnf("Port %s: Insufficient function count %d", port.id, len(epPort.Ep.Functions))
+				}
+
 				for idx, f := range epPort.Ep.Functions {
 
-					if idx >= len(p.endpoints) {
+					if len(p.endpoints) <= idx {
 						break
 					}
 
@@ -586,115 +611,214 @@ func (p *Port) Initialize() error {
 }
 
 func (p *Port) bind() error {
+	f := p.swtch.fabric
 
-	log.Debugf("Port Bind Operation Starting: Switch: %s, PAX: %d Physical Port: %d Type: %s", p.swtch.id, p.swtch.paxId, p.config.Port, p.portType)
-
-	if p.portType != sf.DOWNSTREAM_PORT_PV130PT {
-		panic(fmt.Sprintf("Port Bind Operation not allowed for port %s type %s", p.id, p.portType))
+	if p.portStatus.linkStatus != sf.LINK_UP_PV130LS {
+		log.Warnf("Port %s: Port not up, skipping bind operation")
+		return nil
 	}
 
-	// A DSP must belong to an endpoint group
-	endpointFound := false
-	for _, endpointGroup := range p.swtch.fabric.endpointGroups {
+	log.Debugf("Port %s: Bind Operation Starting: Switch: %s, PAX: %d Physical Port: %d Type: %s", p.id, p.swtch.id, p.swtch.paxId, p.config.Port, p.portType)
 
-		initiatorEndpoint := *(endpointGroup.initiator)
+	if p.portType != sf.DOWNSTREAM_PORT_PV130PT {
+		panic(fmt.Sprintf("Port %s: Bind operation not allowed for port type %s", p.id, p.portType))
+	}
 
-		if initiatorEndpoint != endpointGroup.endpoints[0] {
-			panic(fmt.Sprintf("Initiator endpoint %s must be at index 0 of an endpoint group to support connection algorithm", initiatorEndpoint.id))
-		}
+	if len(p.endpoints) < 1 /*PF*/ +f.managementEndpointCount+f.upstreamEndpointCount {
+		panic(fmt.Sprintf("Port %s: Insufficient endpoints defined for DSP", p.id))
+	}
 
-		if (initiatorEndpoint.endpointType != sf.PROCESSOR_EV150ET) && (initiatorEndpoint.endpointType != sf.STORAGE_INITIATOR_EV150ET) {
-			panic(fmt.Sprintf("Initiator endpoint %s must be of type %s or %s and not %s", initiatorEndpoint.id, sf.PROCESSOR_EV150ET, sf.STORAGE_INITIATOR_EV150ET, initiatorEndpoint.endpointType))
-		}
+	if p.endpoints[0].pdfid&0x00FF != 0 {
+		panic(fmt.Sprintf("Port %s: Endpoint index zero expected to be physical function: %#04x", p.id, p.endpoints[0].pdfid))
+	}
 
-		if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
-			if len(initiatorEndpoint.ports) != 2 {
-				panic(fmt.Sprintf("Processor endpoint expected to have two ports"))
+	for _, ep := range p.endpoints[1:] { // Skip PF
+
+		for _, epg := range f.endpointGroups {
+			initiator := *(epg.initiator)
+
+			if initiator != epg.endpoints[0] {
+				panic(fmt.Sprintf("Initiator endpoint %s must be at index 0 of an endpoint group to support connection algorithm", initiator.id))
 			}
 
-			if initiatorEndpoint.ports[0].swtch.id == initiatorEndpoint.ports[1].swtch.id {
-				panic(fmt.Sprintf("Processor endpoint ports should be on two different switches"))
-			}
-		}
-
-		// Iterative over the Drive endpoints in the endpoint group. Our port must be
-		// somewhere in the endpoint group's list of endpoints.
-		for endpointIdx, endpoint := range endpointGroup.endpoints[1:] {
-
-			if endpoint.endpointType != sf.DRIVE_EV150ET {
-				panic(fmt.Sprintf("Endpoint %s: Endpoint Type %s not expected Drive Type", endpoint.id, endpoint.endpointType))
+			if (initiator.endpointType != sf.PROCESSOR_EV150ET) && (initiator.endpointType != sf.STORAGE_INITIATOR_EV150ET) {
+				panic(fmt.Sprintf("Initiator endpoint %s must be of type %s or %s and not %s", initiator.id, sf.PROCESSOR_EV150ET, sf.STORAGE_INITIATOR_EV150ET, initiator.endpointType))
 			}
 
-			if len(endpoint.ports) != 1 {
-				panic(fmt.Sprintf("Endpoint %s of type %s has incorrect port count %d", endpoint.id, endpoint.endpointType, len(endpoint.ports)))
-			}
-
-			endpointPort := endpoint.ports[0]
-
-			if endpointPort == p {
-				endpointFound = true
-
-				if endpointPort.id != p.id ||
-					endpointPort.swtch.id != p.swtch.id {
-					panic("Endpoint Port not equal to port")
+			if initiator.endpointType == sf.PROCESSOR_EV150ET {
+				if len(initiator.ports) != 2 {
+					panic(fmt.Sprintf("Processor endpoint expected to have two ports"))
 				}
 
-				// The Logical Port ID is the index into the HVD for the bind to occur.
-				// That is simply the DSP index within the endpoint group (recall that
-				// DSPs start at offset 1 in the EPG, with offset 0 being the initiator)
-				logicalPortId := endpointIdx
+				if initiator.ports[0].swtch.id == initiator.ports[1].swtch.id {
+					panic(fmt.Sprintf("Processor endpoint ports should be on two different switches"))
+				}
+			}
 
-				// For normal USPs of type Storage Initiator, the port is bound to the initiator
-				// through the fabric. For the endpoint representing the Processor USP the port is bound
-				// to the local switch and never through the fabric.
-				for _, initiatorPort := range initiatorEndpoint.ports {
-					initiatorSwitch := initiatorPort.swtch
+			for endpointIdx, endpoint := range epg.endpoints[1:] { // Skip initiator
 
-					if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
-						if p.swtch.id != initiatorSwitch.id {
-							logicalPortId -= initiatorPort.swtch.config.DownstreamPortCount
-							continue
-						}
-					}
+				if ep == endpoint {
+					// The Logical Port ID is the index into the HVD for the bind to occur.
+					// That is simply the DSP index within the endpoint group (recall that
+					// DSPs start at offset 1 in the EPG, with offset 0 being the initiator)
+					logicalPortId := endpointIdx
 
-					if initiatorPort.config.Port > int(^uint8(0)) {
-						panic(fmt.Sprintf("Initiator port %d to large for bind operation", initiatorPort.config.Port))
-					}
+					// For normal USPs of type Storage Initiator, the port is bound to the initiator
+					// through the fabric. For the endpoint representing the Processor USP the port is bound
+					// to the local switch and never through the fabric.
+					for _, initiatorPort := range initiator.ports {
+						s := initiatorPort.swtch
 
-					if logicalPortId > int(^uint8(0)) {
-						panic(fmt.Sprintf("Logical port ID %d to large for bind operation", logicalPortId))
-					}
-
-					log.Infof("Bind: Switch: %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
-
-					if endpoint.bound {
-						logFunc := log.Warnf
-						if endpoint.boundPaxId != uint8(initiatorSwitch.paxId) ||
-							endpoint.boundHvdPhyId != uint8(initiatorPort.config.Port) ||
-							endpoint.boundHvdLogId != uint8(logicalPortId) {
-							logFunc = log.Errorf
+						if initiator.endpointType == sf.PROCESSOR_EV150ET {
+							if p.swtch.id != s.id {
+								logicalPortId -= s.config.DownstreamPortCount
+								continue
+							}
 						}
 
-						logFunc("Already Bound: PAX: %d, Physical Port: %d, Logical Port: %d, PDFID: %#04x", endpoint.boundPaxId, endpoint.boundHvdPhyId, endpoint.boundHvdLogId, endpoint.pdfid)
-						break
-					}
+						if initiatorPort.config.Port > int(^uint8(0)) {
+							panic(fmt.Sprintf("Initiator port %d to large for bind operation", initiatorPort.config.Port))
+						}
 
-					if err := initiatorSwitch.dev.Bind(uint8(initiatorPort.config.Port), uint8(logicalPortId), endpoint.pdfid); err != nil {
-						log.WithError(err).Errorf("Bind Failed: Switch %s: PAX: %d Port: %d, Logical Port: %d, PDFID: %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+						if logicalPortId > int(^uint8(0)) {
+							panic(fmt.Sprintf("Logical port ID %d to large for bind operation", logicalPortId))
+						}
+
+						if endpoint.bound {
+							logFunc := log.Warnf
+							if endpoint.boundPaxId != uint8(s.paxId) ||
+								endpoint.boundHvdPhyId != uint8(initiatorPort.config.Port) ||
+								endpoint.boundHvdLogId != uint8(logicalPortId) {
+								logFunc = log.Errorf
+							}
+
+							logFunc("Already Bound: PAX: %d, Physical Port: %d, Logical Port: %d, PDFID: %#04x", endpoint.boundPaxId, endpoint.boundHvdPhyId, endpoint.boundHvdLogId, endpoint.pdfid)
+							break
+						}
+
+						// TODO: Remove this - it's debug only
+						if initiatorPort.config.Name != "Rabbit" {
+							log.Warnf("Initiator Port %s: Only operating on Rabbit for test", initiatorPort.id)
+							break
+						}
+
+						log.Warnf("Sleeping 5 seconds before bind operation...")
+						time.Sleep(time.Duration(time.Second * 5))
+
+						log.Infof("Bind: Switch: %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", s.id, s.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+						if err := s.dev.Bind(uint8(initiatorPort.config.Port), uint8(logicalPortId), endpoint.pdfid); err != nil {
+							log.WithError(err).Errorf("Bind Failed: Switch %s: PAX: %d Port: %d, Logical Port: %d, PDFID: %#04x", s.id, s.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+						}
 					}
 
 					break
 				}
-
-				break
-			} // // if endpointPort == p
-		}
-
-		if !endpointFound {
-			panic(fmt.Sprintf("Endpoint not found for port %+v", p))
+			}
 		}
 	}
+	/*
+		// A DSP must belong to an endpoint group
+		endpointFound := false
+		for _, endpointGroup := range p.swtch.fabric.endpointGroups {
 
+			initiatorEndpoint := *(endpointGroup.initiator)
+
+			if initiatorEndpoint != endpointGroup.endpoints[0] {
+				panic(fmt.Sprintf("Initiator endpoint %s must be at index 0 of an endpoint group to support connection algorithm", initiatorEndpoint.id))
+			}
+
+			if (initiatorEndpoint.endpointType != sf.PROCESSOR_EV150ET) && (initiatorEndpoint.endpointType != sf.STORAGE_INITIATOR_EV150ET) {
+				panic(fmt.Sprintf("Initiator endpoint %s must be of type %s or %s and not %s", initiatorEndpoint.id, sf.PROCESSOR_EV150ET, sf.STORAGE_INITIATOR_EV150ET, initiatorEndpoint.endpointType))
+			}
+
+			if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
+				if len(initiatorEndpoint.ports) != 2 {
+					panic(fmt.Sprintf("Processor endpoint expected to have two ports"))
+				}
+
+				if initiatorEndpoint.ports[0].swtch.id == initiatorEndpoint.ports[1].swtch.id {
+					panic(fmt.Sprintf("Processor endpoint ports should be on two different switches"))
+				}
+			}
+
+			// Iterative over the Drive endpoints in the endpoint group. Our port must be
+			// somewhere in the endpoint group's list of endpoints.
+			for endpointIdx, endpoint := range endpointGroup.endpoints[1:] {
+
+				if endpoint.endpointType != sf.DRIVE_EV150ET {
+					panic(fmt.Sprintf("Endpoint %s: Endpoint Type %s not expected Drive Type", endpoint.id, endpoint.endpointType))
+				}
+
+				if len(endpoint.ports) != 1 {
+					panic(fmt.Sprintf("Endpoint %s of type %s has incorrect port count %d", endpoint.id, endpoint.endpointType, len(endpoint.ports)))
+				}
+
+				endpointPort := endpoint.ports[0]
+
+				if endpointPort == p {
+					endpointFound = true
+
+					if endpointPort.id != p.id ||
+						endpointPort.swtch.id != p.swtch.id {
+						panic("Endpoint Port not equal to port")
+					}
+
+					// The Logical Port ID is the index into the HVD for the bind to occur.
+					// That is simply the DSP index within the endpoint group (recall that
+					// DSPs start at offset 1 in the EPG, with offset 0 being the initiator)
+					logicalPortId := endpointIdx
+
+					// For normal USPs of type Storage Initiator, the port is bound to the initiator
+					// through the fabric. For the endpoint representing the Processor USP the port is bound
+					// to the local switch and never through the fabric.
+					for _, initiatorPort := range initiatorEndpoint.ports {
+						initiatorSwitch := initiatorPort.swtch
+
+						if initiatorEndpoint.endpointType == sf.PROCESSOR_EV150ET {
+							if p.swtch.id != initiatorSwitch.id {
+								logicalPortId -= initiatorPort.swtch.config.DownstreamPortCount
+								continue
+							}
+						}
+
+						if initiatorPort.config.Port > int(^uint8(0)) {
+							panic(fmt.Sprintf("Initiator port %d to large for bind operation", initiatorPort.config.Port))
+						}
+
+						if logicalPortId > int(^uint8(0)) {
+							panic(fmt.Sprintf("Logical port ID %d to large for bind operation", logicalPortId))
+						}
+
+						log.Infof("Bind: Switch: %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+
+						if endpoint.bound {
+							logFunc := log.Warnf
+							if endpoint.boundPaxId != uint8(initiatorSwitch.paxId) ||
+								endpoint.boundHvdPhyId != uint8(initiatorPort.config.Port) ||
+								endpoint.boundHvdLogId != uint8(logicalPortId) {
+								logFunc = log.Errorf
+							}
+
+							logFunc("Already Bound: PAX: %d, Physical Port: %d, Logical Port: %d, PDFID: %#04x", endpoint.boundPaxId, endpoint.boundHvdPhyId, endpoint.boundHvdLogId, endpoint.pdfid)
+							break
+						}
+
+						if err := initiatorSwitch.dev.Bind(uint8(initiatorPort.config.Port), uint8(logicalPortId), endpoint.pdfid); err != nil {
+							log.WithError(err).Errorf("Bind Failed: Switch %s: PAX: %d Port: %d, Logical Port: %d, PDFID: %#04x", initiatorSwitch.id, initiatorSwitch.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
+						}
+
+						break
+					}
+
+					break
+				} // // if endpointPort == p
+			}
+
+			if !endpointFound {
+				panic(fmt.Sprintf("Endpoint not found for port %+v", p))
+			}
+		}
+	*/
 	return nil
 }
 
@@ -860,6 +984,10 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		case f.isDownstreamEndpoint(endpointIdx):
 			port := f.findPortByType(sf.DOWNSTREAM_PORT_PV130PT, f.getDownstreamEndpointRelativePortIndex(endpointIdx))
 
+			if port.portType != sf.DOWNSTREAM_PORT_PV130PT {
+				panic(fmt.Sprintf("Port %s not a DSP", port.id))
+			}
+
 			e.endpointType = sf.DRIVE_EV150ET
 			e.ports = make([]*Port, 1)
 			e.ports[0] = port
@@ -904,13 +1032,13 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 
 		for idx := range endpointGroup.endpoints[1:] {
 			endpointGroup.endpoints[1+idx] =
-				&f.endpoints[mangementAndUpstreamEndpointCount+idx*(1 /*PF*/ +mangementAndUpstreamEndpointCount)+endpointGroupIdx]
+				&f.endpoints[mangementAndUpstreamEndpointCount+idx*(1 /*PF*/ +mangementAndUpstreamEndpointCount)+endpointGroupIdx+1]
 		}
 
 		endpointGroup.connection = connection
 		connection.endpointGroup = endpointGroup
 
-		endpointGroup.debugPrint()
+		//endpointGroup.debugPrint()
 	}
 
 	events.PortEventManager.Subscribe(events.PortEventSubscriber{
@@ -1066,12 +1194,8 @@ func FabricIdSwitchesGet(fabricId string, model *sf.SwitchCollectionSwitchCollec
 
 // FabricIdSwitchesSwitchIdGet -
 func FabricIdSwitchesSwitchIdGet(fabricId string, switchId string, model *sf.SwitchV140Switch) error {
-	if !isFabric(fabricId) || !isSwitch(switchId) {
-		return ec.ErrNotFound
-	}
-
-	s, err := fabric.findSwitch(switchId)
-	if err != nil {
+	_, s := findSwitch(fabricId, switchId)
+	if s == nil {
 		return ec.ErrNotFound
 	}
 
@@ -1091,13 +1215,9 @@ func FabricIdSwitchesSwitchIdGet(fabricId string, switchId string, model *sf.Swi
 
 // FabricIdSwitchesSwitchIdPortsGet -
 func FabricIdSwitchesSwitchIdPortsGet(fabricId string, switchId string, model *sf.PortCollectionPortCollection) error {
-	if !isFabric(fabricId) || !isSwitch(switchId) {
+	_, s := findSwitch(fabricId, switchId)
+	if s == nil {
 		return ec.ErrNotFound
-	}
-
-	s, err := fabric.findSwitch(switchId)
-	if err != nil {
-		return err
 	}
 
 	model.MembersodataCount = int64(len(s.ports))
@@ -1240,20 +1360,22 @@ func FabricIdEndpointGroupsEndpointIdGet(fabricId string, groupId string, model 
 		return ec.ErrNotFound
 	}
 
-	endpointGroup, err := fabric.findEndpointGroup(groupId)
+	epg, err := fabric.findEndpointGroup(groupId)
 	if err != nil {
 		return err
 	}
 
-	model.Links.EndpointsodataCount = int64(len(endpointGroup.endpoints))
+	model.Links.EndpointsodataCount = int64(len(epg.endpoints))
 	model.Links.Endpoints = make([]sf.OdataV4IdRef, model.Links.EndpointsodataCount)
-	for idx, ep := range endpointGroup.endpoints {
+	for idx, ep := range epg.endpoints {
 		model.Links.Endpoints[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", fabricId, ep.id)
 	}
 
 	model.Links.ConnectionsodataCount = 1
 	model.Links.Connections = make([]sf.OdataV4IdRef, model.Links.ConnectionsodataCount)
-	model.Links.Connections[0].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, endpointGroup.id)
+	model.Links.Connections[0].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Connections/%s", fabricId, epg.id)
+
+	model.Id = epg.id
 
 	return nil
 }

@@ -31,10 +31,13 @@ type SwitchtecDevice struct {
 	dev *switchtec.Device
 }
 
-func (d *SwitchtecDevice) Get() *switchtec.Device {
+func (d *SwitchtecDevice) Device() *switchtec.Device {
 	return d.dev
 }
 
+func (d *SwitchtecDevice) Path() string {
+	panic("Switchtec Device does not support Path getter")
+}
 func (d *SwitchtecDevice) Close() {
 	d.dev.Close()
 }

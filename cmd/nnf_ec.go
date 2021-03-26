@@ -9,12 +9,13 @@ import (
 
 func main() {
 	
+	cli := flag.Bool("cli", false, "enable cli device interfaces")
 	mock := flag.Bool("mock", false, "enable mock interfaces and devices")
 	
 	opts := ec.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	c := nnf.NewController(*mock)
+	c := nnf.NewController(*cli, *mock)
 
 	c.Run(opts)
 }

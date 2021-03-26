@@ -4,9 +4,38 @@ import (
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 )
 
-// NvmeControllerInterface -
-type NvmeControllerInterface interface {
-	NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceInterface, error)
+type NvmeController interface{
+	NewNvmeDeviceController() NvmeDeviceController
+}
+
+type NvmeDeviceController interface {
+	NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error)
+}
+
+// NvmeDeviceApi -
+type NvmeDeviceApi interface {
+
+	IdentifyController(controllerId uint16) (*nvme.IdCtrl, error)
+	IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error)
+
+	EnumerateSecondaryControllers(
+		SecondaryControllersInitFunc,
+		SecondaryControllerHandlerFunc) error
+
+	AssignControllerResources(
+		controllerId uint16,
+		resourceType SecondaryControllerResourceType,
+		numResources uint32) error
+
+	OnlineController(controllerId uint16) error
+
+	ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdentifier, error)
+
+	CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error)
+	DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error
+
+	AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error
+	DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error
 }
 
 // SecondaryControllersInitFunc -
@@ -22,39 +51,3 @@ const (
 	VQResourceType SecondaryControllerResourceType = iota
 	VIResourceType
 )
-
-type VolumeId uint32
-
-// NvmeDeviceInterface -
-type NvmeDeviceInterface interface {
-	NewNvmeDeviceController(controllerId uint16) NvmeDeviceControllerInterface
-
-	IdentifyController() (*nvme.IdCtrl, error)
-	IdentifyNamespace() (*nvme.IdNs, error)
-
-	EnumerateSecondaryControllers(
-		SecondaryControllersInitFunc,
-		SecondaryControllerHandlerFunc) error
-
-	AssignControllerResources(
-		controllerId uint16,
-		resourceType SecondaryControllerResourceType,
-		numResources uint32) error
-
-	OnlineController(controllerId uint16) error
-
-	ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdentifier, error)
-
-	GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error)
-
-	CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error)
-	DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error
-
-	AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error
-	DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error
-}
-
-// NvmeDeviceControllerInterface -
-type NvmeDeviceControllerInterface interface {
-	ListNamespaces() ([]nvme.NamespaceIdentifier, error)
-}

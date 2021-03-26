@@ -149,8 +149,12 @@ func (c *MockSwitchtecController) allocateNewPDFID() int {
 	return pdfid
 }
 
-func (*MockSwitchtecDevice) Get() *switchtec.Device {
-	return nil
+func (*MockSwitchtecDevice) Device() *switchtec.Device {
+	panic("Mock Switchtec Device does not support Device getter")
+}
+
+func (*MockSwitchtecDevice) Path() string {
+	panic("Mock Switchtec Device does not support Path getter")
 }
 
 func (d *MockSwitchtecDevice) Close() {
