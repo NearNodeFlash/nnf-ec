@@ -14,7 +14,7 @@ type SwitchtecDeviceInterface interface {
 	// without adding an unnecessarily large abstraction. I'll keep it
 	// for now until something better is found.
 	Device() *switchtec.Device
-	Path() string
+	Path() *string
 
 	Close()
 

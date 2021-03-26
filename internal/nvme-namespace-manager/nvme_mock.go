@@ -71,11 +71,11 @@ func newMockDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 		}
 	}
 
-	return mock, nil
+	return &mock, nil
 }
 
 // IdentifyController -
-func (d mockDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error) {
+func (d *mockDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error) {
 	ctrl := new(nvme.IdCtrl)
 
 	binary.LittleEndian.PutUint64(ctrl.TotalNVMCapacity[:], mockControllerCapacityInBytes)
@@ -87,7 +87,7 @@ func (d mockDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error
 }
 
 // IdentifyNamespace -
-func (d mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
+func (d *mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
 	ns := new(nvme.IdNs)
 
 	ns.NumberOfLBAFormats = 1
@@ -98,19 +98,30 @@ func (d mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nv
 	return ns, nil
 }
 
-// EnumerateSecondaryControllers -
-func (d mockDevice) EnumerateSecondaryControllers(initFunc SecondaryControllersInitFunc, handlerFunc SecondaryControllerHandlerFunc) error {
-	initFunc(uint8(mockSecondaryControllerCount))
+// ListSecondary -
+func (d *mockDevice) ListSecondary() (*nvme.SecondaryControllerList, error) {
+	ls := new(nvme.SecondaryControllerList)
 
-	for _, ctrl := range d.controllers {
-		handlerFunc(ctrl.id, ctrl.online, ctrl.id, ctrl.vqresources, ctrl.viresources)
+	ls.Count = uint8(len(d.controllers))
+	for idx, ctrl := range d.controllers {
+		state := uint8(0)
+		if ctrl.online {
+			state = 1
+		}
+
+		ls.Entries[idx] = nvme.SecondaryControllerEntry{
+			SecondaryControllerID:       ctrl.id,
+			SecondaryControllerState:    state,
+			VQFlexibleResourcesAssigned: uint16(ctrl.vqresources),
+			VIFlexibleResourcesAssigned: uint16(ctrl.viresources),
+			VirtualFunctionNumber:       uint16(idx + 1),
+		}
 	}
-
-	return nil
+	return ls, nil
 }
 
 // AssignControllerResources -
-func (d mockDevice) AssignControllerResources(controllerId uint16, resourceType SecondaryControllerResourceType, numResources uint32) error {
+func (d *mockDevice) AssignControllerResources(controllerId uint16, resourceType SecondaryControllerResourceType, numResources uint32) error {
 	ctrl := &d.controllers[int(controllerId)]
 	switch resourceType {
 	case VQResourceType:
@@ -122,7 +133,7 @@ func (d mockDevice) AssignControllerResources(controllerId uint16, resourceType 
 }
 
 // OnlineController -
-func (d mockDevice) OnlineController(controllerId uint16) error {
+func (d *mockDevice) OnlineController(controllerId uint16) error {
 	ctrl := &d.controllers[int(controllerId)]
 	ctrl.online = true
 
@@ -130,7 +141,7 @@ func (d mockDevice) OnlineController(controllerId uint16) error {
 }
 
 // ListNamespaces -
-func (d mockDevice) ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdentifier, error) {
+func (d *mockDevice) ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdentifier, error) {
 	nss := d.controllers[controllerId].namespaces
 	var count = 0
 	for _, ns := range nss {
@@ -150,7 +161,7 @@ func (d mockDevice) ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdentif
 }
 
 // GetNamespace -
-func (d mockDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
+func (d *mockDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
 	if namespaceId == invalidNamespaceId {
 		return nil, fmt.Errorf("Namespace not found")
 	}
@@ -181,7 +192,7 @@ func (d mockDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.Id
 }
 
 // CreateNamespace -
-func (d mockDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error) {
+func (d *mockDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error) {
 	ctrl := &d.controllers[0]
 
 	if capacityBytes > (ctrl.capacity - ctrl.allocatedCapacity) {
@@ -232,7 +243,7 @@ func (d mockDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme
 }
 
 // DeleteNamespace -
-func (d mockDevice) DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error {
+func (d *mockDevice) DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error {
 	if namespaceId == invalidNamespaceId {
 		return fmt.Errorf("Namespace %d Not Found", namespaceId)
 	}
@@ -263,7 +274,7 @@ func (d mockDevice) DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error 
 }
 
 // AttachNamespace -
-func (d mockDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
+func (d *mockDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
 	if namespaceId == invalidNamespaceId {
 		return fmt.Errorf("Namespace %d Not Found", namespaceId)
 	}
@@ -295,7 +306,7 @@ func (d mockDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, contro
 }
 
 // DetachNamespace -
-func (d mockDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
+func (d *mockDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
 	if namespaceId == invalidNamespaceId {
 		return fmt.Errorf("Namespace %d Not Found", namespaceId)
 	}

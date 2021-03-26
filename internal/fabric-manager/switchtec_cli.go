@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
+
+	"stash.us.cray.com/rabsw/nnf-ec/internal/logging"
 )
 
 type SwitchtecCliController struct{}
@@ -43,7 +45,7 @@ func (d *SwitchtecCliDevice) Device() *switchtec.Device {
 	panic("Switchtec CLI Device doens't support Device getter")
 }
 
-func (d *SwitchtecCliDevice) Path() string { return d.path }
+func (d *SwitchtecCliDevice) Path() *string { return &d.path }
 
 func (d *SwitchtecCliDevice) Close() {}
 
@@ -84,7 +86,7 @@ func (d *SwitchtecCliDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
 
 	scanner := bufio.NewScanner(strings.NewReader(rsp))
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.Trim(scanner.Text(), " \n\r")
 		colIdx := strings.Index(line, ":")
 		if colIdx == -1 || colIdx+1 >= len(line) {
 			continue
@@ -128,7 +130,7 @@ func (d *SwitchtecCliDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
 }
 
 func (d *SwitchtecCliDevice) EnumerateEndpoint(physPortId uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
-	rsp, err := d.command(fmt.Sprintf("fabric gfms-dump %s --type=EP_PORT --ep_pid=%d ", d.path, physPortId))
+	rsp, err := d.command(fmt.Sprintf("fabric gfms-dump %s --type=EP_PORT --ep_pid=%d", d.path, physPortId))
 	if err != nil {
 		return err
 	}
@@ -138,21 +140,41 @@ func (d *SwitchtecCliDevice) EnumerateEndpoint(physPortId uint8, handlerFunc fun
 
 	scanner := bufio.NewScanner(strings.NewReader(rsp))
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+		line := strings.Trim(scanner.Text(), " \n\r")
 
 		if strings.HasSuffix(line, "(Not attached)") {
-			return nil
-		} else if strings.HasSuffix(line, "(EP attached)") {
-			functions = append(functions, switchtec.DumpEpPortAttachedDeviceFunction{
-				Bound: 0,
-			})
-			function = &functions[len(functions)-1]
+
+			return handlerFunc(
+				&switchtec.DumpEpPortDevice{
+					Hdr: switchtec.DumpEpPortHeader{
+						PhysicalPort: physPortId,
+						Typ:          uint8(switchtec.NoneEpPortType),
+					},
+				})
+
 		}
 
 		colIdx := strings.Index(line, ":")
+		if colIdx == -1 {
+			continue
+		}
+
 		key := strings.TrimSpace(line[:colIdx])
 
-		if colIdx == -1 || colIdx+1 >= len(line) {
+		// Process a new entry that is 'Function \d+ (SRIOV-[PV]F)'
+		if strings.HasPrefix(key, "Function") && (strings.HasSuffix(key, "(SRIOV-PF)") || strings.HasSuffix(key, "(SRIOV-VF)")) {
+			functions = append(functions, switchtec.DumpEpPortAttachedDeviceFunction{})
+			function = &functions[len(functions)-1]
+
+			id, _ := strconv.Atoi(strings.Split(key, " ")[1])
+			function.FunctionID = uint16(id)
+			function.VFNum = uint8(id)
+			function.SRIOVCapPF = 0
+
+			if strings.HasSuffix(key, "(SRIOV-PF)") {
+				function.SRIOVCapPF = 1
+			}
+
 			continue
 		}
 
@@ -163,23 +185,24 @@ func (d *SwitchtecCliDevice) EnumerateEndpoint(physPortId uint8, handlerFunc fun
 			function.FunctionID = 0
 			function.SRIOVCapPF = 1
 		case "PDFID":
-			pdfid, _ := strconv.ParseUint(values[0], 16, 16)
+			pdfid, _ := strconv.ParseUint(values[0], 0, 64)
 			function.PDFID = uint16(pdfid)
 		case "Binding":
 			if values[0] == "Bound" {
 				function.Bound = 1
 			}
-		default:
-			if strings.HasPrefix(key, "Function") {
-				id, _ := strconv.Atoi(strings.Split(key, " ")[1])
-				function.FunctionID = uint16(id)
-				function.VFNum = uint8(id)
-			}
 		}
 	}
 
 	return handlerFunc(&switchtec.DumpEpPortDevice{
+		Hdr: switchtec.DumpEpPortHeader{
+			PhysicalPort: physPortId,
+			Typ:          uint8(switchtec.DeviceEpPortType),
+		},
 		Ep: switchtec.DumpEpPortEp{
+			Hdr: switchtec.DumpEpPortAttachmentHeader{
+				FunctionCount: uint16(len(functions)),
+			},
 			Functions: functions,
 		},
 	})
@@ -187,7 +210,7 @@ func (d *SwitchtecCliDevice) EnumerateEndpoint(physPortId uint8, handlerFunc fun
 
 func (d *SwitchtecCliDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uint16) error {
 	// Usage: switchtec fabric gfms-bind <device> --host_sw_idx=<NUM> --phys_port_id=<NUM> --log_port_id=<NUM> --pdfid=<STR> [OPTIONS]
-	rsp, err := d.command(fmt.Sprintf("fabric gfms-bind %s --host_sw_idx=%d --phys_port_id=%d --log_port_id=%d --pdfid=%#04x", d.path, d.id, hostPhysPortId, hostLogPortId, pdfid))
+	rsp, err := d.command(fmt.Sprintf("fabric gfms-bind %s --pax=%d --host_sw_idx=%d --phys_port_id=%d --log_port_id=%d --pdfid=%#04x", d.path, d.id, d.id, hostPhysPortId, hostLogPortId, pdfid))
 	if err != nil {
 		return err
 	}
@@ -198,13 +221,13 @@ func (d *SwitchtecCliDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uin
 
 	return nil
 }
+
 func (d *SwitchtecCliDevice) command(cmd string) (string, error) {
-	cmd = fmt.Sprintf("/usr/local/bin/switchtec %s", cmd)
-	fmt.Printf("Running command '%s'\n", cmd)
-	response, err := exec.Command("bash", "-c", cmd).Output()
-	fmt.Printf("Command Response: '%s' %e\n", string(response), err)
-	if err != nil {
-		panic(err)
-	}
-	return string(response), err
+	cmd = fmt.Sprintf("switchtec %s", cmd)
+
+	rsp, err := logging.Cli.Trace(cmd, func(cmd string) ([]byte, error) {
+		return exec.Command("bash", "-c", fmt.Sprintf("/usr/local/bin/%s", cmd)).Output()
+	})
+
+	return string(rsp), err
 }

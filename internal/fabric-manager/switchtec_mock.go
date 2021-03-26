@@ -153,7 +153,7 @@ func (*MockSwitchtecDevice) Device() *switchtec.Device {
 	panic("Mock Switchtec Device does not support Device getter")
 }
 
-func (*MockSwitchtecDevice) Path() string {
+func (*MockSwitchtecDevice) Path() *string {
 	panic("Mock Switchtec Device does not support Path getter")
 }
 

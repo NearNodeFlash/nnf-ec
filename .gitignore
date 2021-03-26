@@ -7,3 +7,6 @@
 
 vendor/
 nnf_ec
+
+cmd/commands.log
+commands.log

@@ -3,6 +3,7 @@ module stash.us.cray.com/rabsw/nnf-ec
 go 1.16
 
 require (
+	github.com/HewlettPackard/structex v1.0.2
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/sirupsen/logrus v1.8.0

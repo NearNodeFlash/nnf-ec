@@ -75,6 +75,12 @@ type StorageController struct {
 
 	controllerId   uint16
 	functionNumber uint16
+
+	// These are attributes for a Secondary Controller that is manged
+	// by the Primary Controller using NVMe 1.3 Virtualization Mgmt.
+	vqResources uint16
+	viResources uint16
+	online bool
 }
 
 // Volumes -
@@ -466,71 +472,80 @@ func PortEventHandler(event PortEvent, data interface{}) {
 			return
 		}
 
-		// Initialize a Storage object with the required number of controllers
-		initFunc := func(s *Storage) SecondaryControllersInitFunc {
-			return func(count uint8) {
-				if count > uint8(s.config.Functions) {
-					count = uint8(s.config.Functions)
-				}
+		ls, err := device.ListSecondary()
+		if err != nil {
+			log.WithError(err).Errorf("List Secondary command failed")
+			return
+		}
 
-				s.controllers = make([]StorageController, 1 /*PF*/ +count)
+		count := ls.Count
+		if count > uint8(s.config.Functions) {
+			count = uint8(s.config.Functions)
+		}
 
-				// Initialize the PF
-				s.controllers[0] = StorageController{
-					id:             "0",
-					controllerId:   0,
-					functionNumber: 0,
-				}
+		s.controllers = make([]StorageController, 1/*PF*/ + count)
+
+		// Initialize the PF
+		s.controllers[0] = StorageController{
+			id: "0",
+			controllerId: 0,
+			functionNumber: 0,
+		}
+
+		for idx, sc := range ls.Entries[:count] {
+			if sc.SecondaryControllerID == 0 {
+				log.Errorf("Secondary Controller ID overlaps with PF Controller ID")
+				break
 			}
-		}
 
-		handlerFunc := func(s *Storage) SecondaryControllerHandlerFunc {
-			return func(controllerId uint16, controllerOnline bool, virtualFunctionNumber uint16, numVQResourcesAssinged, numVIResourcesAssigned uint32) error {
+			s.controllers[idx + 1] = StorageController{
+				id: strconv.Itoa(int(sc.SecondaryControllerID)),
+				controllerId: sc.SecondaryControllerID,
+				functionNumber: sc.VirtualFunctionNumber,
 
-				if controllerId == s.controllers[0].controllerId {
-					return fmt.Errorf("Controller ID overlaps with PF")
-				}
-
-				if !(controllerId < uint16(len(s.controllers))) {
-					return nil
-				}
-
-				s.controllers[int(controllerId)] = StorageController{
-					id:             strconv.Itoa(int(controllerId)),
-					controllerId:   controllerId,
-					functionNumber: virtualFunctionNumber,
-				}
-
-				if !s.virtManagementEnabled {
-					return nil
-				}
-
-				if numVQResourcesAssinged != s.config.Resources {
-					if err := s.device.AssignControllerResources(controllerId, VQResourceType, s.config.Resources-numVQResourcesAssinged); err != nil {
-						return err
-					}
-				}
-
-				if numVIResourcesAssigned != s.config.Resources {
-					if err := s.device.AssignControllerResources(controllerId, VIResourceType, s.config.Resources-numVIResourcesAssigned); err != nil {
-						return err
-					}
-				}
-
-				if !controllerOnline {
-					if err := s.device.OnlineController(controllerId); err != nil {
-						return err
-					}
-				}
-
-				return nil
+				vqResources: sc.VQFlexibleResourcesAssigned,
+				viResources: sc.VIFlexibleResourcesAssigned,
+				online: sc.SecondaryControllerState & 0x01 == 1,
 			}
+
+			ctrl := &s.controllers[idx + 1]
+
+			if !s.virtManagementEnabled {
+				continue
+			}
+
+			if sc.VQFlexibleResourcesAssigned != uint16(s.config.Resources) {
+				if err := s.device.AssignControllerResources(sc.SecondaryControllerID, VQResourceType, s.config.Resources - uint32(sc.VQFlexibleResourcesAssigned)); err != nil {
+					log.WithError(err).Errorf("Secondary Controller %d: Failed to assign VQ Resources", sc.SecondaryControllerID)
+					continue
+				}
+
+				ctrl.vqResources = uint16(s.config.Resources)
+			}
+
+			if sc.VIFlexibleResourcesAssigned != uint16(s.config.Resources) {
+				if err := s.device.AssignControllerResources(sc.SecondaryControllerID, VIResourceType, s.config.Resources - uint32(sc.VIFlexibleResourcesAssigned)); err != nil {
+					log.WithError(err).Errorf("Secondary Controller %d: Failed to assign VI Resources", sc.SecondaryControllerID)
+					continue
+				}
+
+				ctrl.viResources = uint16(s.config.Resources)
+			}
+
+			if sc.SecondaryControllerState & 0x01 == 0 {
+				if err := s.device.OnlineController(sc.SecondaryControllerID); err != nil {
+					log.WithError(err).Errorf("Secondary Controller %d: Failed to online controller", sc.SecondaryControllerID)
+					continue
+				}
+
+				ctrl.online = true
+			}
+
+			// TODO: If we fail to online the controllr with required resources
+			//       we should be failing the device.
 		}
 
-		if err := device.EnumerateSecondaryControllers(initFunc(s), handlerFunc(s)); err != nil {
-			log.WithError(err).Errorf("Namespace Manager: Storage %s failed to enumerate storage controllers ", s.id)
-		}
-
+		
 		// Port is ready to make connections
 		event.EventType = PORT_EVENT_READY
 		PortEventManager.Publish(event)

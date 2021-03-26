@@ -25,12 +25,12 @@ func (SwitchtecNvmeDeviceController) NewNvmeDevice(fabricId, switchId, portId st
 }
 
 type nvmeDevice struct {
-	dev *nvme.Device
+	dev   *nvme.Device
 	pdfid uint16
 }
 
 func newNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
-	sdev := fabric.FindSwitchDevice(fabricId, switchId)
+	sdev := fabric.GetSwitchDevice(fabricId, switchId)
 	if sdev == nil {
 		return nil, fmt.Errorf("Device not found")
 	}
@@ -48,7 +48,6 @@ func newNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 	return &nvmeDevice{dev: dev, pdfid: pdfid}, nil
 }
 
-
 // IdentifyController -
 func (d *nvmeDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error) {
 	return d.dev.IdentifyController()
@@ -59,34 +58,9 @@ func (d *nvmeDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*n
 	return d.dev.IdentifyNamespace(uint32(namespaceId), false)
 }
 
-// EnumerateSecondaryControllers -
-func (d *nvmeDevice) EnumerateSecondaryControllers(initFunc SecondaryControllersInitFunc, handlerFunc SecondaryControllerHandlerFunc) error {
-
-	list, err := d.dev.ListSecondary(0, 0)
-	if err != nil {
-		return err
-	}
-
-	initFunc(list.Count)
-
-	count := int(list.Count)
-	for i := 0; i < count; i++ {
-		entry := list.Entries[i]
-
-		err := handlerFunc(
-			entry.SecondaryControllerID,
-			entry.SecondaryControllerState&0x1 != 0,
-			entry.VirtualFunctionNumber,
-			uint32(entry.VQFlexibleResourcesAssigned),
-			uint32(entry.VIFlexibleResourcesAssigned),
-		)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+// ListSecondary -
+func (d *nvmeDevice) ListSecondary() (*nvme.SecondaryControllerList, error) {
+	return d.dev.ListSecondary(0, 0)
 }
 
 // AssignControllerResources -

@@ -18,10 +18,14 @@ type NvmeDeviceApi interface {
 	IdentifyController(controllerId uint16) (*nvme.IdCtrl, error)
 	IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error)
 
+	ListSecondary() (*nvme.SecondaryControllerList, error)
+
+	/*
 	EnumerateSecondaryControllers(
 		SecondaryControllersInitFunc,
 		SecondaryControllerHandlerFunc) error
-
+		*/
+		
 	AssignControllerResources(
 		controllerId uint16,
 		resourceType SecondaryControllerResourceType,
