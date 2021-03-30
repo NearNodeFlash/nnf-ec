@@ -40,6 +40,7 @@ func init() {
 
 func (log *cli) Trace(cmd string, execFunc func(cmd string) ([]byte, error)) ([]byte, error) {
 	log.WithField("command", cmd).Info()
+	log.File.Sync()
 
 	rsp, err := execFunc(cmd)
 
