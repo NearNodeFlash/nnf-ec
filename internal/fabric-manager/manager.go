@@ -56,6 +56,8 @@ type Switch struct {
 	manufacturer    string
 	serialNumber    string
 	firmwareVersion string
+
+	DEBUG_NEXT_SWITCH_LOG_PORT_ID int
 }
 
 type Port struct {
@@ -625,6 +627,14 @@ func (p *Port) bind() error {
 						if initiatorPort.config.Name != "Rabbit" {
 							log.Warnf("Initiator Port %s: Only operating on Rabbit for test", initiatorPort.id)
 							break
+						}
+
+						logicalPortIdOverride := &s.DEBUG_NEXT_SWITCH_LOG_PORT_ID
+
+						if logicalPortId != *logicalPortIdOverride {
+							log.Warnf("Override Logical Port Id %d to next switch index %d", logicalPortId, logicalPortIdOverride)
+							logicalPortId = *logicalPortIdOverride
+							(*logicalPortIdOverride)++
 						}
 
 						log.Warnf("Sleeping 5 seconds before bind operation...")
