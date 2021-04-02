@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -623,34 +622,16 @@ func (p *Port) bind() error {
 							break
 						}
 
-						// TODO: Remove this - it's debug only
-						if initiatorPort.config.Name != "Rabbit" {
-							log.Warnf("Initiator Port %s: Only operating on Rabbit for test", initiatorPort.id)
-							break
-						}
-
-						logicalPortIdOverride := &s.DEBUG_NEXT_SWITCH_LOG_PORT_ID
-
-						if logicalPortId != *logicalPortIdOverride {
-							log.Warnf("Override Logical Port Id %d to next switch index %d", logicalPortId, logicalPortIdOverride)
-							logicalPortId = *logicalPortIdOverride
-							(*logicalPortIdOverride)++
-						}
-
-						log.Warnf("Sleeping 5 seconds before bind operation...")
-						time.Sleep(time.Duration(time.Second * 5))
-
 						log.Infof("Bind: Switch: %s, PAX: %d, Physical Port: %d, Logical Port: %d, PDFID %#04x", s.id, s.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
 						if err := s.dev.Bind(uint8(initiatorPort.config.Port), uint8(logicalPortId), endpoint.pdfid); err != nil {
 							log.WithError(err).Errorf("Bind Failed: Switch %s: PAX: %d Port: %d, Logical Port: %d, PDFID: %#04x", s.id, s.paxId, initiatorPort.config.Port, logicalPortId, endpoint.pdfid)
 						}
 
-						log.Warnf("Sleeping 5 seconds after bind operation...")
-						time.Sleep(time.Duration(time.Second * 5))
-					}
+						break
+					} // for range initiator.ports
 
 					break
-				}
+				} // if ep == endpoint
 			}
 		}
 	}

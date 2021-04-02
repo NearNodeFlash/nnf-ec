@@ -552,31 +552,16 @@ func PortEventHandler(event PortEvent, data interface{}) {
 
 				log.Infof("Storage %s Secondary Controller %s Initialized", s.id, ctrl.id)
 
-
 				log.Warnf("TEMPORARY ------- Only initialize one controller")
 				break
-				
+
 			} // for := secondary controllers
 
-			/*
 			for _, ctrl := range s.controllers[1:] {
 				if !ctrl.online {
 					log.Errorf("Secondary Controller %s Offline - Storage %s Not Ready.", ctrl.id, s.id)
 					return
 				}
-			}
-			*/
-
-			anyOnline := false
-			for _, ctrl := range s.controllers[1:] {
-				if ctrl.online {
-					anyOnline = true
-				}
-			}
-
-			if !anyOnline {
-				log.Errorf("TEMPORARY ------- No Controllers Online Port")
-				return
 			}
 		}
 
