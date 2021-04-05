@@ -7,8 +7,8 @@ import (
 
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
 
-	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
-	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
+	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
+	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"

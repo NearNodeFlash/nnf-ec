@@ -1,4 +1,4 @@
-package nvmenamespace
+package nvme
 
 import (
 	"bufio"
@@ -11,8 +11,8 @@ import (
 	"github.com/HewlettPackard/structex"
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/logging"
+	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
 )
 
 func NewCliNvmeController() NvmeController {
@@ -177,7 +177,7 @@ func (*cliDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controll
 
 func (*cliDevice) command(cmd string) (string, error) {
 	cmd = fmt.Sprintf("switchtec-nvme %s", cmd)
-	
+
 	rsp, err := logging.Cli.Trace(cmd, func(cmd string) ([]byte, error) {
 		return exec.Command("bash", "-c", fmt.Sprintf("/usr/sbin/%s", cmd)).Output()
 	})

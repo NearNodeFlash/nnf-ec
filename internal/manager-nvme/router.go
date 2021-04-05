@@ -1,4 +1,4 @@
-package nvmenamespace
+package nvme
 
 import (
 	"stash.us.cray.com/rabsw/ec"

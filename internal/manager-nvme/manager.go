@@ -1,4 +1,4 @@
-package nvmenamespace
+package nvme
 
 import (
 	"fmt"
@@ -579,7 +579,7 @@ func Get(model *sf.StorageCollectionStorageCollection) error {
 	model.MembersodataCount = int64(len(mgr.storage))
 	model.Members = make([]sf.OdataV4IdRef, int(model.MembersodataCount))
 	for idx, s := range mgr.storage {
-		model.Members[idx].OdataId = fmt.Sprintf("/redfish/v1/Storage/%s", s.id)
+		model.Members[idx].OdataId = s.fmt("") // fmt.Sprintf("/redfish/v1/Storage/%s", s.id)
 	}
 	return nil
 }

@@ -1,9 +1,9 @@
-package nvmenamespace
+package nvme
 
 import (
 	"fmt"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/fabric-manager"
+	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
 
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 )

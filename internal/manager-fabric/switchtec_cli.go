@@ -50,7 +50,7 @@ func (d *SwitchtecCliDevice) Path() *string { return &d.path }
 func (d *SwitchtecCliDevice) Close() {}
 
 func (d *SwitchtecCliDevice) Identify() (int32, error) {
-	rsp, err := d.command(fmt.Sprintf("fabric gfms-dump %s --type=PAX | awk '/PAX ID: [0-9]+/{printf $3}'", d.path))
+	rsp, err := d.run(fmt.Sprintf("fabric gfms-dump %s --type=PAX | awk '/PAX ID: [0-9]+/{printf $3}'", d.path))
 	if err != nil {
 		return -1, err
 	}
@@ -60,11 +60,11 @@ func (d *SwitchtecCliDevice) Identify() (int32, error) {
 }
 
 func (d *SwitchtecCliDevice) GetFirmwareVersion() (string, error) {
-	return d.command(fmt.Sprintf("info %s | awk '/FW Version: /{printf $3,$4}' OFS=' '", d.path))
+	return d.run(fmt.Sprintf("info %s | awk '/FW Version: /{printf $3,$4}' OFS=' '", d.path))
 }
 
 func (d *SwitchtecCliDevice) GetModel() (string, error) {
-	return d.command(fmt.Sprintf("info %s | awk '/Device ID: /{printf $3}'", d.path))
+	return d.run(fmt.Sprintf("info %s | awk '/Device ID: /{printf $3}'", d.path))
 }
 
 func (d *SwitchtecCliDevice) GetManufacturer() (string, error) {
@@ -72,11 +72,11 @@ func (d *SwitchtecCliDevice) GetManufacturer() (string, error) {
 }
 
 func (d *SwitchtecCliDevice) GetSerialNumber() (string, error) {
-	return d.command(fmt.Sprintf("mfg info %s | awk '/Chip Serial:/{printf $3}'", d.path))
+	return d.run(fmt.Sprintf("mfg info %s | awk '/Chip Serial:/{printf $3}'", d.path))
 }
 
 func (d *SwitchtecCliDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
-	rsp, err := d.command(fmt.Sprintf("status %s --pax=%d", d.path, d.id))
+	rsp, err := d.run(fmt.Sprintf("status %s --pax=%d", d.path, d.id))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (d *SwitchtecCliDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
 }
 
 func (d *SwitchtecCliDevice) EnumerateEndpoint(physPortId uint8, handlerFunc func(epPort *switchtec.DumpEpPortDevice) error) error {
-	rsp, err := d.command(fmt.Sprintf("fabric gfms-dump %s --type=EP_PORT --ep_pid=%d", d.path, physPortId))
+	rsp, err := d.run(fmt.Sprintf("fabric gfms-dump %s --type=EP_PORT --ep_pid=%d", d.path, physPortId))
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func (d *SwitchtecCliDevice) EnumerateEndpoint(physPortId uint8, handlerFunc fun
 
 func (d *SwitchtecCliDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uint16) error {
 	// Usage: switchtec fabric gfms-bind <device> --host_sw_idx=<NUM> --phys_port_id=<NUM> --log_port_id=<NUM> --pdfid=<STR> [OPTIONS]
-	rsp, err := d.command(fmt.Sprintf("fabric gfms-bind %s --pax=%d --host_sw_idx=%d --phys_port_id=%d --log_port_id=%d --pdfid=%#04x", d.path, d.id, d.id, hostPhysPortId, hostLogPortId, pdfid))
+	rsp, err := d.run(fmt.Sprintf("fabric gfms-bind %s --pax=%d --host_sw_idx=%d --phys_port_id=%d --log_port_id=%d --pdfid=%#04x", d.path, d.id, d.id, hostPhysPortId, hostLogPortId, pdfid))
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (d *SwitchtecCliDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid uin
 	return nil
 }
 
-func (d *SwitchtecCliDevice) command(cmd string) (string, error) {
+func (d *SwitchtecCliDevice) run(cmd string) (string, error) {
 	cmd = fmt.Sprintf("switchtec %s", cmd)
 
 	rsp, err := logging.Cli.Trace(cmd, func(cmd string) ([]byte, error) {

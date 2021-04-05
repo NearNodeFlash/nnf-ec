@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/nvme-namespace-manager"
+	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
 
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 )

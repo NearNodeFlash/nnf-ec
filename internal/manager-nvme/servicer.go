@@ -1,4 +1,4 @@
-package nvmenamespace
+package nvme
 
 import (
 	"fmt"
