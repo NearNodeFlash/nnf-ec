@@ -146,6 +146,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+go.chromium.org/luci v0.0.0-20210407013038-a7569e2b1401 h1:E2GfN9C0lvSZ9FlqYuyswoS1AYWBo2lFU/tAFqpVyLQ=
+go.chromium.org/luci v0.0.0-20210407013038-a7569e2b1401/go.mod h1:MIQewVTLvOvc0UioV0JNqTNO/RspKFS0XEeoKrOxsdM=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
@@ -271,6 +273,8 @@ stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210322142454-141c066ca3ff h1:0F
 stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210322142454-141c066ca3ff/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.4 h1:oEeqxoPiM9gAG9K8JQUqKILBYvhgDn2OYKR/shWfF00=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.4/go.mod h1:qi7Hmx/rL2+GaO0Sx3fFsOYqNPKDMUCkckGU1P1rMZ4=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.8 h1:48aDMNAJhNE4HB3R1I65ABMgEbQ/58sL/J3pjezQQv0=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.8/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
 stash.us.cray.com/sp/dp-api v0.0.3/go.mod h1:FUzEPxIOBeBoO84LSpSpFe+V9/ZUmKcD/lCp2NUqPVE=
 stash.us.cray.com/sp/dp-api v0.0.6/go.mod h1:H3kELSpnXERW5GnUCaTAwa8LsrUavzIlOpMCsPQA5Eg=
 stash.us.cray.com/sp/dp-api v0.0.7/go.mod h1:H3kELSpnXERW5GnUCaTAwa8LsrUavzIlOpMCsPQA5Eg=

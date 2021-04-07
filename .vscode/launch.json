@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/nnf_ec.go",
-            "args": ["--http", "--port=8080"],
+            "args": ["--http", "--port=8080", "--purge"],
         },
         {
             "name": "Cli Server (debug)",
@@ -18,7 +18,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/nnf_ec.go",
-            "args": ["--http", "--port=8080", "--cli"],
+            "args": ["--http", "--port=8080", "--cli", "--purge"],
         },
         {
             "name": "Mock Http Server (debug)",

@@ -1,6 +1,7 @@
 package nvme
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"strconv"
@@ -32,18 +33,19 @@ type Manager struct {
 
 	storage []Storage
 	ctrl    NvmeDeviceController
+
+	// Command-Line Options
+	purge bool // Purge existing namespaces on storage controllers
 }
 
-// Storage -
+// Storage - Storage defines a generic storage device in the Redfish / Swordfish specification.
+// In the NNF implementation
 type Storage struct {
 	id      string
 	address string
 
-	config *ControllerConfig
-
+	// True if the host controller supports NVMe 1.3 Virtualization Management, false otherwise
 	virtManagementEnabled bool
-	controllers           []StorageController
-	volumes               []Volume
 
 	// Capacity in bytes of the storage device. This value is read once and is fixed for
 	// the life of the object.
@@ -60,13 +62,19 @@ type Storage struct {
 	lbaFormatIndex uint8
 	blockSizeBytes uint32
 
+	state sf.ResourceState
+
 	// These values allow us to communicate a storage device with its corresponding
 	// Fabric Controller. Read once during Port Up Events and remain fixed thereafter.
 	fabricId string
 	switchId string
 	portId   string
 
-	device NvmeDeviceApi
+	controllers []StorageController // List of Storage Controllers on the Storage device
+	volumes     []Volume            // List of Volumes on the Storage device
+	config      *ControllerConfig   // Link to the storage configuration
+
+	device NvmeDeviceApi // Device interface for interaction with the underlying NVMe device
 }
 
 // StorageController -
@@ -101,7 +109,7 @@ type Volume struct {
 //
 //   /​redfish/​v1/​ResourceBlocks/{​ResourceBlockId}/​Systems/{​ComputerSystemId}/​Storage/​{StorageId}/​Controllers/​{ControllerId}
 
-var mgr Manager
+var mgr = Manager{id: ResourceBlockId}
 
 func init() {
 	RegisterNvmeInterface(&mgr)
@@ -173,6 +181,10 @@ func (m *Manager) GetVolumes(controllerId string) ([]string, error) {
 	return volumes, nil
 }
 
+func BindFlags(fs *flag.FlagSet) {
+	fs.BoolVar(&mgr.purge, "purge", false, "Purge existing volumes on start")
+}
+
 func ConvertRelativePortIndexToControllerIndex(index uint32) (uint16, error) {
 	if !(index < mgr.config.Storage.Controller.Functions) {
 		return 0, fmt.Errorf("Port Index %d is beyond supported controller count (%d)",
@@ -208,20 +220,15 @@ func DetachControllers(v *Volume, controllers []uint16) error {
 }
 
 func (s *Storage) UnallocatedBytes() uint64 { return s.unallocatedBytes }
-func (s *Storage) IsEnabled() bool          { return s.getStatus().State == sf.ENABLED_RST }
+func (s *Storage) IsEnabled() bool          { return s.state == sf.ENABLED_RST }
 
 func (s *Storage) fmt(format string, a ...interface{}) string {
 	return fmt.Sprintf("/redfish/v1/Storage/%s", s.id) + fmt.Sprintf(format, a...)
 }
 
-func (s *Storage) initialize(conf *ControllerConfig, device string) error {
-	s.address = device
-	s.config = conf
+func (s *Storage) initialize() error {
+	s.state = sf.STARTING_RST
 
-	return nil
-}
-
-func (s *Storage) initializeController() error {
 	ctrl, err := s.device.IdentifyController(0)
 	if err != nil {
 		return err
@@ -254,7 +261,7 @@ func (s *Storage) initializeController() error {
 
 	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
 
-	ns, err := s.device.IdentifyNamespace(nvme.COMMON_NAMESPACE_IDENTIFIER)
+	ns, err := s.device.IdentifyNamespace(nvme.COMMON_NAMESPACE_IDENTIFIER) // TODO: This is a bad API name, should probably oboslete
 	if err != nil {
 		return err
 	}
@@ -269,6 +276,21 @@ func (s *Storage) initializeController() error {
 	}
 	s.lbaFormatIndex = uint8(bestIndex)
 	s.blockSizeBytes = 1 << ns.LBAFormats[bestIndex].LBADataSize
+
+	return nil
+}
+
+func (s *Storage) purge() error {
+	namespaces, err := s.device.ListNamespaces(0)
+	if err != nil {
+		return err
+	}
+
+	for _, nsid := range namespaces {
+		if err := s.device.DeleteNamespace(nsid); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -288,7 +310,7 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 		stat.State = sf.UNAVAILABLE_OFFLINE_RST
 	} else {
 		stat.Health = sf.OK_RH
-		stat.State = sf.ENABLED_RST // TODO: Need some different Unavailable / Offline state maybe?
+		stat.State = s.state
 	}
 
 	return stat
@@ -388,12 +410,9 @@ func (v *Volume) detach(controllerIds []uint16) error {
 // Initialize
 func Initialize(ctrl NvmeController) error {
 
-	mgr = Manager{
-		id:   ResourceBlockId,
-		ctrl: ctrl.NewNvmeDeviceController(),
-	}
+	mgr.ctrl = ctrl.NewNvmeDeviceController()
 
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.DebugLevel) // TODO: Config file or command-line option
 
 	log.Infof("Initialize %s NVMe Namespace Manager", mgr.id)
 
@@ -412,12 +431,12 @@ func Initialize(ctrl NvmeController) error {
 	log.Debugf("  Device List: %+v", conf.Storage.Devices)
 
 	mgr.storage = make([]Storage, len(conf.Storage.Devices))
-	for storageIdx, storageConfig := range conf.Storage.Devices {
-		storage := &mgr.storage[storageIdx]
-
-		storage.id = strconv.Itoa(storageIdx)
-		if err := storage.initialize(&conf.Storage.Controller, storageConfig); err != nil {
-			log.WithError(err).Errorf("Failed to initialize storage device %s", storage.id)
+	for storageIdx, storageDevice := range conf.Storage.Devices {
+		mgr.storage[storageIdx] = Storage{
+			id:      strconv.Itoa(storageIdx),
+			config:  &conf.Storage.Controller,
+			address: storageDevice,
+			state:   sf.ABSENT_RST,
 		}
 	}
 
@@ -460,16 +479,22 @@ func PortEventHandler(event PortEvent, data interface{}) {
 		// Connect
 		device, err := m.ctrl.NewNvmeDevice(event.FabricId, event.SwitchId, event.PortId)
 		if err != nil {
-			log.WithError(err).Errorf("Could not allocate storage controller")
+			log.WithError(err).Errorf("Storage %s - Could not allocate storage controller", s.id)
 			return
 		}
 
 		s.device = device
 
-		err = s.initializeController()
-		if err != nil {
-			log.WithError(err).Errorf("Failied to initialize device controller")
+		if err := s.initialize(); err != nil {
+			log.WithError(err).Errorf("Storage %s - Failed to initialize device controller", s.id)
 			return
+		}
+
+		if m.purge {
+			log.Warnf("Storage %s - Starting purge of existing volumes", s.id)
+			if err := s.purge(); err != nil {
+				log.WithError(err).Errorf("Storage %s - Failed to purge storage device", s.id)
+			}
 		}
 
 		if !s.virtManagementEnabled {
@@ -552,18 +577,20 @@ func PortEventHandler(event PortEvent, data interface{}) {
 
 				log.Infof("Storage %s Secondary Controller %s Initialized", s.id, ctrl.id)
 
-				log.Warnf("TEMPORARY ------- Only initialize one controller")
-				break
-
 			} // for := secondary controllers
 
 			for _, ctrl := range s.controllers[1:] {
 				if !ctrl.online {
 					log.Errorf("Secondary Controller %s Offline - Storage %s Not Ready.", ctrl.id, s.id)
+					s.state = sf.DISABLED_RST
 					return
 				}
 			}
+
 		}
+
+		log.Infof("Storage %s - Ready", s.id)
+		s.state = sf.ENABLED_RST
 
 		// Port is ready to make connections
 		event.EventType = PORT_EVENT_READY
@@ -728,7 +755,8 @@ func StorageIdVolumeIdGet(storageId, volumeId string, model *sf.VolumeV161Volume
 
 	ns, err := s.device.IdentifyNamespace(nvme.NamespaceIdentifier(v.namespaceId))
 	if err != nil {
-		return ec.ErrNotFound
+		log.WithError(err).Errorf("Identify Namespace Failed: NSID %d", v.namespaceId)
+		return ec.ErrInternalServerError
 	}
 
 	formatGUID := func(guid []byte) string {

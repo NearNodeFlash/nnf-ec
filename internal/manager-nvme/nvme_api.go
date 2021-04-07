@@ -4,7 +4,7 @@ import (
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
 )
 
-type NvmeController interface{
+type NvmeController interface {
 	NewNvmeDeviceController() NvmeDeviceController
 }
 
@@ -14,18 +14,11 @@ type NvmeDeviceController interface {
 
 // NvmeDeviceApi -
 type NvmeDeviceApi interface {
-
 	IdentifyController(controllerId uint16) (*nvme.IdCtrl, error)
 	IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error)
 
 	ListSecondary() (*nvme.SecondaryControllerList, error)
 
-	/*
-	EnumerateSecondaryControllers(
-		SecondaryControllersInitFunc,
-		SecondaryControllerHandlerFunc) error
-		*/
-		
 	AssignControllerResources(
 		controllerId uint16,
 		resourceType SecondaryControllerResourceType,
