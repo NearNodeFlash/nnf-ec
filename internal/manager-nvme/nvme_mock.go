@@ -103,8 +103,8 @@ func (d *mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*n
 func (d *mockDevice) ListSecondary() (*nvme.SecondaryControllerList, error) {
 	ls := new(nvme.SecondaryControllerList)
 
-	ls.Count = uint8(len(d.controllers))
-	for idx, ctrl := range d.controllers {
+	ls.Count = uint8(len(d.controllers)) - 1
+	for idx, ctrl := range d.controllers[1:] {
 		state := uint8(0)
 		if ctrl.online {
 			state = 1

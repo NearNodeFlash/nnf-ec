@@ -21,30 +21,36 @@ import (
 	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
 )
 
-type options struct {
-	mock  bool // Enable mock interfaces for Switches, NVMe, and NNF
-	cli   bool // Enable CLI commands instead of binary
+type Options struct {
+	mock bool // Enable mock interfaces for Switches, NVMe, and NNF
+	cli  bool // Enable CLI commands instead of binary
 }
 
-func newDefaultOptions() *options {
-	return &options{mock: false, cli: false}
+func newDefaultOptions() *Options {
+	return &Options{mock: false, cli: false}
 }
 
-func BindFlags(fs *flag.FlagSet) *options {
+func NewMockOptions() *Options {
+	return &Options{mock: true, cli: false}
+}
+
+func BindFlags(fs *flag.FlagSet) *Options {
 	opts := newDefaultOptions()
 
-	fs.BoolVar(&opts.mock,  "mock",  opts.mock,  "Enable mock (simulated) environment.")
-	fs.BoolVar(&opts.cli,   "cli",   opts.cli,   "Enable CLI interfaces with devices, instead of raw binary.")
-	
+	fs.BoolVar(&opts.mock, "mock", opts.mock, "Enable mock (simulated) environment.")
+	fs.BoolVar(&opts.cli, "cli", opts.cli, "Enable CLI interfaces with devices, instead of raw binary.")
+
 	nvme.BindFlags(fs)
 
 	return opts
 }
 
 // NewController - Create a new NNF Element Controller with the desired mocking behavior
-func NewController(opts* options) *ec.Controller {
+func NewController(opts *Options) *ec.Controller {
 	if opts == nil {
-		opts = newDefaultOptions()
+		// ajf - don't check this in, but I don't yet know how to provide options for unit tests
+		//		opts = newDefaultOptions()
+		opts = NewMockOptions()
 	}
 
 	switchCtrl := fabric.NewSwitchtecController()

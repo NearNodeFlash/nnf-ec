@@ -257,12 +257,12 @@ func (d *MockSwitchtecDevice) Bind(hostPhysPortId, hostLogPortId uint8, pdfid ui
 	for portIdx, port := range d.ports {
 		if port.config.Port == int(hostPhysPortId) {
 			if port.bindings[hostLogPortId] != nil {
-				return fmt.Errorf("Host Port %d Logical Port ID %d already bound", hostPhysPortId, hostLogPortId)
+				return fmt.Errorf("host Port %d Logical Port ID %d already bound", hostPhysPortId, hostLogPortId)
 			}
 
 			return bindPort(&d.ports[portIdx], hostLogPortId, pdfid)
 		}
 	}
 
-	return fmt.Errorf("Host Physical Port ID %d not found", hostPhysPortId)
+	return fmt.Errorf("host Physical Port ID %d not found", hostPhysPortId)
 }

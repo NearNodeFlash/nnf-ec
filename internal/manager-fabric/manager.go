@@ -48,7 +48,7 @@ type Switch struct {
 	ports  []Port
 
 	fabric   *Fabric
-	mgmtPort *Port
+	//mgmtPort *Port
 
 	// Information is cached on switch initialization
 	model           string
@@ -126,14 +126,14 @@ type EndpointGroup struct {
 
 type Connection struct {
 	endpointGroup *EndpointGroup
-	volumes       []VolumeInfo
+	// volumes       []VolumeInfo
 
 	fabric *Fabric
 }
 
-type VolumeInfo struct {
-	odataid string
-}
+// type VolumeInfo struct {
+// 	odataid string
+// }
 
 var manager Fabric
 
@@ -294,9 +294,9 @@ func (f *Fabric) getDownstreamEndpointRelativePortIndex(idx int) int {
 	return (idx - (f.managementEndpointCount + f.upstreamEndpointCount)) / (1 /*PF*/ + f.managementEndpointCount + f.upstreamEndpointCount)
 }
 
-func (f *Fabric) getDownstreamEndpointIndex(deviceIdx int, functionIdx int) int {
-	return (deviceIdx * (1 /*PF*/ + f.managementEndpointCount + f.upstreamEndpointCount)) + functionIdx
-}
+// func (f *Fabric) getDownstreamEndpointIndex(deviceIdx int, functionIdx int) int {
+// 	return (deviceIdx * (1 /*PF*/ + f.managementEndpointCount + f.upstreamEndpointCount)) + functionIdx
+// }
 
 func (s *Switch) isReady() bool {
 	return s.dev != nil
@@ -540,7 +540,7 @@ func (p *Port) bind() error {
 	f := p.swtch.fabric
 
 	if p.portStatus.linkStatus != sf.LINK_UP_PV130LS {
-		log.Warnf("Port %s: Port not up, skipping bind operation")
+		log.Warnf("Port %+v: Port not up, skipping bind operation", p)
 		return nil
 	}
 
@@ -573,11 +573,11 @@ func (p *Port) bind() error {
 
 			if initiator.endpointType == sf.PROCESSOR_EV150ET {
 				if len(initiator.ports) != 2 {
-					panic(fmt.Sprintf("Processor endpoint expected to have two ports"))
+					panic("Processor endpoint expected to have two ports")
 				}
 
 				if initiator.ports[0].swtch.id == initiator.ports[1].swtch.id {
-					panic(fmt.Sprintf("Processor endpoint ports should be on two different switches"))
+					panic("Processor endpoint ports should be on two different switches")
 				}
 			}
 
@@ -833,7 +833,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 			e.name = fmt.Sprintf("%s - Function %d", port.config.Name, endpointIdx-port.GetBaseEndpointIndex()) // must be after endpoint port assignment
 
 		default:
-			panic(fmt.Errorf("Unhandled endpoint index %d", endpointIdx))
+			panic(fmt.Errorf("unhandled endpoint index %d", endpointIdx))
 		}
 
 	}
@@ -851,6 +851,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	for endpointGroupIdx := range m.endpointGroups {
 		endpointGroup := &m.endpointGroups[endpointGroupIdx]
 		connection := &m.connections[endpointGroupIdx]
+		connection.fabric = m
 
 		endpointGroup.id = strconv.Itoa(endpointGroupIdx)
 		endpointGroup.fabric = m
@@ -882,7 +883,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 // Start -
 func Start() error {
 	m := manager
-	log.Infof("Starting Fabric Manager", m.id)
+	log.Infof("Starting Fabric Manager %s", m.id)
 
 	// Enumerate over the switch ports and report events to the event
 	// manager
@@ -968,7 +969,7 @@ func PortEventHandler(event events.PortEvent, data interface{}) {
 func GetEndpointFromPortEvent(event events.PortEvent) (*Endpoint, error) {
 	f := findFabric(event.FabricId)
 	if f == nil {
-		return nil, fmt.Errorf("No Fabric Manager %s", event.FabricId)
+		return nil, fmt.Errorf("no Fabric Manager %s", event.FabricId)
 	}
 
 	for _, s := range f.switches {
@@ -1168,6 +1169,7 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 	return nil
 }
 
+// FabricIdEndpointGroupsGet - 
 func FabricIdEndpointGroupsGet(fabricId string, model *sf.EndpointGroupCollectionEndpointGroupCollection) error {
 	f := findFabric(fabricId)
 	if f == nil {
@@ -1321,7 +1323,7 @@ func GetPortPDFID(fabricId, switchId, portId string, controllerId uint16) (uint1
 	}
 
 	if !(int(controllerId) < len(p.endpoints)) {
-		return 0, fmt.Errorf("Controller ID beyond available port endpoints")
+		return 0, fmt.Errorf("controller ID beyond available port endpoints")
 	}
 
 	return p.endpoints[int(controllerId)].pdfid, nil
@@ -1346,7 +1348,7 @@ func (f *Fabric) ConvertPortEventToRelativePortIndex(event events.PortEvent) (in
 				correctType = p.portType == sf.DOWNSTREAM_PORT_PV130PT
 			}
 
-			if correctType == true {
+			if correctType {
 				if s.id == event.SwitchId && p.id == event.PortId {
 					return idx, nil
 				}
@@ -1360,7 +1362,7 @@ func (f *Fabric) ConvertPortEventToRelativePortIndex(event events.PortEvent) (in
 		}
 	}
 
-	return -1, fmt.Errorf("Relative Port Index not found for event %+v", event)
+	return -1, fmt.Errorf("relative Port Index not found for event %+v", event)
 }
 
 // FindDownstreamEndpoint -

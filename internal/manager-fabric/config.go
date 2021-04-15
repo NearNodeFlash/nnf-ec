@@ -62,7 +62,7 @@ func loadConfig() (*ConfigFile, error) {
 			case sf.MANAGEMENT_PORT_PV130PT:
 				s.ManagementPortCount++
 				if s.UpstreamPortCount != 0 {
-					return nil, fmt.Errorf("Management USP must be listed first in config.yaml")
+					return nil, fmt.Errorf("management USP must be listed first in config.yaml")
 				}
 			case sf.UPSTREAM_PORT_PV130PT:
 				s.UpstreamPortCount++
@@ -71,7 +71,7 @@ func loadConfig() (*ConfigFile, error) {
 			case sf.INTERSWITCH_PORT_PV130PT:
 				continue
 			default:
-				return nil, fmt.Errorf("Unhandled port type %s in config.yaml", p.Type)
+				return nil, fmt.Errorf("unhandled port type %s in config.yaml", p.Type)
 			}
 		}
 
@@ -82,36 +82,36 @@ func loadConfig() (*ConfigFile, error) {
 
 	// Only a single management endpoint for ALL switches (but unique ports)
 	if config.ManagementPortCount != len(config.Switches) {
-		return nil, fmt.Errorf("Misconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(config.Switches), config.ManagementPortCount)
+		return nil, fmt.Errorf("isconfigured Switch Ports: Expected %d Management Ports, Received: %d", len(config.Switches), config.ManagementPortCount)
 	}
 
 	return config, nil
 }
 
-func (c *ConfigFile) findSwitch(switchId string) (*SwitchConfig, error) {
-	for _, s := range c.Switches {
-		if s.Id == switchId {
-			return &s, nil
-		}
-	}
+// func (c *ConfigFile) findSwitch(switchId string) (*SwitchConfig, error) {
+// 	for _, s := range c.Switches {
+// 		if s.Id == switchId {
+// 			return &s, nil
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("Switch %s not found", switchId)
-}
+// 	return nil, fmt.Errorf("Switch %s not found", switchId)
+// }
 
-func (c *ConfigFile) findSwitchPort(switchId string, portId string) (*PortConfig, error) {
-	s, err := c.findSwitch(switchId)
-	if err != nil {
-		return nil, err
-	}
+// func (c *ConfigFile) findSwitchPort(switchId string, portId string) (*PortConfig, error) {
+// 	s, err := c.findSwitch(switchId)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	for _, port := range s.Ports {
-		if portId == port.Id {
-			return &port, nil
-		}
-	}
+// 	for _, port := range s.Ports {
+// 		if portId == port.Id {
+// 			return &port, nil
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("Switch %s Port %s not found", switchId, portId)
-}
+// 	return nil, fmt.Errorf("Switch %s Port %s not found", switchId, portId)
+// }
 
 func (p *PortConfig) getPortType() sf.PortV130PortType {
 	switch p.Type {
