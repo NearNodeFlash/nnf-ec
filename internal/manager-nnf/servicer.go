@@ -412,7 +412,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
-	fileSystemId := params["FileSystemId"]
+	fileSystemId := params["FileSystemsId"]
 
 	model := sf.FileShareCollectionFileShareCollection{
 		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/FileSystems/%s/ExportedShares", storageServiceId, fileSystemId),
@@ -429,7 +429,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
-	fileSystemId := params["FileSystemId"]
+	fileSystemId := params["FileSystemsId"]
 
 	var model sf.FileShareV120FileShare
 
@@ -451,7 +451,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
-	fileSystemId := params["FileSystemId"]
+	fileSystemId := params["FileSystemsId"]
 	exportedShareId := params["ExportedShareId"]
 
 	model := sf.FileShareV120FileShare{
@@ -469,7 +469,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
-	fileSystemId := params["FileSystemId"]
+	fileSystemId := params["FileSystemsId"]
 	exportedShareId := params["ExportedShareId"]
 
 	err := StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSystemId, exportedShareId)

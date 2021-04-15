@@ -19,6 +19,9 @@ import (
 
 const (
 	ResourceBlockId = "Rabbit"
+
+	// TODO: The ALL_CAPS name in nvme package should be renamed to a valid Go name
+	CommonNamespaceIdentifier = nvme.COMMON_NAMESPACE_IDENTIFIER
 )
 
 const (
@@ -43,6 +46,9 @@ type Manager struct {
 type Storage struct {
 	id      string
 	address string
+
+	// Physical Function Controller ID
+	pfid uint16
 
 	// True if the host controller supports NVMe 1.3 Virtualization Management, false otherwise
 	virtManagementEnabled bool
@@ -234,6 +240,8 @@ func (s *Storage) initialize() error {
 		return err
 	}
 
+	s.pfid = ctrl.ControllerId
+
 	capacityToUint64s := func(c [16]byte) (lo uint64, hi uint64) {
 		lo, hi = 0, 0
 		for i := 0; i < 8; i++ {
@@ -261,7 +269,7 @@ func (s *Storage) initialize() error {
 
 	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
 
-	ns, err := s.device.IdentifyNamespace(nvme.COMMON_NAMESPACE_IDENTIFIER) // TODO: This is a bad API name, should probably oboslete
+	ns, err := s.device.IdentifyNamespace(CommonNamespaceIdentifier)
 	if err != nil {
 		return err
 	}
@@ -370,6 +378,20 @@ func (v *Volume) GetOdataId() string {
 
 func (v *Volume) GetCapaityBytes() uint64 {
 	return uint64(v.capacityBytes)
+}
+
+func (v *Volume) SetFeature(data []byte) error {
+
+	ctrls := []uint16{v.storage.pfid}
+	if err := v.attach(ctrls); err != nil {
+		return err
+	}
+
+	if err := v.storage.device.SetNamespaceFeature(v.namespaceId, data); err != nil {
+		return err
+	}
+
+	return v.detach(ctrls)
 }
 
 func (v *Volume) attach(controllerIds []uint16) error {
@@ -618,6 +640,7 @@ func StorageIdGet(storageId string, model *sf.StorageV190Storage) error {
 		return ec.ErrNotFound
 	}
 
+	model.Id = s.id
 	model.Status = s.getStatus()
 
 	// TODO: The model is missing a bunch of stuff

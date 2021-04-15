@@ -5,15 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Http Server (debug)",
+            "name": "Http, Purge",
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/nnf_ec.go",
             "args": ["--http", "--port=8080", "--purge"],
+            "dlvLoadConfig": {
+                "followPointers": true,
+                "maxVariableRecurse": 1,
+                "maxStringLen": 120,
+                "maxArrayValues": 64,
+                "maxStructFields": -1
+            }
         },
         {
-            "name": "Cli Server (debug)",
+            "name": "Http, Cli, Purge",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -21,7 +28,7 @@
             "args": ["--http", "--port=8080", "--cli", "--purge"],
         },
         {
-            "name": "Mock Http Server (debug)",
+            "name": "Http, Mock",
             "type": "go",
             "request": "launch",
             "mode": "debug",

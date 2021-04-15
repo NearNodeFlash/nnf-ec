@@ -1,7 +1,9 @@
 package nvme
 
 import (
+	"encoding/binary"
 	"fmt"
+	"unsafe"
 
 	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
 
@@ -55,7 +57,22 @@ func (d *nvmeDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, erro
 
 // IdentifyNamespace -
 func (d *nvmeDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
-	return d.dev.IdentifyNamespace(uint32(namespaceId), false)
+	// NVMe specification defines two ways to identify namespaces.
+	// 1) Through Active Namespace Management, returns Identify Namespace data structure for the specific
+	//    NSID active on the controller, or the common namespace capabilities structure.
+	// 2) Allocated Namespace Management, returns Identify Namespace data structure for the specified
+	//    allocated NSID, regardless of its attach state to a controller.
+	//
+	// We prefer to manage namespaces regardless of there attach state to a particular controller, so
+	// option 2 is preferred except in cases of the common namespace identifier (-1), in which case
+	// we need to use option 1.
+
+	present := true // Force reading of namespace even if not attached to the particular controller
+	if namespaceId == CommonNamespaceIdentifier {
+		present = false
+	}
+
+	return d.dev.IdentifyNamespace(uint32(namespaceId), present)
 }
 
 // ListSecondary -
@@ -108,7 +125,7 @@ func (d *nvmeDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvm
 
 	// Want to get the best LBA format for creating a Namespace
 	// We first read the unique namespace ID that describes common namespace properties
-	dns, err := d.dev.IdentifyNamespace(uint32(nvme.COMMON_NAMESPACE_IDENTIFIER), false)
+	dns, err := d.IdentifyNamespace(CommonNamespaceIdentifier)
 	if err != nil {
 		return 0, err
 	}
@@ -165,4 +182,49 @@ func (d *nvmeDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, contr
 // DetachNamespace -
 func (d *nvmeDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
 	return d.dev.DetachNamespace(uint32(namespaceId), controllers)
+}
+
+const (
+	DefaultFeatureType = 1
+)
+
+func (d *nvmeDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error {
+	builder := nvme.NewMiFeatureBuilder()
+	builder.AddElement(DefaultFeatureType, 0, data)
+
+	buf := make([]byte, nvme.FeatureBufferLength[nvme.MiNamespaceMetadata])
+	copy(buf, builder.Bytes())
+
+	return d.dev.SetFeature(uint32(namespaceId), nvme.MiNamespaceMetadata, 0, false, uint32(len(buf)), buf)
+}
+
+func (d *nvmeDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error) {
+	buf := make([]byte, nvme.FeatureBufferLength[nvme.MiNamespaceMetadata])
+
+	if err := d.dev.GetFeature(uint32(namespaceId), nvme.MiNamespaceMetadata, 0, 0, uint32(len(buf)), buf); err != nil {
+		return nil, err
+	}
+
+	hdr := nvme.MIHostMetadata{}
+	ndesc := buf[unsafe.Offsetof(hdr.NumDescriptors)]
+	data := buf[unsafe.Offsetof(hdr.DescriptorData):]
+
+	for i := uint8(0); i < ndesc; i++ {
+		desc := nvme.MIHostMetadataElementDescriptor{}
+
+		// Ugly as can be! Maybe use encoding.binary/Read
+		// which takes in a byte reader and dumps that data to
+		// an interface?
+
+		typ := data[unsafe.Offsetof(desc.Type)]
+		len := binary.LittleEndian.Uint16(data[unsafe.Offsetof(desc.Len):])
+		offset := uint16(unsafe.Offsetof(desc.Val))
+		val := data[offset : offset+len]
+
+		if typ == DefaultFeatureType {
+			return val, nil
+		}
+	}
+
+	return buf, nil
 }

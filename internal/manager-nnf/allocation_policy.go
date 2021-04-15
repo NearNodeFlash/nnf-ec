@@ -1,12 +1,12 @@
 package nnf
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 
 	"github.com/google/uuid"
 
+	"stash.us.cray.com/rabsw/nnf-ec/internal/common"
 	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
 
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
@@ -53,20 +53,6 @@ type AllocationPolicyOem struct {
 	// compute-local where placement matters.
 	ServerEndpointId string `json:"ServerEndpoint,omitempty"`
 }
-
-// AllocationMetadata - Describes the metadata that is branded on the drive's namespace
-// when created. This data is used in recovery to identify the belonging storage pools.
-type AllocationMetadata struct {
-	Signature int
-	Index     int
-	Count     int
-	Reserved  int
-	Guid      [16]byte
-}
-
-const (
-	NnfStorageSignature = 0x52424254 // 'RBBT'
-)
 
 // NewAllocationPolicy - Allocates a new Allocation Policy with the desired parameters.
 // The provided config is the defaults as defined by the NNF Config (see config.yaml);
@@ -166,7 +152,7 @@ func (p *SpareAllocationPolicy) CheckCapacity() error {
 	return nil
 }
 
-func (p *SpareAllocationPolicy) Allocate(guid uuid.UUID) ([]ProvidingVolume, error) {
+func (p *SpareAllocationPolicy) Allocate(pid uuid.UUID) ([]ProvidingVolume, error) {
 
 	perStorageCapacityBytes := p.capacityBytes / uint64(len(p.storage))
 	remainingCapacityBytes := p.capacityBytes
@@ -183,34 +169,30 @@ func (p *SpareAllocationPolicy) Allocate(guid uuid.UUID) ([]ProvidingVolume, err
 			capacityBytes = remainingCapacityBytes
 		}
 
-		metadata, err := createMetadata(idx, len(p.storage), guid)
-		if err != nil {
-			panic("Error Not Handled")
-		}
-
-		v, err := nvme.CreateVolume(storage, capacityBytes, metadata)
+		volume, err := createVolume(storage, capacityBytes, pid, idx, len(p.storage))
 
 		if err != nil {
 			//TODO: Rollyback i.e. defer policy.Deallocte()
 			panic("Not Yet Implemented")
 		}
 
-		remainingCapacityBytes = remainingCapacityBytes - v.GetCapaityBytes()
-		volumes = append(volumes, ProvidingVolume{volume: v})
+		remainingCapacityBytes = remainingCapacityBytes - volume.GetCapaityBytes()
+		volumes = append(volumes, ProvidingVolume{volume: volume})
 	}
 
 	return volumes, nil
 }
 
-func createMetadata(index, count int, guid uuid.UUID) ([]byte, error) {
-
-	metadata := AllocationMetadata{
-		Signature: NnfStorageSignature,
-		Index:     index,
-		Count:     count,
-		Reserved:  0,
-		Guid:      guid,
+func createVolume(storage *nvme.Storage, capacityBytes uint64, pid uuid.UUID, idx, count int) (*nvme.Volume, error) {
+	volume, err := nvme.CreateVolume(storage, capacityBytes, make([]byte, 0))
+	if err != nil {
+		return volume, err
 	}
 
-	return json.Marshal(metadata)
+	metadata, err := common.EncodeNamespaceMetadata(pid, uint16(idx), uint16(count))
+	if err != nil {
+		return volume, err
+	}
+
+	return volume, volume.SetFeature(metadata)
 }

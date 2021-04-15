@@ -74,7 +74,7 @@ func (d *cliDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error
 // IdentifyNamespace -
 func (d *cliDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
 	opts := ""
-	if namespaceId != nvme.COMMON_NAMESPACE_IDENTIFIER {
+	if namespaceId != CommonNamespaceIdentifier {
 		opts = "--force"
 	}
 
@@ -173,6 +173,14 @@ func (d *cliDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, contro
 
 func (*cliDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
 	return nil
+}
+
+func (*cliDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error {
+	return nil
+}
+
+func (*cliDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error) {
+	return nil, nil
 }
 
 func (*cliDevice) command(cmd string) (string, error) {

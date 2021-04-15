@@ -2,18 +2,22 @@ package nnf
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
 
 	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
 	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
+	server "stash.us.cray.com/rabsw/nnf-ec/internal/manager-server"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"stash.us.cray.com/rabsw/ec"
+	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
@@ -38,7 +42,7 @@ type StoragePool struct {
 	name        string
 	description string
 
-	guid   uuid.UUID
+	uid    uuid.UUID
 	policy AllocationPolicy
 
 	allocatedVolume  AllocatedVolume
@@ -75,20 +79,32 @@ type Endpoint struct {
 type StorageGroup struct {
 	id string
 
-	volume    *AllocatedVolume
-	endpoints []*Endpoint
+	volume           *AllocatedVolume
+	storageEndpoints []StorageGroupEndpoint
 
 	storagePool    *StoragePool
 	storageService *StorageService
+}
+
+type StorageGroupEndpoint struct {
+	// Endpoint represents the server for this storage group; this is analgous to
+	// the Endpoints represented in the Fabric Manager of Initiator type.
+	endpoint *Endpoint
+
+	// Server represents a connection to the physical server endpoint that manages the
+	// storage devices. This can be locally managed on the NNF contorller itself, or
+	// remotely managed through some magical being not yet determined.
+	serverStorage *server.ServerStoragePool
 }
 
 type FileSystem struct {
 	id          string
 	accessModes []string
 
-	storagePool *StoragePool
-	shares      []FileShare
+	fsApi  server.FileSystemApi
+	shares []FileShare
 
+	storagePool    *StoragePool
 	storageService *StorageService
 }
 
@@ -96,7 +112,7 @@ type FileShare struct {
 	id        string
 	mountRoot string
 
-	endpoint   *Endpoint
+	sgEndpoint *StorageGroupEndpoint
 	fileSystem *FileSystem
 }
 
@@ -206,7 +222,7 @@ func (s *StorageService) findFileSystem(fileSystemId string) *FileSystem {
 	return nil
 }
 
-func (s *StorageService) createStoragePool(guid uuid.UUID, name string, description string, policy AllocationPolicy, providingVolumes []ProvidingVolume) *StoragePool {
+func (s *StorageService) createStoragePool(uid uuid.UUID, name string, description string, policy AllocationPolicy, providingVolumes []ProvidingVolume) *StoragePool {
 
 	// Find a free Storage Pool Id
 	var poolId = -1
@@ -229,7 +245,7 @@ func (s *StorageService) createStoragePool(guid uuid.UUID, name string, descript
 		id:               strconv.Itoa(poolId),
 		name:             name,
 		description:      description,
-		guid:             guid,
+		uid:              uid,
 		policy:           policy,
 		providingVolumes: providingVolumes,
 		storageService:   s,
@@ -261,33 +277,52 @@ func (s *StorageService) createStorageGroup(volume *AllocatedVolume, endpoints [
 	}
 
 	groupId = groupId + 1
-	storagePool := volume.storagePool
+
+	isNnf := func(ep *Endpoint) bool {
+		model := sf.EndpointV150Endpoint{}
+		fabric.FabricIdEndpointsEndpointIdGet(ep.fabricId, ep.id, &model)
+		if model.ConnectedEntities[0].EntityType == sf.PROCESSOR_EV150ET {
+			return true
+		}
+
+		return false
+	}
+
+	storageEndpoints := make([]StorageGroupEndpoint, len(endpoints))
+	for idx, ep := range endpoints {
+		ctrl := server.NewServerController(isNnf(ep))
+
+		storageEndpoints[idx] = StorageGroupEndpoint{
+			endpoint:      ep,
+			serverStorage: ctrl.NewServerStoragePool(volume.storagePool.uid),
+		}
+	}
 
 	return &StorageGroup{
-		id:             strconv.Itoa(groupId),
-		volume:         volume,
-		endpoints:      endpoints,
-		storagePool:    storagePool,
-		storageService: s,
+		id:               strconv.Itoa(groupId),
+		volume:           volume,
+		storageEndpoints: storageEndpoints,
+		storagePool:      volume.storagePool,
+		storageService:   s,
 	}
 }
 
 func (s *StorageService) allocateStoragePoolGuid() uuid.UUID {
 	for {
-	GuidRetry:
-		guid := uuid.New()
+	Retry:
+		uid := uuid.New()
 
 		for _, p := range s.pools {
-			if p.guid == guid {
-				goto GuidRetry
+			if p.uid == uid {
+				goto Retry
 			}
 		}
 
-		return guid
+		return uid
 	}
 }
 
-func (s *StorageService) createFileSystem(sp *StoragePool) *FileSystem {
+func (s *StorageService) createFileSystem(sp *StoragePool, fsApi server.FileSystemApi) *FileSystem {
 
 	// Find a free File System Id
 	var fileSystemId = -1
@@ -303,6 +338,7 @@ func (s *StorageService) createFileSystem(sp *StoragePool) *FileSystem {
 
 	return &FileSystem{
 		id:             strconv.Itoa(fileSystemId),
+		fsApi:          fsApi,
 		storagePool:    sp,
 		storageService: s,
 	}
@@ -337,12 +373,39 @@ func (p *StoragePool) capacitySourcesGet() []sf.CapacityCapacitySource {
 	}
 }
 
+func (p *StoragePool) findStorageGroupEndpoint(endpoint *Endpoint) *StorageGroupEndpoint {
+	for _, sg := range p.storageGroups {
+		for idx, sge := range sg.storageEndpoints {
+			if sge.endpoint == endpoint {
+				return &sg.storageEndpoints[idx]
+			}
+		}
+	}
+
+	return nil
+}
+
 func (ep *Endpoint) fmt(format string, a ...interface{}) string {
 	return ep.storageService.fmt("/Endpoints/%s", ep.id) + fmt.Sprintf(format, a...)
 }
 
 func (sg *StorageGroup) fmt(format string, a ...interface{}) string {
 	return sg.storageService.fmt("/StorageGroups/%s", sg.id) + fmt.Sprintf(format, a...)
+}
+
+func (sg *StorageGroup) status() sf.ResourceStatus {
+	state := sf.UNAVAILABLE_OFFLINE_RST
+	for _, sge := range sg.storageEndpoints {
+		state = getResourceStateFromServerStoragePoolStatus(sge.serverStorage.GetStatus())
+		if state != sf.ENABLED_RST {
+			break
+		}
+	}
+
+	return sf.ResourceStatus{
+		Health: sf.OK_RH,
+		State:  state,
+	}
 }
 
 func (fs *FileSystem) fmt(format string, a ...interface{}) string {
@@ -359,7 +422,7 @@ func (fs *FileSystem) findFileShare(fileShareId string) *FileShare {
 	return nil
 }
 
-func (fs *FileSystem) createFileShare(endpoint *Endpoint, mountRoot string) *FileShare {
+func (fs *FileSystem) createFileShare(sgEndpoint *StorageGroupEndpoint, mountRoot string) *FileShare {
 	var fileShareId = -1
 	for _, fileShare := range fs.shares {
 		id, _ := strconv.Atoi(fileShare.id)
@@ -373,9 +436,21 @@ func (fs *FileSystem) createFileShare(endpoint *Endpoint, mountRoot string) *Fil
 
 	return &FileShare{
 		id:         strconv.Itoa(fileShareId),
-		endpoint:   endpoint,
+		sgEndpoint: sgEndpoint,
 		mountRoot:  mountRoot,
 		fileSystem: fs,
+	}
+}
+
+func (sh *FileShare) initialize(mountpoint string) error {
+	return sh.sgEndpoint.serverStorage.CreateFileSystem(sh.fileSystem.fsApi, mountpoint)
+}
+
+func (sh *FileShare) getStatus() sf.ResourceStatus {
+
+	return sf.ResourceStatus{
+		Health: sf.OK_RH,
+		State:  getResourceStateFromServerStoragePoolStatus(sh.sgEndpoint.serverStorage.GetStatus()),
 	}
 }
 
@@ -389,7 +464,7 @@ func Initialize(ctrl NnfControllerInterface) error {
 
 	conf, err := loadConfig()
 	if err != nil {
-		log.WithError(err).Errorf("Failed to load %s configuration")
+		log.WithError(err).Errorf("Failed to load %s configuration", s.id)
 		return err
 	}
 
@@ -405,8 +480,9 @@ func Initialize(ctrl NnfControllerInterface) error {
 	s.endpoints = make([]Endpoint, conf.ServerConfig.Count)
 	for endpointIdx := range s.endpoints {
 		s.endpoints[endpointIdx] = Endpoint{
-			id:    strconv.Itoa(endpointIdx),
-			state: sf.UNAVAILABLE_OFFLINE_RST,
+			id:             strconv.Itoa(endpointIdx),
+			state:          sf.UNAVAILABLE_OFFLINE_RST,
+			storageService: s,
 		}
 	}
 
@@ -416,6 +492,13 @@ func Initialize(ctrl NnfControllerInterface) error {
 		HandlerFunc: PortEventHandler,
 		Data:        s,
 	})
+
+	// Initialize the Server Manager - considered internal to
+	// the NNF Manager
+	if err := server.Initialize(); err != nil {
+		log.WithError(err).Errorf("Failed to Initialize Server Manager")
+		return err
+	}
 
 	return nil
 }
@@ -440,11 +523,12 @@ func PortEventHandler(event PortEvent, data interface{}) {
 	}
 
 	endpoint := Endpoint{
-		id:           ep.Id(),
-		name:         ep.Name(),
-		fabricId:     event.FabricId,
-		controllerId: ep.ControllerId(),
-		state:        sf.ENABLED_RST, // TODO: Port Down Ev
+		id:             ep.Id(),
+		name:           ep.Name(),
+		fabricId:       event.FabricId,
+		controllerId:   ep.ControllerId(),
+		state:          sf.ENABLED_RST, // TODO: Port Down Ev
+		storageService: s,
 	}
 
 	s.endpoints[endpointIdx] = endpoint
@@ -541,20 +625,7 @@ func StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.Storage
 	p := s.createStoragePool(guid, model.Name, model.Description, policy, volumes)
 	s.pools = append(s.pools, *p)
 
-	model.Id = p.id
-	model.OdataId = p.fmt("")
-	model.AllocatedVolumes.OdataId = p.fmt("/AllocatedVolumes")
-
-	model.CapacityBytes = p.allocatedVolume.capacityBytes
-	model.CapacitySources = p.capacitySourcesGet()
-	model.CapacitySourcesodataCount = int64(len(model.CapacitySources))
-
-	model.Identifier = sf.ResourceIdentifier{
-		DurableName:       p.guid.String(),
-		DurableNameFormat: sf.UUID_RV1100DNF,
-	}
-
-	return nil
+	return StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
 }
 
 // StorageServiceIdStoragePoolIdGet -
@@ -565,6 +636,7 @@ func StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId string, mo
 	}
 
 	model.Id = p.id
+	model.OdataId = p.fmt("")
 	model.AllocatedVolumes = sf.OdataV4IdRef{OdataId: p.fmt("/AllocatedVolumes")}
 
 	model.BlockSizeBytes = 4096 // TODO
@@ -580,10 +652,19 @@ func StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId string, mo
 	model.CapacitySources = p.capacitySourcesGet()
 	model.CapacitySourcesodataCount = int64(len(model.CapacitySources))
 
+	model.Identifier = sf.ResourceIdentifier{
+		DurableName:       p.uid.String(),
+		DurableNameFormat: sf.UUID_RV1100DNF,
+	}
+
 	model.Links.StorageGroupsodataCount = int64(len(p.storageGroups))
 	model.Links.StorageGroups = make([]sf.OdataV4IdRef, model.Links.StorageGroupsodataCount)
 	for idx, sg := range p.storageGroups {
 		model.Links.StorageGroups[idx] = sf.OdataV4IdRef{OdataId: sg.fmt("")}
+	}
+
+	if p.fileSystem != nil {
+		model.Links.FileSystem = sf.OdataV4IdRef{OdataId: p.fileSystem.fmt("")}
 	}
 
 	return nil
@@ -704,10 +785,12 @@ func StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storage
 
 	model.Identifiers = []sf.ResourceIdentifier{
 		{
-			DurableName:       p.guid.String(),
+			DurableName:       p.uid.String(),
 			DurableNameFormat: sf.NGUID_RV1100DNF,
 		},
 	}
+
+	model.VolumeType = sf.RAW_DEVICE_VVT
 
 	return nil
 }
@@ -739,20 +822,25 @@ func StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.Storage
 		return ec.ErrBadRequest
 	}
 
-	volumeOdataId := model.MappedVolumes[0].Volume.OdataId
-	fields := strings.Split(volumeOdataId, "/")
-	if len(fields) != len(strings.Split(s.fmt("/StoragePools/0/AllocatedVolumes/%s", DefaultAllocatedVolumeId), "/")) {
+	// This is the expected format of the Volume Odata Id...
+	// "/redfish/v1/StorageServices/NNF/StoragePools/0/AllocatedVolumes/0"
+	fmt := s.fmt("/StoragePools/%s/AllocatedVolumes/%s", "(?P<storagePoolId>\\w+)", "(?P<volumeId>\\w+)")
+
+	re := regexp.MustCompile(fmt)
+	matches := re.FindStringSubmatch(model.MappedVolumes[0].Volume.OdataId)
+	if matches == nil {
 		return ec.ErrBadRequest
 	}
 
-	volumeId := fields[len(fields)-1]
-	if volumeId != DefaultAllocatedVolumeId {
-		return ec.ErrBadRequest
-	}
+	storagePoolId := matches[re.SubexpIndex("storagePoolId")]
+	volumeId := matches[re.SubexpIndex("volumeId")]
 
-	storagePoolId := fields[len(fields)-3]
-	sp := s.findStoragePool(storagePoolId)
+	_, sp := findStoragePool(storageServiceId, storagePoolId)
 	if sp == nil {
+		return ec.ErrBadRequest
+	}
+
+	if volumeId != DefaultAllocatedVolumeId {
 		return ec.ErrBadRequest
 	}
 
@@ -776,7 +864,7 @@ func StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.Storage
 		}
 
 		if e.state != sf.ENABLED_RST {
-			return ec.ErrBadRequest
+			return ec.ErrInternalServerError
 		}
 
 		endpoints = append(endpoints, e)
@@ -791,9 +879,7 @@ func StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.Storage
 	model.Id = sg.id
 	model.OdataId = sg.fmt("")
 
-	model.Links.StoragePool = sf.OdataV4IdRef{OdataId: sp.fmt("")}
-
-	return nil
+	return StorageServiceIdStorageGroupIdGet(storageServiceId, sg.id, model)
 }
 
 // StorageServiceIdStorageGroupIdGet -
@@ -803,6 +889,13 @@ func StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, 
 		return ec.ErrNotFound
 	}
 
+	// TODO: Mapped Volumes should point to the corresponding Storage Volume
+	//       As they are present on the Server Storage Controller.
+
+	// TODO:
+	// model.Volumes - Should point to the volumes which are present on the Storage Endpoint,
+	//                 once exposed. This means iterating on the Storage Endpoints and asking
+	//                 every Storage Controller for status on the volumes in the Storage Pool.
 	model.MappedVolumes = []sf.StorageGroupMappedVolume{
 		{
 			AccessCapability: sf.READ_WRITE_SGAC,
@@ -810,13 +903,18 @@ func StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, 
 		},
 	}
 
-	model.ServerEndpointsodataCount = int64(len(sg.endpoints))
+	// This is a little odd since we only ever support one Server per
+	// Storage Group. Maybe refactor the rfsf implementation for this
+	// to be singular.
+	model.ServerEndpointsodataCount = int64(len(sg.storageEndpoints))
 	model.ServerEndpoints = make([]sf.OdataV4IdRef, model.ServerEndpointsodataCount)
-	for endpointIdx, endpoint := range sg.endpoints {
-		model.ServerEndpoints[endpointIdx] = sf.OdataV4IdRef{OdataId: s.fmt("/ServerEndpoints/%s", endpoint.id)}
+	for seIdx, se := range sg.storageEndpoints {
+		model.ServerEndpoints[seIdx] = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", se.endpoint.id)}
 	}
 
 	model.Links.StoragePool = sf.OdataV4IdRef{OdataId: sg.storagePool.fmt("")}
+
+	model.Status = sg.status()
 
 	return nil
 }
@@ -842,24 +940,20 @@ func StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGr
 		return ec.ErrNotFound
 	}
 
-	controllerIds := make([]uint16, len(sg.endpoints))
-	for endpointIdx, endpoint := range sg.endpoints {
-		controllerIds[endpointIdx] = endpoint.controllerId
+	sp := sg.volume.storagePool
+
+	controllerIds := make([]uint16, len(sg.storageEndpoints))
+	for seIdx, se := range sg.storageEndpoints {
+		controllerIds[seIdx] = se.endpoint.controllerId
+
 	}
 
-	sp := sg.volume.storagePool
 	for _, volume := range sp.providingVolumes {
 		if err := nvme.AttachControllers(volume.volume, controllerIds); err != nil {
 			// TODO: Rollback
 			return err
 		}
 	}
-
-	// TODO: Change the sg resource status?
-	// TODO: Storage Groups & State should be persisted
-
-	// TODO: This storage group should then show the Volumes as they are visible from the server
-	// Meaning the /dev/nvme[0-9]n1 values. We need to communicate with the receiving server for this to happen.
 
 	return nil
 }
@@ -944,14 +1038,27 @@ func StorageServiceIdFileSystemsPost(storageServiceId string, model *sf.FileSyst
 		return ec.ErrNotAcceptable
 	}
 
-	fs := s.createFileSystem(sp)
+	// TODO: Oem should define the file system type (by name)
+	type Oem struct {
+		Type string
+	}
+
+	oem := Oem{}
+
+	if err := openapi.UnmarshalOem(model.Oem, &oem); err != nil {
+		return ec.ErrBadRequest
+	}
+
+	fsApi := server.FileSystemController.NewFileSystem(oem.Type)
+	if fsApi == nil {
+		return ec.ErrNotAcceptable
+	}
+
+	fs := s.createFileSystem(sp, fsApi)
 	sp.fileSystem = fs
 	s.fileSystems = append(s.fileSystems, *fs)
 
-	model.Id = fs.id
-	model.OdataId = fs.fmt("")
-
-	return nil
+	return StorageServiceIdFileSystemIdGet(storageServiceId, fs.id, model)
 }
 
 // StorageServiceIdFileSystemIdGet -
@@ -961,9 +1068,12 @@ func StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId string, mode
 		return ec.ErrNotFound
 	}
 
+	model.Id = fs.id
+	model.OdataId = fs.fmt("")
+
 	model.CapacityBytes = fs.storagePool.allocatedVolume.capacityBytes
 	model.StoragePool = sf.OdataV4IdRef{OdataId: s.fmt("/StoragePools/%s", fs.storagePool.id)}
-	model.ExportedShares = sf.OdataV4IdRef{OdataId: fs.fmt("/ExportedShares")}
+	model.ExportedShares = sf.OdataV4IdRef{OdataId: fs.fmt("/ExportedFileShares")}
 
 	return nil
 }
@@ -1001,7 +1111,7 @@ func StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemI
 	model.MembersodataCount = int64(len(fs.shares))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
 	for idx, sh := range fs.shares {
-		model.Members[idx] = sf.OdataV4IdRef{OdataId: fs.fmt("/ExportedShares/%s", sh.id)}
+		model.Members[idx] = sf.OdataV4IdRef{OdataId: fs.fmt("/ExportedFileShares/%s", sh.id)}
 	}
 	return nil
 }
@@ -1024,15 +1134,36 @@ func StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystem
 		return ec.ErrNotAcceptable
 	}
 
-	sh := fs.createFileShare(ep, model.FileSharePath)
+	if len(model.FileSharePath) == 0 {
+		return ec.ErrNotAcceptable
+	}
+
+	// Find the Storage Group Endpoint - There should be a Storage Group
+	// Endpoint that has an association to the fs.storagePool and endpoint.
+	// This represents the physical devices on the server that backs the
+	// File System and supports the Exported Share.
+	sge := fs.storagePool.findStorageGroupEndpoint(ep)
+	if sge == nil {
+		return ec.ErrNotAcceptable
+	}
+
+	sh := fs.createFileShare(sge, model.FileSharePath)
 	fs.shares = append(fs.shares, *sh)
 
-	model.Id = sh.id
-	model.OdataId = fs.fmt("/ExportedShares/%s", sh.id)
-	model.Links.FileSystem = sf.OdataV4IdRef{OdataId: fs.fmt("")}
-	model.Links.Endpoint = sf.OdataV4IdRef{OdataId: ep.fmt("")}
+	// TODO: Until the share is ready, the file system will no exist. We should add a timeout
+	// to this request - wait for the share to come ready and then create the file system.
+	for sh.getStatus().State == sf.ENABLED_RST {
+		time.Sleep(time.Second)
+	}
 
-	return nil
+	if err := sh.initialize(model.FileSharePath); err != nil {
+		log.WithError(err).Errorf("Failed to initialize file share for path %s", model.FileSharePath)
+	}
+
+	model.Id = sh.id
+	model.OdataId = fs.fmt("/ExportedFileShares/%s", sh.id)
+
+	return StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, sh.id, model)
 }
 
 // StorageServiceIdFileSystemIdExportedShareIdGet -
@@ -1045,9 +1176,10 @@ func StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystem
 	model.FileSharePath = sh.mountRoot
 	// model.ServerEndpoint = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", sh.endpoint.id)} // TODO: Remove this from model
 	model.Links.FileSystem = sf.OdataV4IdRef{OdataId: fs.fmt("")}
-	model.Links.Endpoint = sf.OdataV4IdRef{OdataId: sh.endpoint.fmt("")}
+	model.Links.Endpoint = sf.OdataV4IdRef{OdataId: sh.sgEndpoint.endpoint.fmt("")}
 
 	//model.Status // TODO
+	model.Status = sh.getStatus() // TODO
 
 	return nil
 }
@@ -1068,4 +1200,14 @@ func StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSys
 	// TODO: Actually need to unmount the share
 
 	return nil
+}
+
+func getResourceStateFromServerStoragePoolStatus(status server.ServerStoragePoolStatus) sf.ResourceState {
+	switch status {
+	case server.ServerStoragePoolStarting:
+		return sf.STARTING_RST
+	case server.ServerStoragePoolReady:
+		return sf.ENABLED_RST
+	}
+	return sf.DISABLED_RST
 }

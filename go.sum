@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
@@ -14,6 +15,7 @@ github.com/HewlettPackard/structex v1.0.2/go.mod h1:3frC4RY/cPsP/4+N8rkxsNAGlQwH
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
+github.com/alecthomas/kong v0.2.11 h1:RKeJXXWfg9N47RYfMm0+igkxBCTF4bzbneAxaqid0c4=
 github.com/alecthomas/kong v0.2.11/go.mod h1:kQOmtJgV+Lb4aj+I2LEn40cbtawdWJ9Y8QLq+lElKxE=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
@@ -119,6 +121,7 @@ github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGV
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03 h1:pd4YKIqCB0U7O2I4gWHgEUA2mCEOENmco0l/bM957bU=
 github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03/go.mod h1:Z9+Ul5bCbBKnbCvdOWbLqTHhJiYV414CURZJba6L8qA=
@@ -273,8 +276,24 @@ stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210322142454-141c066ca3ff h1:0F
 stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210322142454-141c066ca3ff/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.4 h1:oEeqxoPiM9gAG9K8JQUqKILBYvhgDn2OYKR/shWfF00=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.4/go.mod h1:qi7Hmx/rL2+GaO0Sx3fFsOYqNPKDMUCkckGU1P1rMZ4=
-stash.us.cray.com/rabsw/switchtec-fabric v1.0.8 h1:48aDMNAJhNE4HB3R1I65ABMgEbQ/58sL/J3pjezQQv0=
-stash.us.cray.com/rabsw/switchtec-fabric v1.0.8/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.9 h1:XYK4Du6N6xXDrH2tqIXptwJ4msSTc5DBHED9I2cJ5AU=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.9/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.10 h1:lmZtB7LFj6nVoZCF2SK9L3WCHoFuN7e3Bb59qzpJrSI=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.10/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414161154-1960c1d70986 h1:LH0/Z4xs+fffYBz2gRt66k9Zg/fSVtqr39806YLDAAA=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414161154-1960c1d70986/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414161717-9566ffa61e87 h1:eQqqHR2IDjkZkugLbP98ZrdI/SWVpHXZZpHuVI1SxHc=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414161717-9566ffa61e87/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414162630-1f564e9b9af9 h1:gCowD460ENpCBYdV3a6ZnDjN5IQgd//reymkXSmiReg=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414162630-1f564e9b9af9/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414163011-ddd11d999b02 h1:bAWem5Zzu6y6BAPJr+BFsusIM+o46afCkWidXIFihf4=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414163011-ddd11d999b02/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414164444-868cf53f3c2a h1:HtA9QESuVsV1CFgv+EnBRYakcrT9ZvTP3xWJr9+DAAU=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414164444-868cf53f3c2a/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414165334-19b57b0d58d1 h1:inoFJ7iySFP5RfOFKssNAsE/hVnHODvX7NV2S1ssNkg=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11-0.20210414165334-19b57b0d58d1/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11 h1:yaItioJieToYPkIH8ITGNqj7q7lOk50D3mDlr3AoWhg=
+stash.us.cray.com/rabsw/switchtec-fabric v1.0.11/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
 stash.us.cray.com/sp/dp-api v0.0.3/go.mod h1:FUzEPxIOBeBoO84LSpSpFe+V9/ZUmKcD/lCp2NUqPVE=
 stash.us.cray.com/sp/dp-api v0.0.6/go.mod h1:H3kELSpnXERW5GnUCaTAwa8LsrUavzIlOpMCsPQA5Eg=
 stash.us.cray.com/sp/dp-api v0.0.7/go.mod h1:H3kELSpnXERW5GnUCaTAwa8LsrUavzIlOpMCsPQA5Eg=

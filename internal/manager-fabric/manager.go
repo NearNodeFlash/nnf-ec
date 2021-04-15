@@ -1141,6 +1141,12 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 		model.Links.Ports[idx].OdataId = fmt.Sprintf("/redfish/v1/Fabrics/%s/Switches/%s/Ports/%s", fabricId, port.swtch.id, port.id)
 	}
 
+	// TODO: Correctly report endpoint state
+	model.Status = sf.ResourceStatus{
+		State: sf.ENABLED_RST,
+		Health: sf.OK_RH,
+	}
+
 	type Oem struct {
 		Pdfid         int
 		Bound         bool

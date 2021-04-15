@@ -54,6 +54,7 @@ type mockNamespace struct {
 	capacity            uint64
 	guid                [16]byte
 	attachedControllers [mockSecondaryControllerCount]*mockController
+	metadata            []byte
 }
 
 func newMockDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
@@ -331,6 +332,36 @@ func (d *mockDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, contr
 			}
 
 			break
+		}
+	}
+
+	return nil
+}
+
+func (d *mockDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error {
+	ns := d.findNamespace(namespaceId)
+	if ns == nil {
+		return fmt.Errorf("Namespace %d not found", namespaceId)
+	}
+	ns.metadata = data
+	return nil
+}
+
+func (d *mockDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error) {
+	ns := d.findNamespace(namespaceId)
+	if ns == nil {
+		return nil, fmt.Errorf("Namespace %d not found", namespaceId)
+	}
+
+	return ns.metadata, nil
+}
+
+func (d *mockDevice) findNamespace(namespaceId nvme.NamespaceIdentifier) *mockNamespace {
+	c := d.controllers[0]
+
+	for idx, ns := range c.namespaces {
+		if ns.id == namespaceId {
+			return &c.namespaces[idx]
 		}
 	}
 

@@ -33,6 +33,9 @@ type NvmeDeviceApi interface {
 
 	AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error
 	DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error
+
+	SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error
+	GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error)
 }
 
 // SecondaryControllersInitFunc -
