@@ -221,8 +221,11 @@ func Routes() []TestRoute {
 func TestFabricManagerEndpoints(t *testing.T) {
 
 	t.Skip("skipping test for now")
+
 	opts := ec.Options{Http: true, Port: 8080, Log: true}
-	go MockController.Run(&opts)
+	MockController.Init(&opts)
+
+	go MockController.Run()
 
 	// Allow the MockController to get going before sending it anything.
 	time.Sleep(time.Second)
@@ -437,7 +440,9 @@ func RouteCollections() []TestRoute {
 func TestWalkTheEndpoints(t *testing.T) {
 
 	opts := ec.Options{Http: true, Port: 8080, Log: true}
-	go MockController.Run(&opts)
+	MockController.Init(&opts)
+
+	go MockController.Run()
 
 	// Allow the MockController to get going before sending it anything.
 	time.Sleep(time.Second)

@@ -21,5 +21,6 @@ func main() {
 
 	c := nnf.NewController(nnfOpts)
 
-	c.Run(ecOpts)
+	c.Init(ecOpts)
+	c.Run()
 }
