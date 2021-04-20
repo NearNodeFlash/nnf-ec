@@ -27,15 +27,18 @@ func (MockNvmeDeviceController) NewNvmeDevice(fabricId, switchId, portId string)
 const (
 	invalidNamespaceId = nvme.NamespaceIdentifier(0)
 
-	mockSecondaryControllerCount  = 17
-	mockMaximumNamespaceCount     = 32
-	mockControllerCapacityInBytes = 2 << 40 // 2TiB
+	mockSecondaryControllerCount = 17
+	mockMaximumNamespaceCount    = 32
+	mockCapacityInBytes          = 2 << 40 // 2TiB
 )
 
 // Mock structurs defining the componenets of a NVMe Device
 type mockDevice struct {
 	virtualizationManagement bool
 	controllers              [1 + mockSecondaryControllerCount]mockController
+	namespaces               [mockMaximumNamespaceCount]mockNamespace
+	capacity                 uint64
+	allocatedCapacity        uint64
 }
 
 type mockController struct {
@@ -45,11 +48,11 @@ type mockController struct {
 	allocatedCapacity uint64
 	vqresources       uint32
 	viresources       uint32
-	namespaces        [mockMaximumNamespaceCount]mockNamespace
 }
 
 type mockNamespace struct {
 	id                  nvme.NamespaceIdentifier
+	idx                 int
 	size                uint64
 	capacity            uint64
 	guid                [16]byte
@@ -60,16 +63,22 @@ type mockNamespace struct {
 func newMockDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 	mock := mockDevice{
 		virtualizationManagement: true,
+		capacity:                 mockCapacityInBytes,
+		allocatedCapacity:        0,
 	}
 
 	for idx := range mock.controllers {
 		mock.controllers[idx] = mockController{
 			id:          uint16(idx),
-			capacity:    mockControllerCapacityInBytes,
 			online:      false,
 			vqresources: 0,
 			viresources: 0,
 		}
+	}
+
+	mock.namespaces[0].id = CommonNamespaceIdentifier
+	for idx := range mock.namespaces {
+		mock.namespaces[idx].idx = idx
 	}
 
 	return &mock, nil
@@ -79,8 +88,8 @@ func newMockDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 func (d *mockDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error) {
 	ctrl := new(nvme.IdCtrl)
 
-	binary.LittleEndian.PutUint64(ctrl.TotalNVMCapacity[:], mockControllerCapacityInBytes)
-	binary.LittleEndian.PutUint64(ctrl.UnallocatedNVMCapacity[:], mockControllerCapacityInBytes)
+	binary.LittleEndian.PutUint64(ctrl.TotalNVMCapacity[:], d.capacity)
+	binary.LittleEndian.PutUint64(ctrl.UnallocatedNVMCapacity[:], d.capacity-d.allocatedCapacity)
 
 	ctrl.OptionalAdminCommandSupport = nvme.VirtualiztionManagementSupport
 
@@ -89,14 +98,24 @@ func (d *mockDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, erro
 
 // IdentifyNamespace -
 func (d *mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
-	ns := new(nvme.IdNs)
+	ns := d.findNamespace(namespaceId)
+	if ns == nil {
+		return nil, fmt.Errorf("Namespace %d not found", namespaceId)
+	}
 
-	ns.NumberOfLBAFormats = 1
-	ns.LBAFormats[0].LBADataSize = uint8(math.Log2(4096))
-	ns.LBAFormats[0].MetadataSize = 0
-	ns.LBAFormats[0].RelativePerformance = 0
+	idns := new(nvme.IdNs)
 
-	return ns, nil
+	idns.Size = ns.capacity / 4096
+	idns.Capacity = ns.capacity / 4096
+	idns.MultiPathIOSharingCapabilities.Sharing = 1
+	idns.FormattedLBASize = nvme.FormattedLBASize{Format: 0}
+
+	idns.NumberOfLBAFormats = 1
+	idns.LBAFormats[0].LBADataSize = uint8(math.Log2(4096))
+	idns.LBAFormats[0].MetadataSize = 0
+	idns.LBAFormats[0].RelativePerformance = 0
+
+	return idns, nil
 }
 
 // ListSecondary -
@@ -143,7 +162,7 @@ func (d *mockDevice) OnlineController(controllerId uint16) error {
 
 // ListNamespaces -
 func (d *mockDevice) ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdentifier, error) {
-	nss := d.controllers[controllerId].namespaces
+	nss := d.namespaces
 	var count = 0
 	for _, ns := range nss {
 		if ns.id != 0 {
@@ -161,146 +180,80 @@ func (d *mockDevice) ListNamespaces(controllerId uint16) ([]nvme.NamespaceIdenti
 	return list, nil
 }
 
-// GetNamespace -
-func (d *mockDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error) {
-	if namespaceId == invalidNamespaceId {
-		return nil, fmt.Errorf("Namespace not found")
-	}
-
-	for _, ns := range d.controllers[0].namespaces {
-		if ns.id == namespaceId {
-			nsid := &nvme.IdNs{
-				Size:                     uint64(ns.size),
-				Capacity:                 uint64(ns.capacity),
-				GloballyUniqueIdentifier: ns.guid,
-				FormattedLBASize: nvme.FormattedLBASize{
-					Format: 0,
-				},
-				MultiPathIOSharingCapabilities: nvme.NamespaceCapabilities{
-					Sharing: 1,
-				},
-			}
-
-			nsid.NumberOfLBAFormats = 1
-			nsid.LBAFormats[0].LBADataSize = uint8(math.Log2(4096))
-			nsid.LBAFormats[0].MetadataSize = 0
-
-			return nsid, nil
-		}
-	}
-
-	return nil, fmt.Errorf("Namespace not found")
-}
-
 // CreateNamespace -
 func (d *mockDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error) {
-	ctrl := &d.controllers[0]
 
-	if capacityBytes > (ctrl.capacity - ctrl.allocatedCapacity) {
+	if capacityBytes > (d.capacity - d.allocatedCapacity) {
 		return 0, fmt.Errorf("Insufficient Capacity")
 	}
 
-	var id = invalidNamespaceId
-	for idx, ns := range ctrl.namespaces {
-		if ns.id == invalidNamespaceId {
-			id = nvme.NamespaceIdentifier(idx + 1)
-			break
-		}
+	ns := d.findNamespace(invalidNamespaceId)
+	if ns == nil {
+		return 0, fmt.Errorf("Could not find free namespace")
 	}
 
-	if id == invalidNamespaceId {
-		return id, fmt.Errorf("Could not find free namespace")
+	ns.id = nvme.NamespaceIdentifier(ns.idx)
+	ns.capacity = capacityBytes / 4096
+	ns.guid = [16]byte{
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		byte(ns.idx >> 12),
+		byte(ns.idx >> 8),
+		byte(ns.idx >> 4),
+		byte(ns.idx >> 0),
 	}
 
-	mockNs := mockNamespace{
-		id:       id,
-		size:     capacityBytes, // TODO: This should be converted to FLBA Size
-		capacity: capacityBytes, // TODO: This should be converted to FLBA Size
-		guid: [16]byte{
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			byte(id >> 12),
-			byte(id >> 8),
-			byte(id >> 4),
-			byte(id >> 0),
-		},
+	for idx := range ns.attachedControllers {
+		ns.attachedControllers[idx] = nil
 	}
 
-	for idx := range mockNs.attachedControllers {
-		mockNs.attachedControllers[idx] = nil
-	}
+	d.allocatedCapacity += capacityBytes
 
-	ctrl.allocatedCapacity += capacityBytes
-
-	for idx, ns := range ctrl.namespaces {
-		if ns.id == invalidNamespaceId {
-			ctrl.namespaces[idx] = mockNs
-			break
-		}
-	}
-
-	return mockNs.id, nil
+	return ns.id, nil
 }
 
 // DeleteNamespace -
 func (d *mockDevice) DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error {
-	if namespaceId == invalidNamespaceId {
-		return fmt.Errorf("Namespace %d Not Found", namespaceId)
+	ns := d.findNamespace(namespaceId)
+	if ns == nil {
+		return fmt.Errorf("Delete Namespace: Namespace %d not found", namespaceId)
 	}
 
-	ctrl := &d.controllers[0]
+	ctrls := make([]uint16, 0)
+	for ctrlIdx, ctrl := range ns.attachedControllers {
+		if ctrl != nil {
+			ctrls = append(ctrls, ctrl.id)
+		}
+		ns.attachedControllers[ctrlIdx] = nil
+	}
 
-	for idx, ns := range ctrl.namespaces {
-		if ns.id == namespaceId {
-
-			controllerIds := make([]uint16, len(ns.attachedControllers))
-			for controllerIdx, controller := range ns.attachedControllers {
-				controllerIds[controllerIdx] = controller.id
-			}
-
-			if err := d.DetachNamespace(namespaceId, controllerIds); err != nil {
-				return err
-			}
-
-			ctrl.allocatedCapacity -= ns.capacity
-
-			ctrl.namespaces[idx].id = 0
-
-			return nil
+	if len(ctrls) != 0 {
+		if err := d.DetachNamespace(namespaceId, ctrls); err != nil {
+			return err
 		}
 	}
 
-	return fmt.Errorf("Namespace %d Not Found", namespaceId)
+	ns.id = invalidNamespaceId
+	return nil
 }
 
 // AttachNamespace -
 func (d *mockDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
-	if namespaceId == invalidNamespaceId {
-		return fmt.Errorf("Namespace %d Not Found", namespaceId)
+	ns := d.findNamespace(namespaceId)
+	if ns == nil {
+		return fmt.Errorf("Attach Namespace: Namespace %d not found", namespaceId)
 	}
 
-	ctrl := &d.controllers[0]
-	for nsIdx, ns := range ctrl.namespaces {
-		if ns.id == namespaceId {
-			for _, controller := range controllers {
-				found := false
-				for ctrlIdx, ctrl := range d.controllers {
-					if ctrl.id == controller {
-						ctrl.namespaces[nsIdx].attachedControllers[controller] =
-							&d.controllers[ctrlIdx]
+	for _, c := range controllers {
 
-						found = true
-					}
-				}
-
-				if !found {
-					return fmt.Errorf("Controller %d Not Found", controller)
-				}
-			}
-
-			break
+		if !(c < uint16(len(d.controllers))) {
+			return fmt.Errorf("Attach Namespace: Controller %d exceeds controller count", c)
+		} else if ns.attachedControllers[c] != nil {
+			return fmt.Errorf("Attach Namespace: Namespace %d already has controller %d attached", namespaceId, c)
 		}
+
+		ns.attachedControllers[c] = &d.controllers[c]
 	}
 
 	return nil
@@ -308,31 +261,20 @@ func (d *mockDevice) AttachNamespace(namespaceId nvme.NamespaceIdentifier, contr
 
 // DetachNamespace -
 func (d *mockDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, controllers []uint16) error {
-	if namespaceId == invalidNamespaceId {
-		return fmt.Errorf("Namespace %d Not Found", namespaceId)
+	ns := d.findNamespace(namespaceId)
+	if ns == nil {
+		return fmt.Errorf("Detach Namespace: Namespace %d not found", namespaceId)
 	}
 
-	ctrl := &d.controllers[0]
-	for nsIdx, ns := range ctrl.namespaces {
-		if ns.id == namespaceId {
-			for _, controller := range controllers {
+	for _, c := range controllers {
 
-				found := false
-				for ctrlIdx, ctrl := range ns.attachedControllers {
-					if ctrl.id == controller {
-						ctrl.namespaces[nsIdx].attachedControllers[ctrlIdx] = nil
-
-						found = true
-					}
-				}
-
-				if !found {
-					return fmt.Errorf("Controller %d Not Found", controller)
-				}
-			}
-
-			break
+		if !(c < uint16(len(d.controllers))) {
+			return fmt.Errorf("Detach Namespace: Controller %d exceeds controller count", c)
+		} else if ns.attachedControllers[c] == nil {
+			return fmt.Errorf("Detach Namespace: Namespace %d already has controller %d detached", namespaceId, c)
 		}
+
+		ns.attachedControllers[c] = nil
 	}
 
 	return nil
@@ -341,7 +283,7 @@ func (d *mockDevice) DetachNamespace(namespaceId nvme.NamespaceIdentifier, contr
 func (d *mockDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error {
 	ns := d.findNamespace(namespaceId)
 	if ns == nil {
-		return fmt.Errorf("Namespace %d not found", namespaceId)
+		return fmt.Errorf("Set Namespace Feature: Namespace %d not found", namespaceId)
 	}
 	ns.metadata = data
 	return nil
@@ -350,18 +292,17 @@ func (d *mockDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, d
 func (d *mockDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error) {
 	ns := d.findNamespace(namespaceId)
 	if ns == nil {
-		return nil, fmt.Errorf("Namespace %d not found", namespaceId)
+		return nil, fmt.Errorf("Get Namespace Feature: Namespace %d not found", namespaceId)
 	}
 
 	return ns.metadata, nil
 }
 
 func (d *mockDevice) findNamespace(namespaceId nvme.NamespaceIdentifier) *mockNamespace {
-	c := d.controllers[0]
 
-	for idx, ns := range c.namespaces {
+	for idx, ns := range d.namespaces {
 		if ns.id == namespaceId {
-			return &c.namespaces[idx]
+			return &d.namespaces[idx]
 		}
 	}
 

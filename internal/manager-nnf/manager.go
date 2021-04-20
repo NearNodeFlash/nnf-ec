@@ -24,7 +24,8 @@ import (
 type StorageService struct {
 	id string
 
-	config *ConfigFile
+	config                   *ConfigFile
+	serverControllerProvider server.ServerControllerProvider
 
 	pools       []StoragePool
 	groups      []StorageGroup
@@ -102,13 +103,13 @@ type FileSystem struct {
 	accessModes []string
 
 	fsApi  server.FileSystemApi
-	shares []FileShare
+	shares []ExportedFileShare
 
 	storagePool    *StoragePool
 	storageService *StorageService
 }
 
-type FileShare struct {
+type ExportedFileShare struct {
 	id        string
 	mountRoot string
 
@@ -169,13 +170,13 @@ func findFileSystem(storageServiceId, fileSystemId string) (*StorageService, *Fi
 	return s, s.findFileSystem(fileSystemId)
 }
 
-func findExportedShare(storageServiceId, fileSystemId, fileShareId string) (*StorageService, *FileSystem, *FileShare) {
+func findExportedFileShare(storageServiceId, fileSystemId, fileShareId string) (*StorageService, *FileSystem, *ExportedFileShare) {
 	s, fs := findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
 		return nil, nil, nil
 	}
 
-	return s, fs, fs.findFileShare(fileShareId)
+	return s, fs, fs.findExportedFileShare(fileShareId)
 }
 
 func (s *StorageService) fmt(format string, a ...interface{}) string {
@@ -290,7 +291,8 @@ func (s *StorageService) createStorageGroup(volume *AllocatedVolume, endpoints [
 
 	storageEndpoints := make([]StorageGroupEndpoint, len(endpoints))
 	for idx, ep := range endpoints {
-		ctrl := server.NewServerController(isNnf(ep))
+		ctrl := s.serverControllerProvider.NewServerController(
+			server.ServerControllerOptions{Local: isNnf(ep)})
 
 		storageEndpoints[idx] = StorageGroupEndpoint{
 			endpoint:      ep,
@@ -307,7 +309,7 @@ func (s *StorageService) createStorageGroup(volume *AllocatedVolume, endpoints [
 	}
 }
 
-func (s *StorageService) allocateStoragePoolGuid() uuid.UUID {
+func (s *StorageService) allocateStoragePoolUid() uuid.UUID {
 	for {
 	Retry:
 		uid := uuid.New()
@@ -412,9 +414,9 @@ func (fs *FileSystem) fmt(format string, a ...interface{}) string {
 	return fs.storageService.fmt("/FileSystems/%s", fs.id) + fmt.Sprintf(format, a...)
 }
 
-func (fs *FileSystem) findFileShare(fileShareId string) *FileShare {
+func (fs *FileSystem) findExportedFileShare(id string) *ExportedFileShare {
 	for fileShareIdx, fileShare := range fs.shares {
-		if fileShare.id == fileShareId {
+		if fileShare.id == id {
 			return &fs.shares[fileShareIdx]
 		}
 	}
@@ -422,7 +424,7 @@ func (fs *FileSystem) findFileShare(fileShareId string) *FileShare {
 	return nil
 }
 
-func (fs *FileSystem) createFileShare(sgEndpoint *StorageGroupEndpoint, mountRoot string) *FileShare {
+func (fs *FileSystem) createFileShare(sgEndpoint *StorageGroupEndpoint, mountRoot string) *ExportedFileShare {
 	var fileShareId = -1
 	for _, fileShare := range fs.shares {
 		id, _ := strconv.Atoi(fileShare.id)
@@ -434,7 +436,7 @@ func (fs *FileSystem) createFileShare(sgEndpoint *StorageGroupEndpoint, mountRoo
 
 	fileShareId = fileShareId + 1
 
-	return &FileShare{
+	return &ExportedFileShare{
 		id:         strconv.Itoa(fileShareId),
 		sgEndpoint: sgEndpoint,
 		mountRoot:  mountRoot,
@@ -442,11 +444,11 @@ func (fs *FileSystem) createFileShare(sgEndpoint *StorageGroupEndpoint, mountRoo
 	}
 }
 
-func (sh *FileShare) initialize(mountpoint string) error {
+func (sh *ExportedFileShare) initialize(mountpoint string) error {
 	return sh.sgEndpoint.serverStorage.CreateFileSystem(sh.fileSystem.fsApi, mountpoint)
 }
 
-func (sh *FileShare) getStatus() sf.ResourceStatus {
+func (sh *ExportedFileShare) getStatus() sf.ResourceStatus {
 
 	return sf.ResourceStatus{
 		Health: sf.OK_RH,
@@ -454,10 +456,15 @@ func (sh *FileShare) getStatus() sf.ResourceStatus {
 	}
 }
 
+func (sh *ExportedFileShare) fmt(format string, a ...interface{}) string {
+	return sh.fileSystem.fmt("/ExportedFileShares/%s", sh.id) + fmt.Sprintf(format, a...)
+}
+
 func Initialize(ctrl NnfControllerInterface) error {
 
 	storageService = StorageService{
-		id: DefaultStorageServiceId,
+		id:                       DefaultStorageServiceId,
+		serverControllerProvider: ctrl.ServerControllerProvider(),
 	}
 
 	s := &storageService
@@ -610,19 +617,20 @@ func StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.Storage
 	}
 
 	// All checks have completed; we're ready to create the storage pool
-	guid := s.allocateStoragePoolGuid()
+	uid := s.allocateStoragePoolUid()
 
-	// TODO: GUID and other metadata should be added to the allocated volumes
-	//       so we can identify them after power-on for recovery.
-	//       Should probably keep a common header with versioning information
-	//       and use structex for encoding and decoding.
-	volumes, err := policy.Allocate(guid)
+	log.Infof("Allocating storage for PID %s", uid.String())
+	volumes, err := policy.Allocate(uid)
 	if err != nil {
+
+		// TOOD: there may be partial volumes for this pool - we need to mark
+		// them for delete in the ledger and attempt to release them.
+
 		log.WithError(err).Errorf("Storage Policy allocation failed.")
 		return ec.ErrInternalServerError
 	}
 
-	p := s.createStoragePool(guid, model.Name, model.Description, policy, volumes)
+	p := s.createStoragePool(uid, model.Name, model.Description, policy, volumes)
 	s.pools = append(s.pools, *p)
 
 	return StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
@@ -1111,7 +1119,7 @@ func StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemI
 	model.MembersodataCount = int64(len(fs.shares))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
 	for idx, sh := range fs.shares {
-		model.Members[idx] = sf.OdataV4IdRef{OdataId: fs.fmt("/ExportedFileShares/%s", sh.id)}
+		model.Members[idx] = sf.OdataV4IdRef{OdataId: sh.fmt("")}
 	}
 	return nil
 }
@@ -1161,31 +1169,32 @@ func StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystem
 	}
 
 	model.Id = sh.id
-	model.OdataId = fs.fmt("/ExportedFileShares/%s", sh.id)
+	model.OdataId = sh.fmt("")
 
 	return StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, sh.id, model)
 }
 
 // StorageServiceIdFileSystemIdExportedShareIdGet -
 func StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId string, model *sf.FileShareV120FileShare) error {
-	_, fs, sh := findExportedShare(storageServiceId, fileSystemId, exportedShareId)
+	_, fs, sh := findExportedFileShare(storageServiceId, fileSystemId, exportedShareId)
 	if sh == nil {
 		return ec.ErrNotFound
 	}
 
+	model.Id = sh.id
+	model.OdataId = sh.fmt("")
 	model.FileSharePath = sh.mountRoot
 	// model.ServerEndpoint = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", sh.endpoint.id)} // TODO: Remove this from model
 	model.Links.FileSystem = sf.OdataV4IdRef{OdataId: fs.fmt("")}
 	model.Links.Endpoint = sf.OdataV4IdRef{OdataId: sh.sgEndpoint.endpoint.fmt("")}
 
-	//model.Status // TODO
 	model.Status = sh.getStatus() // TODO
 
 	return nil
 }
 
 func StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSystemId, exportedShareId string) error {
-	_, fs, sh := findExportedShare(storageServiceId, fileSystemId, exportedShareId)
+	_, fs, sh := findExportedFileShare(storageServiceId, fileSystemId, exportedShareId)
 	if sh == nil {
 		return ec.ErrNotFound
 	}

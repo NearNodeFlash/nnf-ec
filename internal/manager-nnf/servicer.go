@@ -452,7 +452,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemsId"]
-	exportedShareId := params["ExportedShareId"]
+	exportedShareId := params["ExportedFileSharesId"]
 
 	model := sf.FileShareV120FileShare{
 		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/FileSystems/%s/ExportedShares/%s", storageServiceId, fileSystemId, exportedShareId),
@@ -470,7 +470,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemsId"]
-	exportedShareId := params["ExportedShareId"]
+	exportedShareId := params["ExportedFileSharesId"]
 
 	err := StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSystemId, exportedShareId)
 

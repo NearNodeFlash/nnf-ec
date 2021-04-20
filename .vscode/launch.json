@@ -33,7 +33,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/nnf_ec.go",
-            "args": ["--mock", "--http", "--port=8080"],
+            "args": ["--mock", "--http", "--port=8080", "--log"],
         },
     ]
 }

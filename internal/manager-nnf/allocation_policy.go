@@ -172,8 +172,7 @@ func (p *SpareAllocationPolicy) Allocate(pid uuid.UUID) ([]ProvidingVolume, erro
 		volume, err := createVolume(storage, capacityBytes, pid, idx, len(p.storage))
 
 		if err != nil {
-			//TODO: Rollyback i.e. defer policy.Deallocte()
-			panic("Not Yet Implemented")
+			return volumes, fmt.Errorf("Create Volume Failure: %s", err)
 		}
 
 		remainingCapacityBytes = remainingCapacityBytes - volume.GetCapaityBytes()
