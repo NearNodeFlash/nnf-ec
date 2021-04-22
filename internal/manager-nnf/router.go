@@ -124,18 +124,6 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StorageGroups/{StorageGroupId}",
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdDelete,
 		},
-		{
-			Name:        "RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost",
-			Method:      ec.POST_METHOD,
-			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StorageGroups/{StorageGroupId}/Actions/StorageGroup.ExposeVolumes",
-			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost,
-		},
-		{
-			Name:        "RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost",
-			Method:      ec.POST_METHOD,
-			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StorageGroups/{StorageGroupId}/Actions/StorageGroup.HideVolumes",
-			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost,
-		},
 
 		/* --------------------------- ENDPOINTS --------------------------- */
 

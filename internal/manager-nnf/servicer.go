@@ -276,42 +276,6 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroup
 	EncodeResponse(nil, err, w)
 }
 
-// RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost -
-func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost(w http.ResponseWriter, r *http.Request) {
-	params := Params(r)
-	storageServiceId := params["StorageServiceId"]
-	storageGroupId := params["StorageGroupId"]
-
-	var model sf.StorageGroupV150ExposeVolumes
-
-	if err := UnmarshalRequest(r, &model); err != nil {
-		EncodeResponse(model, err, w)
-		return
-	}
-
-	err := s.ss.StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGroupId, &model)
-
-	EncodeResponse(model, err, w)
-}
-
-// 	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost -
-func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost(w http.ResponseWriter, r *http.Request) {
-	params := Params(r)
-	storageServiceId := params["StorageServiceId"]
-	storageGroupId := params["StorageGroupId"]
-
-	var model sf.StorageGroupV150HideVolumes
-
-	if err := UnmarshalRequest(r, &model); err != nil {
-		EncodeResponse(nil, err, w)
-		return
-	}
-
-	err := s.ss.StorageServiceIdStorageGroupIdHideVolumesPost(storageServiceId, storageGroupId, &model)
-
-	EncodeResponse(model, err, w)
-}
-
 // 	RedfishV1StorageServicesStorageServiceIdEndpointsGet -
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)

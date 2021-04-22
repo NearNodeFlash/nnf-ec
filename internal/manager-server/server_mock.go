@@ -12,14 +12,18 @@ func NewMockServerController() ServerControllerApi {
 	return &MockServerController{}
 }
 
-type MockServerController struct{}
+type MockServerController struct {
+}
 
-func (*MockServerController) NewServerStoragePool(pid uuid.UUID) *ServerStoragePool {
-	return nil
+func (c *MockServerController) NewServerStoragePool(pid uuid.UUID) *ServerStoragePool {
+	return &ServerStoragePool{
+		Id:   pid,
+		ctrl: c,
+	}
 }
 
 func (*MockServerController) GetStatus(pool *ServerStoragePool) ServerStoragePoolStatus {
-	return ServerStoragePoolError
+	return ServerStoragePoolReady
 }
 
 func (*MockServerController) CreateFileSystem(pool *ServerStoragePool, fs FileSystemApi, mountpoint string) error {

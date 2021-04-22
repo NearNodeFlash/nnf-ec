@@ -30,8 +30,6 @@ type Api interface {
 	RedfishV1StorageServicesStorageServiceIdStorageGroupsPost(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdDelete(w http.ResponseWriter, r *http.Request)
-	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost(w http.ResponseWriter, r *http.Request)
-	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost(w http.ResponseWriter, r *http.Request)
 
 	RedfishV1StorageServicesStorageServiceIdEndpointsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request)
@@ -69,9 +67,7 @@ type StorageServiceApi interface {
 	StorageServiceIdStorageGroupPost(string, *sf.StorageGroupV150StorageGroup) error
 	StorageServiceIdStorageGroupIdGet(string, string, *sf.StorageGroupV150StorageGroup) error
 	StorageServiceIdStorageGroupIdDelete(string, string) error
-	StorageServiceIdStorageGroupIdExposeVolumesPost(string, string, *sf.StorageGroupV150ExposeVolumes) error
-	StorageServiceIdStorageGroupIdHideVolumesPost(string, string, *sf.StorageGroupV150HideVolumes) error
-	
+
 	StorageServiceIdEndpointsGet(string, *sf.EndpointCollectionEndpointCollection) error
 	StorageServiceIdEndpointIdGet(string, string, *sf.EndpointV150Endpoint) error
 

@@ -308,14 +308,6 @@ func (*ServerStorageService) StorageServiceIdStorageGroupIdDelete(storageService
 	return ec.ErrNotAcceptable
 }
 
-func (*ServerStorageService) StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGroupId string, model *sf.StorageGroupV150ExposeVolumes) error {
-	return ec.ErrNotAcceptable
-}
-
-func (*ServerStorageService) StorageServiceIdStorageGroupIdHideVolumesPost(storageServiceId, storageGroupId string, model *sf.StorageGroupV150HideVolumes) error {
-	return ec.ErrNotAcceptable
-}
-
 func (*ServerStorageService) StorageServiceIdEndpointsGet(storageServiceId string, model *sf.EndpointCollectionEndpointCollection) error {
 	return ec.ErrNotAcceptable
 }
