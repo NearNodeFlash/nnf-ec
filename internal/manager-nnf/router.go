@@ -18,7 +18,7 @@ func (*DefaultApiRouter) Name() string {
 }
 
 func (r *DefaultApiRouter) Init() error {
-	return Initialize(r.controller)
+	return r.servicer.Initialize(r.controller)
 }
 
 func (r *DefaultApiRouter) Start() error {

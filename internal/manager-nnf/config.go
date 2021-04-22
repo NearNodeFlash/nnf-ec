@@ -9,6 +9,18 @@ import (
 //go:embed config.yaml
 var configFile []byte
 
+type ConfigFile struct {
+	Version  string
+	Metadata struct {
+		Name string
+	}
+
+	Id string
+
+	AllocationConfig AllocationConfig `yaml:"allocationConfig"`
+	RemoteConfig     RemoteConfig     `yaml:"remoteConfig"`
+}
+
 type AllocationConfig struct {
 	// This is the default allocation policy for the NNF controller. An allocation policy
 	// defines the way in which underlying storage is allocated when a user requests storage from
@@ -21,21 +33,14 @@ type AllocationConfig struct {
 	Standard string `yaml:"standard,omitempty"`
 }
 
-type ServerConfig struct {
-	Count         int `yaml:"count"`
-	StartingIndex int `yaml:"startingIndex"`
+type RemoteConfig struct {
+	AccessMode string         `yaml:"accessMode"`
+	Servers    []ServerConfig `yaml:"servers"`
 }
 
-type ConfigFile struct {
-	Version  string
-	Metadata struct {
-		Name string
-	}
-
-	Id string
-
-	ServerConfig     ServerConfig     `yaml:"serverConfig"`
-	AllocationConfig AllocationConfig `yaml:"allocationConfig"`
+type ServerConfig struct {
+	Label   string `yaml:"label"`
+	Address string `yaml:"address"`
 }
 
 func loadConfig() (*ConfigFile, error) {

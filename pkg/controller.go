@@ -82,7 +82,7 @@ func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface, nvmeCt
 	routers := []ec.Router{
 		fabric.NewDefaultApiRouter(fabric.NewDefaultApiService(), switchCtrl),
 		nvme.NewDefaultApiRouter(nvme.NewDefaultApiService(), nvmeCtrl),
-		nnf.NewDefaultApiRouter(nnf.NewDefaultApiService(), nnfCtrl),
+		nnf.NewDefaultApiRouter(nnf.NewDefaultApiService(nnf.NewDefaultStorageService()), nnfCtrl),
 	}
 
 	return routers

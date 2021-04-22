@@ -10,7 +10,7 @@ type ServerStoragePool struct {
 	// ID is the Pool ID identified by recovering the NVMe Namespace Metadata
 	// for this particular namespace. The Pool ID is common for all namespaces
 	// which are part of that storage pool.
-	id uuid.UUID
+	Id uuid.UUID
 
 	ctrl ServerControllerApi
 

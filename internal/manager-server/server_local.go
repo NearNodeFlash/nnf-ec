@@ -13,13 +13,13 @@ import (
 	"stash.us.cray.com/rabsw/nnf-ec/internal/logging"
 )
 
-type DefaultServerControllerProvider struct {}
+type DefaultServerControllerProvider struct{}
 
 func (DefaultServerControllerProvider) NewServerController(opts ServerControllerOptions) ServerControllerApi {
 	if opts.Local {
-	return &LocalServerController{}
+		return &LocalServerController{}
 	}
-	return &RemoteServerController{}
+	return &RemoteServerController{opts.Address}
 }
 
 type LocalServerController struct {
@@ -27,7 +27,7 @@ type LocalServerController struct {
 }
 
 func (c *LocalServerController) NewServerStoragePool(pid uuid.UUID) *ServerStoragePool {
-	c.pools = append(c.pools, ServerStoragePool{id: pid, ctrl: c})
+	c.pools = append(c.pools, ServerStoragePool{Id: pid, ctrl: c})
 	return &c.pools[len(c.pools)-1]
 }
 
@@ -36,7 +36,7 @@ func (c *LocalServerController) GetStatus(pool *ServerStoragePool) ServerStorage
 	// We really shouldn't need to refresh on every GetStatus() call if we're correctly
 	// tracking udev add/remove events. There should be a single refresh on launch (or
 	// possibily a udev-info call to pull in the initial hardware?)
-	c.refresh()
+	c.Discover(nil)
 
 	// There should always be 1 or more namespces, so zero namespaces mean we are still starting.
 	// Once we've recovered the expected number of namespaces (nsExpected > 0) we continue to
@@ -64,7 +64,7 @@ func (c *LocalServerController) CreateFileSystem(pool *ServerStoragePool, fs Fil
 	return fs.Create(pool.Devices(), opts)
 }
 
-func (c *LocalServerController) refresh() error {
+func (c *LocalServerController) Discover(newPoolFunc func(* ServerStoragePool)) error {
 	nss, err := c.namespaces()
 	if err != nil {
 		return err
@@ -87,6 +87,11 @@ func (c *LocalServerController) refresh() error {
 			pool.nsExpected = sns.poolTotal
 
 			pool.ns = append(pool.ns, *sns)
+
+			if newPoolFunc != nil {
+				newPoolFunc(pool)
+			}
+
 			continue
 		}
 
@@ -100,7 +105,7 @@ func (c *LocalServerController) refresh() error {
 
 func (c *LocalServerController) findPool(pid uuid.UUID) *ServerStoragePool {
 	for idx, p := range c.pools {
-		if p.id == pid {
+		if p.Id == pid {
 			return &c.pools[idx]
 		}
 	}

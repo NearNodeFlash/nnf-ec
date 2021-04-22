@@ -10,15 +10,21 @@ import (
 )
 
 // DefaultApiService -
-type DefaultApiService struct{}
+type DefaultApiService struct{
+	ss StorageServiceApi
+}
 
 // NewDefaultApiService -
-func NewDefaultApiService() Api {
-	return &DefaultApiService{}
+func NewDefaultApiService(ss StorageServiceApi) Api {
+	return &DefaultApiService{ss: ss}
+}
+
+func (s *DefaultApiService) Initialize(ctrl NnfControllerInterface) error {
+	return s.ss.Initialize(ctrl)
 }
 
 // RedfishV1StorageServicesGet -
-func (*DefaultApiService) RedfishV1StorageServicesGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesGet(w http.ResponseWriter, r *http.Request) {
 
 	model := sf.StorageServiceCollectionStorageServiceCollection{
 		OdataId:   "/redfish/v1/StorageServices",
@@ -26,30 +32,29 @@ func (*DefaultApiService) RedfishV1StorageServicesGet(w http.ResponseWriter, r *
 		Name:      "Storage Service Collection",
 	}
 
-	err := Get(&model)
+	err := s.ss.StorageServicesGet(&model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
 	model := sf.StorageServiceV150StorageService{
 		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s", storageServiceId),
 		OdataType: "#StorageService.v1_5_0.StorageService",
-		Id:        storageServiceId,
 		Name:      "Storage Service",
 	}
 
-	err := StorageServiceIdGet(storageServiceId, &model)
+	err := s.ss.StorageServiceIdGet(storageServiceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -59,13 +64,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsGe
 		Name:      "Storage Pool Collection",
 	}
 
-	err := StorageServiceIdStoragePoolsGet(storageServiceId, &model)
+	err := s.ss.StorageServiceIdStoragePoolsGet(storageServiceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsPost -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPost(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -76,7 +81,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPo
 		return
 	}
 
-	if err := StorageServiceIdStoragePoolsPost(storageServiceId, &model); err != nil {
+	if err := s.ss.StorageServiceIdStoragePoolsPost(storageServiceId, &model); err != nil {
 		EncodeResponse(model, err, w)
 		return
 	}
@@ -88,7 +93,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPo
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
@@ -99,24 +104,24 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 		Name:      "Storage Pool",
 	}
 
-	err := StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, &model)
+	err := s.ss.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
 
-	err := StorageServiceIdStoragePoolIdDelete(storageServiceId, storagePoolId)
+	err := s.ss.StorageServiceIdStoragePoolIdDelete(storageServiceId, storagePoolId)
 
 	EncodeResponse(nil, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
@@ -127,13 +132,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 		Name:      "Capacity Source Collection",
 	}
 
-	err := StorageServiceIdStoragePoolIdCapacitySourcesGet(storageServiceId, storagePoolId, &model)
+	err := s.ss.StorageServiceIdStoragePoolIdCapacitySourcesGet(storageServiceId, storagePoolId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
@@ -145,13 +150,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 		Name:      "Capacity Source",
 	}
 
-	err := StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storagePoolId, capacitySourceId, &model)
+	err := s.ss.StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storagePoolId, capacitySourceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request)
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesCapacitySourceIdProvidingVolumesGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
@@ -163,13 +168,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 		Name:      "Providing Volume Collection",
 	}
 
-	err := StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageServiceId, storagePoolId, capacitySourceId, &model)
+	err := s.ss.StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageServiceId, storagePoolId, capacitySourceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
@@ -180,13 +185,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 		Name:      "Allocated Volume Collection",
 	}
 
-	err := StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId, &model)
+	err := s.ss.StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedVolumesVolumeIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storagePoolId := params["StoragePoolId"]
@@ -198,13 +203,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsSt
 		Name:      "Volume",
 	}
 
-	err := StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storagePoolId, volumeId, &model)
+	err := s.ss.StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(storageServiceId, storagePoolId, volumeId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStorageGroupsGet
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -214,13 +219,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsG
 		Name:      "Storage Group Collection",
 	}
 
-	err := StorageServiceIdStorageGroupsGet(storageServiceId, &model)
+	err := s.ss.StorageServiceIdStorageGroupsGet(storageServiceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStorageGroupsPost -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsPost(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -231,7 +236,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsP
 		return
 	}
 
-	if err := StorageServiceIdStorageGroupPost(storageServiceId, &model); err != nil {
+	if err := s.ss.StorageServiceIdStorageGroupPost(storageServiceId, &model); err != nil {
 		EncodeResponse(model, err, w)
 		return
 	}
@@ -244,7 +249,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsP
 }
 
 // RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdGet
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storageGroupId := params["StorageGroupId"]
@@ -255,24 +260,24 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsS
 		Name:      "Storage Group",
 	}
 
-	err := StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId, &model)
+	err := s.ss.StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 //RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdDelete(w http.ResponseWriter, r *http.Request)
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdDelete(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storageGroupId := params["StorageGroupId"]
 
-	err := StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId)
+	err := s.ss.StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId)
 
 	EncodeResponse(nil, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupExposeVolumesPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storageGroupId := params["StorageGroupId"]
@@ -284,13 +289,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsS
 		return
 	}
 
-	err := StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGroupId, &model)
+	err := s.ss.StorageServiceIdStorageGroupIdExposeVolumesPost(storageServiceId, storageGroupId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // 	RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdActionsStorageGroupHideVolumesPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	storageGroupId := params["StorageGroupId"]
@@ -302,13 +307,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsS
 		return
 	}
 
-	err := StorageServiceIdStorageGroupIdHideVolumesPost(storageServiceId, storageGroupId, &model)
+	err := s.ss.StorageServiceIdStorageGroupIdHideVolumesPost(storageServiceId, storageGroupId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // 	RedfishV1StorageServicesStorageServiceIdEndpointsGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -318,13 +323,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsGet(w
 		Name:      "Endpoint Collection",
 	}
 
-	err := StorageServiceIdEndpointsGet(storageServiceId, &model)
+	err := s.ss.StorageServiceIdEndpointsGet(storageServiceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsEndpointIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	endpointId := params["EndpointId"]
@@ -335,13 +340,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdEndpointsEndpo
 		Name:      "Endpoint",
 	}
 
-	err := StorageServiceIdEndpointIdGet(storageServiceId, endpointId, &model)
+	err := s.ss.StorageServiceIdEndpointIdGet(storageServiceId, endpointId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdFileSystemsGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -351,13 +356,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsGet
 		Name:      "File System Collection",
 	}
 
-	err := StorageServiceIdFileSystemsGet(storageServiceId, &model)
+	err := s.ss.StorageServiceIdFileSystemsGet(storageServiceId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdFileSystemsPost -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsPost(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 
@@ -368,7 +373,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsPos
 		return
 	}
 
-	if err := StorageServiceIdFileSystemsPost(storageServiceId, &model); err != nil {
+	if err := s.ss.StorageServiceIdFileSystemsPost(storageServiceId, &model); err != nil {
 		EncodeResponse(nil, err, w)
 		return
 	}
@@ -381,7 +386,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsPos
 }
 
 // RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemId"]
@@ -392,24 +397,24 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 		Name:      "File System",
 	}
 
-	err := StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId, &model)
+	err := s.ss.StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // 	RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdDelete -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdDelete(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemId"]
 
-	err := StorageServiceIdFileSystemIdDelete(storageServiceId, fileSystemId)
+	err := s.ss.StorageServiceIdFileSystemIdDelete(storageServiceId, fileSystemId)
 
 	EncodeResponse(nil, err, w)
 }
 
 // 	RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemsId"]
@@ -420,13 +425,13 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 		Name:      "File Share Collection",
 	}
 
-	err := StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemId, &model)
+	err := s.ss.StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesPost -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesPost(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesPost(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemsId"]
@@ -438,7 +443,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 		return
 	}
 
-	err := StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystemId, &model)
+	err := s.ss.StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystemId, &model)
 
 	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/FileSystems/%s/ExportedShares/%s", storageServiceId, fileSystemId, model.Id)
 	model.OdataType = "#FileShare.v1_2_0.FileShare"
@@ -448,7 +453,7 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 }
 
 // RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdGet -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdGet(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemsId"]
@@ -460,19 +465,19 @@ func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFil
 		Name:      "Exported File Share",
 	}
 
-	err := StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId, &model)
+	err := s.ss.StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId, &model)
 
 	EncodeResponse(model, err, w)
 }
 
 // RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdDelete -
-func (*DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdDelete(w http.ResponseWriter, r *http.Request) {
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
 	storageServiceId := params["StorageServiceId"]
 	fileSystemId := params["FileSystemsId"]
 	exportedShareId := params["ExportedFileSharesId"]
 
-	err := StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSystemId, exportedShareId)
+	err := s.ss.StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSystemId, exportedShareId)
 
 	EncodeResponse(nil, err, w)
 }

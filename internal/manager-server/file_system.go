@@ -41,8 +41,10 @@ func Initialize() error {
 // FileSystemApi - Defines the interface for interacting with various file systems
 // supported by the NNF element controller.
 type FileSystemApi interface {
+	Name() string
+
 	Create(devices []string, opts FileSystemCreateOptions) error
-	//Destroy()
+	Delete() error
 }
 
 // NewFileSystem - Will allocate a new File System defined by the provided
@@ -70,6 +72,8 @@ type FileSystem struct {
 
 type FileSystemCreateOptions = map[string]string
 
+func (fs *FileSystem) Name() string { return fs.name }
+
 func (fs *FileSystem) Create(devices []string, opts FileSystemCreateOptions) error {
 
 	op, err := fs.findOperation("create")
@@ -86,7 +90,23 @@ func (fs *FileSystem) Create(devices []string, opts FileSystemCreateOptions) err
 		return err
 	}
 
-	// if the operation consumed the mountpoint, we don't need to run Mount()
+	return nil
+}
+
+func (fs *FileSystem) Delete() error {
+	op, err := fs.findOperation("delete")
+	if err != nil {
+		return err
+	}
+
+	cmd := op.make(map[string]string{
+		"name": fs.name,
+	}, nil)
+
+	if _, err := fs.run(cmd); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -180,4 +200,10 @@ func (err *FileSystemError) Error() string {
 
 func NewOperationNotFoundError(cmd string) error {
 	return &FileSystemError{cmd: cmd, reason: fmt.Sprintf("Operation '%s' Not Found", cmd)}
+}
+
+// File System OEM defines the structure that is expected to be included inside a
+// Redfish / Swordfish FileSystemV122FileSystem
+type FileSystemOem struct {
+	Name string `json:"Name"`
 }

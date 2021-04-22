@@ -32,6 +32,7 @@ type ServerControllerProvider interface {
 
 type ServerControllerOptions struct {
 	Local bool // Set to true if the server controller is local to the running program
+	Address string // IP Address of the Server
 }
 
 // Server Controller API defines the interface for interacting with and controlling

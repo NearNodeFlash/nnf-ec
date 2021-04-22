@@ -2,9 +2,17 @@ package nnf
 
 import (
 	"net/http"
+
+	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
+// API defines the programming interface for the Redfish / Swordfish routes. Each method is
+// responsible for decoding the http.Request into useable parameters and calling it's
+// corresponding Handler method (see below). Each method should respond to the request by
+// updating the http.ResponesWriter.
 type Api interface {
+	Initialize(NnfControllerInterface) error
+
 	RedfishV1StorageServicesGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdGet(w http.ResponseWriter, r *http.Request)
 
@@ -37,4 +45,43 @@ type Api interface {
 	RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesPost(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdDelete(w http.ResponseWriter, r *http.Request)
+}
+
+// Storage Service API defines the interface for the above API methods to call. Each API method must have 
+// an equivalent method. Methods take request paramters and a Redfish / Swordfish model to populate.
+type StorageServiceApi interface {
+	Initialize(NnfControllerInterface) error 
+
+	StorageServicesGet(*sf.StorageServiceCollectionStorageServiceCollection) error
+	StorageServiceIdGet(string, *sf.StorageServiceV150StorageService) error
+
+	StorageServiceIdStoragePoolsGet(string, *sf.StoragePoolCollectionStoragePoolCollection) error
+	StorageServiceIdStoragePoolsPost(string, *sf.StoragePoolV150StoragePool) error
+	StorageServiceIdStoragePoolIdGet(string, string, *sf.StoragePoolV150StoragePool) error
+	StorageServiceIdStoragePoolIdDelete(string, string) error
+	StorageServiceIdStoragePoolIdCapacitySourcesGet(string, string, *sf.CapacitySourceCollectionCapacitySourceCollection) error
+	StorageServiceIdStoragePoolIdCapacitySourceIdGet(string, string, string, *sf.CapacityCapacitySource) error
+	StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(string, string, string, *sf.VolumeCollectionVolumeCollection) error
+	StorageServiceIdStoragePoolIdAlloctedVolumesGet(string, string, *sf.VolumeCollectionVolumeCollection) error
+	StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(string, string, string, *sf.VolumeV161Volume) error
+	
+	StorageServiceIdStorageGroupsGet(string, *sf.StorageGroupCollectionStorageGroupCollection) error
+	StorageServiceIdStorageGroupPost(string, *sf.StorageGroupV150StorageGroup) error
+	StorageServiceIdStorageGroupIdGet(string, string, *sf.StorageGroupV150StorageGroup) error
+	StorageServiceIdStorageGroupIdDelete(string, string) error
+	StorageServiceIdStorageGroupIdExposeVolumesPost(string, string, *sf.StorageGroupV150ExposeVolumes) error
+	StorageServiceIdStorageGroupIdHideVolumesPost(string, string, *sf.StorageGroupV150HideVolumes) error
+	
+	StorageServiceIdEndpointsGet(string, *sf.EndpointCollectionEndpointCollection) error
+	StorageServiceIdEndpointIdGet(string, string, *sf.EndpointV150Endpoint) error
+
+	StorageServiceIdFileSystemsGet(string, *sf.FileSystemCollectionFileSystemCollection) error
+	StorageServiceIdFileSystemsPost(string, *sf.FileSystemV122FileSystem) error
+	StorageServiceIdFileSystemIdGet(string, string, *sf.FileSystemV122FileSystem) error
+	StorageServiceIdFileSystemIdDelete(string, string) error
+
+	StorageServiceIdFileSystemIdExportedSharesGet(string, string, *sf.FileShareCollectionFileShareCollection ) error
+	StorageServiceIdFileSystemIdExportedSharesPost(string, string, *sf.FileShareV120FileShare) error
+	StorageServiceIdFileSystemIdExportedShareIdGet(string, string, string, *sf.FileShareV120FileShare) error
+	StorageServiceIdFileSystemIdExportedShareIdDelete(string, string, string) error
 }
