@@ -31,7 +31,7 @@ type StoragePool struct {
 	fileSystem *FileSystem
 
 	serverStorageService *ServerStorageService
-	serverStoragePool    *server.ServerStoragePool
+	serverStorage        *server.Storage
 }
 
 type Volume struct {
@@ -130,7 +130,7 @@ func (sh *FileShare) OdataId() string {
 func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 
 	// Perform an initial discovery of existing storage pools
-	if err := s.ctrl.Discover(s.NewPool); err != nil {
+	if err := s.ctrl.Discover(s.NewStorage); err != nil {
 		return err
 	}
 
@@ -157,7 +157,7 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 				}
 
 				// Trigger discovery of NVMe devices
-				if err := s.ctrl.Discover(s.NewPool); err != nil {
+				if err := s.ctrl.Discover(s.NewStorage); err != nil {
 					fmt.Printf("Discover Storage Error %s\n", err)
 				}
 			}
@@ -168,13 +168,13 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 	return nil
 }
 
-func (s *ServerStorageService) NewPool(serverStoragePool *server.ServerStoragePool) {
+func (s *ServerStorageService) NewStorage(storage *server.Storage) {
 
 	pool := StoragePool{
-		id:                   serverStoragePool.Id.String(),
-		uid:                  serverStoragePool.Id,
+		id:                   storage.Id.String(),
+		uid:                  storage.Id,
+		serverStorage:        storage,
 		serverStorageService: s,
-		serverStoragePool:    serverStoragePool,
 	}
 
 	s.pools = append(s.pools, pool)
@@ -223,7 +223,7 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId
 		}
 	}
 
-	s.NewPool(s.ctrl.NewServerStoragePool(pid))
+	s.NewStorage(s.ctrl.NewStorage(pid))
 
 	return nil
 }
@@ -249,14 +249,8 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolIdGet(storageServiceId
 		model.Links.FileSystem = p.fileSystem.OdataIdRef("")
 	}
 
-	switch s.ctrl.GetStatus(p.serverStoragePool) {
-	case server.ServerStoragePoolStarting:
-		model.Status.State = sf.STARTING_RST
-	case server.ServerStoragePoolReady:
-		model.Status.State = sf.ENABLED_RST
-	case server.ServerStoragePoolError:
-		model.Status.State = sf.DISABLED_RST
-	}
+	model.Status.State = 
+		s.ctrl.GetStatus(p.serverStorage).State()
 
 	return nil
 }
@@ -423,7 +417,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesGet(sto
 		model.MembersodataCount = 1
 		model.Members = []sf.OdataV4IdRef{
 			{OdataId: fs.fileShare.OdataId()},
-		}	
+		}
 	}
 
 	return nil
@@ -443,7 +437,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesPost(st
 		return ec.ErrNotAcceptable
 	}
 
-	if err := fs.pool.serverStoragePool.CreateFileSystem(fs.api, model.FileSharePath); err != nil {
+	if err := fs.pool.serverStorage.CreateFileSystem(fs.api, model.FileSharePath); err != nil {
 		return ec.ErrInternalServerError
 	}
 

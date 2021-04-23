@@ -2,17 +2,23 @@ package server
 
 import (
 	"github.com/google/uuid"
+
+	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
-// Server Storage Pool represents a unique collection of Server Storage Volumes
+// Storage represents a unique collection of Server Storage Volumes
 // that are identified by a shared Storage Pool ID.
-type ServerStoragePool struct {
+type Storage struct {
 	// ID is the Pool ID identified by recovering the NVMe Namespace Metadata
 	// for this particular namespace. The Pool ID is common for all namespaces
 	// which are part of that storage pool.
 	Id uuid.UUID
 
 	ctrl ServerControllerApi
+
+	// The assigned File System for this Storage object, or nil if no
+	// fs is present.
+	fileSystem FileSystemApi
 
 	ns []StorageNamespace
 
@@ -38,16 +44,20 @@ type StorageNamespace struct {
 	debug bool // If this storage namespace is in debug mode
 }
 
-func (p *ServerStoragePool) GetStatus() ServerStoragePoolStatus {
+func (p *Storage) GetStatus() StorageStatus {
 	return p.ctrl.GetStatus(p)
 }
 
-func (p *ServerStoragePool) CreateFileSystem(fs FileSystemApi, mountpoint string) error {
+func (p *Storage) CreateFileSystem(fs FileSystemApi, mountpoint string) error {
 	return p.ctrl.CreateFileSystem(p, fs, mountpoint)
 }
 
+func (p *Storage) DeleteFileSystem(fs FileSystemApi) error {
+	return p.ctrl.DeleteFileSystem(p)
+}
+
 // Returns the list of devices for this pool.
-func (p *ServerStoragePool) Devices() []string {
+func (p *Storage) Devices() []string {
 	devices := make([]string, len(p.ns))
 	for idx := range p.ns {
 		devices[idx] = p.ns[idx].path
@@ -56,7 +66,7 @@ func (p *ServerStoragePool) Devices() []string {
 	return devices
 }
 
-func (p *ServerStoragePool) UpsertStorageNamespace(sns *StorageNamespace) {
+func (p *Storage) UpsertStorageNamespace(sns *StorageNamespace) {
 	for _, ns := range p.ns {
 		// Debug mode uses matching paths to track the namespaces
 		// This isn't practical in production because the same namespace
@@ -76,10 +86,23 @@ func (p *ServerStoragePool) UpsertStorageNamespace(sns *StorageNamespace) {
 	p.ns = append(p.ns, *sns)
 }
 
-type ServerStoragePoolStatus string
+type StorageStatus string
 
 const (
-	ServerStoragePoolStarting ServerStoragePoolStatus = "starting"
-	ServerStoragePoolReady                            = "ready"
-	ServerStoragePoolError                            = "error"
+	StorageStatus_Starting StorageStatus = "starting"
+	StorageStatus_Ready                  = "ready"
+	StorageStatus_Error                  = "error"
 )
+
+func (s StorageStatus) State() sf.ResourceState {
+	switch s {
+	case StorageStatus_Starting:
+		return sf.STARTING_RST
+	case StorageStatus_Ready:
+		return sf.ENABLED_RST
+	case StorageStatus_Error:
+		return sf.UNAVAILABLE_OFFLINE_RST
+	default:
+		return sf.DISABLED_RST
+	}
+}

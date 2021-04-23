@@ -271,6 +271,8 @@ stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210322142454-141c066ca3ff h1:0F
 stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210322142454-141c066ca3ff/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
 stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210422190320-a1df40040e7f h1:cOa5SORhEaR6f4x0w1OZMW1vDGXTAppSuyfipG12hVc=
 stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210422190320-a1df40040e7f/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
+stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210423151616-7a35ac88bdae h1:pBbGRhNzRjwYHVy5wwXBTfnh+NcEWcuviC7AjUPYaq0=
+stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210423151616-7a35ac88bdae/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.11 h1:yaItioJieToYPkIH8ITGNqj7q7lOk50D3mDlr3AoWhg=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.11/go.mod h1:ZmC3+rUX8eDp8pUNEGj9O7DbSuB5HcuU8YSRIRh2SyM=
 stash.us.cray.com/sp/dp-api v0.0.3/go.mod h1:FUzEPxIOBeBoO84LSpSpFe+V9/ZUmKcD/lCp2NUqPVE=

@@ -21,7 +21,7 @@ type RemoteServerController struct {
 	Address string
 }
 
-func (c *RemoteServerController) NewServerStoragePool(pid uuid.UUID) *ServerStoragePool {
+func (c *RemoteServerController) NewStorage(pid uuid.UUID) *Storage {
 
 	pool := sf.StoragePoolV150StoragePool{
 		Id: pid.String(),
@@ -47,20 +47,20 @@ func (c *RemoteServerController) NewServerStoragePool(pid uuid.UUID) *ServerStor
 		return nil
 	}
 
-	return &ServerStoragePool{
+	return &Storage{
 		Id:   pid,
 		ctrl: c,
 	}
 }
 
-func (c *RemoteServerController) GetStatus(p *ServerStoragePool) ServerStoragePoolStatus {
+func (c *RemoteServerController) GetStatus(s *Storage) StorageStatus {
 
 	rsp, err := http.Get(
-		c.Url(fmt.Sprintf("/StoragePools/%s", p.Id.String())),
+		c.Url(fmt.Sprintf("/StoragePools/%s", s.Id.String())),
 	)
 	if err != nil {
 		log.WithError(err).Errorf("Get Status: Http Error")
-		return ServerStoragePoolError
+		return StorageStatus_Error
 	}
 
 	defer rsp.Body.Close()
@@ -68,23 +68,23 @@ func (c *RemoteServerController) GetStatus(p *ServerStoragePool) ServerStoragePo
 	pool := sf.StoragePoolV150StoragePool{}
 	if err := json.NewDecoder(rsp.Body).Decode(&pool); err != nil {
 		log.WithError(err).Errorf("Get Status: Failed to decode JSON response")
-		return ServerStoragePoolError
+		return StorageStatus_Error
 	}
 
 	switch pool.Status.State {
 	case sf.STARTING_RST:
-		return ServerStoragePoolStarting
+		return StorageStatus_Starting
 	case sf.ENABLED_RST:
-		return ServerStoragePoolReady
+		return StorageStatus_Ready
 	default:
-		return ServerStoragePoolError
+		return StorageStatus_Error
 	}
 }
 
-func (c *RemoteServerController) CreateFileSystem(p *ServerStoragePool, f FileSystemApi, mp string) error {
+func (c *RemoteServerController) CreateFileSystem(s *Storage, f FileSystemApi, mp string) error {
 
 	fileSystem := sf.FileSystemV122FileSystem{
-		StoragePool: sf.OdataV4IdRef{OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s", RemoteStorageServiceId, p.Id.String())},
+		StoragePool: sf.OdataV4IdRef{OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s", RemoteStorageServiceId, s.Id.String())},
 		Oem:         map[string]interface{}{"FileSystem": FileSystemOem{Name: f.Name()}},
 	}
 
@@ -137,6 +137,10 @@ func (c *RemoteServerController) createMountPoint(fs *sf.FileSystemV122FileSyste
 		return err
 	}
 
+	return nil
+}
+
+func (r *RemoteServerController) DeleteFileSystem(s *Storage) error {
 	return nil
 }
 

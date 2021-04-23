@@ -9,6 +9,6 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	gopkg.in/yaml.v2 v2.4.0
 	stash.us.cray.com/rabsw/ec v1.0.7
-	stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210422190320-a1df40040e7f
+	stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210423151616-7a35ac88bdae
 	stash.us.cray.com/rabsw/switchtec-fabric v1.0.11
 )

@@ -94,7 +94,7 @@ type StorageGroup struct {
 	// Server Storage represents a connection to the physical server endpoint that manages the
 	// storage devices. This can be locally managed on the NNF contorller itself, or
 	// remotely managed through some magical being not yet determined.
-	serverStorage *server.ServerStoragePool
+	serverStorage *server.Storage
 
 	// If a file system is present on the parent Storage Pool, this object
 	// represents the Exported File Share for this Storage Group, or null
@@ -299,7 +299,7 @@ func (s *StorageService) createStorageGroup(sp *StoragePool, endpoint *Endpoint)
 	return &StorageGroup{
 		id:             strconv.Itoa(groupId),
 		endpoint:       endpoint,
-		serverStorage:  ctrl.NewServerStoragePool(sp.uid),
+		serverStorage:  ctrl.NewStorage(sp.uid),
 		storagePool:    sp,
 		storageService: s,
 	}
@@ -390,10 +390,14 @@ func (sg *StorageGroup) fmt(format string, a ...interface{}) string {
 }
 
 func (sg *StorageGroup) status() *sf.ResourceStatus {
-	return &sf.ResourceStatus{
-		Health: sf.OK_RH,
-		State:  getResourceStateFromServerStoragePoolStatus(sg.serverStorage.GetStatus()),
+	state := sg.serverStorage.GetStatus().State()
+
+	health := sf.OK_RH
+	if state != sf.ENABLED_RST {
+		health = sf.WARNING_RH
 	}
+
+	return &sf.ResourceStatus{Health: health, State: state}
 }
 
 func (fs *FileSystem) fmt(format string, a ...interface{}) string {
@@ -438,7 +442,7 @@ func (sh *ExportedFileShare) getStatus() *sf.ResourceStatus {
 
 	return &sf.ResourceStatus{
 		Health: sf.OK_RH,
-		State:  getResourceStateFromServerStoragePoolStatus(sh.storageGroup.serverStorage.GetStatus()),
+		State:  sh.storageGroup.serverStorage.GetStatus().State(),
 	}
 }
 
@@ -827,15 +831,10 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 		return ec.ErrNotAcceptable
 	}
 
-	// Ensure the provided server endpoints are valid
-	if len(model.ServerEndpoints) != 0 {
-		return ec.ErrNotAcceptable
-	}
-
-	fields = strings.Split(model.ServerEndpoints[0].OdataId, "/")
+	fields = strings.Split(model.Links.ServerEndpoint.OdataId, "/")
 
 	if len(fields) != s.resourceIndex+1 {
-		return ec.ErrBadRequest
+		return ec.ErrNotAcceptable
 	}
 
 	endpointId := fields[s.resourceIndex]
@@ -862,11 +861,8 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 	// is logged, but does not cause the request to fail; instead the
 	// resource status reflects the outcome.
 
-	controllerIds := make([]uint16, 1)
-	controllerIds[0] = sg.endpoint.controllerId
-
 	for _, volume := range sp.providingVolumes {
-		if err := nvme.AttachControllers(volume.volume, controllerIds); err != nil {
+		if err := nvme.AttachControllers(volume.volume, []uint16{sg.endpoint.controllerId}); err != nil {
 			log.WithError(err).Errorf("Failed to attach controllers")
 		}
 	}
@@ -876,7 +872,7 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 
 // StorageServiceIdStorageGroupIdGet -
 func (*StorageService) StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, model *sf.StorageGroupV150StorageGroup) error {
-	s, sg := findStorageGroup(storageServiceId, storageGroupId)
+	_, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if sg == nil {
 		return ec.ErrNotFound
 	}
@@ -898,13 +894,7 @@ func (*StorageService) StorageServiceIdStorageGroupIdGet(storageServiceId, stora
 		},
 	}
 
-	// This is a little odd since we only ever support one Server per
-	// Storage Group. Maybe refactor the rfsf implementation for this
-	// to be singular.
-	model.ServerEndpointsodataCount = 1
-	model.ServerEndpoints = make([]sf.OdataV4IdRef, model.ServerEndpointsodataCount)
-	model.ServerEndpoints[0] = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints/%s", sg.endpoint.id)}
-
+	model.Links.ServerEndpoint = sf.OdataV4IdRef{OdataId: sg.endpoint.fmt("")}
 	model.Links.StoragePool = sf.OdataV4IdRef{OdataId: sg.storagePool.fmt("")}
 
 	model.Status = *sg.status()
@@ -914,13 +904,29 @@ func (*StorageService) StorageServiceIdStorageGroupIdGet(storageServiceId, stora
 
 // StorageServiceIdStorageGroupIdDelete -
 func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId string) error {
-	_, sg := findStorageGroup(storageServiceId, storageGroupId)
+	s, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if sg == nil {
 		return ec.ErrNotFound
 	}
 
 	if sg.fileShare != nil {
 		return ec.ErrNotAcceptable
+	}
+
+	sp := sg.storagePool
+
+	for _, volume := range sp.providingVolumes {
+		if err := nvme.DetachControllers(volume.volume, []uint16{sg.endpoint.controllerId}); err != nil {
+			log.WithError(err).Errorf("Failed to detach controllers")
+			return ec.ErrInternalServerError
+		}
+	}
+
+	for storageGroupIdx, storageGroup := range s.groups {
+		if storageGroup.id == sg.id {
+			s.groups = append(s.groups[:storageGroupIdx], s.groups[storageGroupIdx+1:]...)
+			break
+		}
 	}
 
 	return nil
@@ -1156,17 +1162,7 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedShareIdDelete(storage
 		}
 	}
 
-	// TODO: Actually need to unmount the share
+	//sh.storageGroup.serverStorage.
 
 	return nil
-}
-
-func getResourceStateFromServerStoragePoolStatus(status server.ServerStoragePoolStatus) sf.ResourceState {
-	switch status {
-	case server.ServerStoragePoolStarting:
-		return sf.STARTING_RST
-	case server.ServerStoragePoolReady:
-		return sf.ENABLED_RST
-	}
-	return sf.DISABLED_RST
 }

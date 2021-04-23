@@ -23,15 +23,15 @@ func (DefaultServerControllerProvider) NewServerController(opts ServerController
 }
 
 type LocalServerController struct {
-	pools []ServerStoragePool
+	storage []Storage
 }
 
-func (c *LocalServerController) NewServerStoragePool(pid uuid.UUID) *ServerStoragePool {
-	c.pools = append(c.pools, ServerStoragePool{Id: pid, ctrl: c})
-	return &c.pools[len(c.pools)-1]
+func (c *LocalServerController) NewStorage(pid uuid.UUID) *Storage {
+	c.storage = append(c.storage, Storage{Id: pid, ctrl: c})
+	return &c.storage[len(c.storage)-1]
 }
 
-func (c *LocalServerController) GetStatus(pool *ServerStoragePool) ServerStoragePoolStatus {
+func (c *LocalServerController) GetStatus(s *Storage) StorageStatus {
 
 	// We really shouldn't need to refresh on every GetStatus() call if we're correctly
 	// tracking udev add/remove events. There should be a single refresh on launch (or
@@ -44,27 +44,33 @@ func (c *LocalServerController) GetStatus(pool *ServerStoragePool) ServerStorage
 
 	// TODO: We should check for an error status somewhere... as this stands we are not
 	// ever going to return an error if refresh() fails.
-	if (len(pool.ns) == 0) ||
-		((pool.nsExpected > 0) && (len(pool.ns) < pool.nsExpected)) {
-		return ServerStoragePoolStarting
+	if (len(s.ns) == 0) ||
+		((s.nsExpected > 0) && (len(s.ns) < s.nsExpected)) {
+		return StorageStatus_Starting
 	}
 
-	if pool.nsExpected == len(pool.ns) {
-		return ServerStoragePoolReady
+	if s.nsExpected == len(s.ns) {
+		return StorageStatus_Ready
 	}
 
-	return ServerStoragePoolError
+	return StorageStatus_Error
 }
 
-func (c *LocalServerController) CreateFileSystem(pool *ServerStoragePool, fs FileSystemApi, mp string) error {
+func (c *LocalServerController) CreateFileSystem(s *Storage, fs FileSystemApi, mp string) error {
+	s.fileSystem = fs
+
 	opts := FileSystemCreateOptions{
 		"mountpoint": mp,
 	}
 
-	return fs.Create(pool.Devices(), opts)
+	return fs.Create(s.Devices(), opts)
 }
 
-func (c *LocalServerController) Discover(newPoolFunc func(* ServerStoragePool)) error {
+func (c *LocalServerController) DeleteFileSystem(s *Storage) error {
+	return s.fileSystem.Delete()
+}
+
+func (c *LocalServerController) Discover(newStorageFunc func(*Storage)) error {
 	nss, err := c.namespaces()
 	if err != nil {
 		return err
@@ -80,16 +86,16 @@ func (c *LocalServerController) Discover(newPoolFunc func(* ServerStoragePool)) 
 			continue
 		}
 
-		pool := c.findPool(sns.poolId)
-		if pool == nil {
-			pool = c.NewServerStoragePool(sns.poolId)
+		s := c.findStorage(sns.poolId)
+		if s == nil {
+			s = c.NewStorage(sns.poolId)
 
-			pool.nsExpected = sns.poolTotal
+			s.nsExpected = sns.poolTotal
 
-			pool.ns = append(pool.ns, *sns)
+			s.ns = append(s.ns, *sns)
 
-			if newPoolFunc != nil {
-				newPoolFunc(pool)
+			if newStorageFunc != nil {
+				newStorageFunc(s)
 			}
 
 			continue
@@ -97,16 +103,16 @@ func (c *LocalServerController) Discover(newPoolFunc func(* ServerStoragePool)) 
 
 		// We've identified a pool for this particular namespace
 		// Add the namespace to the pool if it's not present.
-		pool.UpsertStorageNamespace(sns)
+		s.UpsertStorageNamespace(sns)
 	}
 
 	return nil
 }
 
-func (c *LocalServerController) findPool(pid uuid.UUID) *ServerStoragePool {
-	for idx, p := range c.pools {
+func (c *LocalServerController) findStorage(pid uuid.UUID) *Storage {
+	for idx, p := range c.storage {
 		if p.Id == pid {
-			return &c.pools[idx]
+			return &c.storage[idx]
 		}
 	}
 
