@@ -129,6 +129,11 @@ func (sh *FileShare) OdataId() string {
 
 func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 
+	// Ensure the server is initialized
+	if err := server.Initialize(); err != nil {
+		return err
+	}
+
 	// Perform an initial discovery of existing storage pools
 	if err := s.ctrl.Discover(s.NewStorage); err != nil {
 		return err
@@ -249,19 +254,28 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolIdGet(storageServiceId
 		model.Links.FileSystem = p.fileSystem.OdataIdRef("")
 	}
 
-	model.Status.State = 
+	model.Status.State =
 		s.ctrl.GetStatus(p.serverStorage).State()
 
 	return nil
 }
 
 func (s *ServerStorageService) StorageServiceIdStoragePoolIdDelete(storageServiceId, storagePoolId string) error {
-	p := s.findStoragePool(storageServiceId, storagePoolId)
-	if p == nil {
+	sp := s.findStoragePool(storageServiceId, storagePoolId)
+	if sp == nil {
 		return ec.ErrNotFound
 	}
 
-	// TODO
+	if sp.fileSystem != nil {
+		return ec.ErrNotAcceptable
+	}
+
+	for poolIdx, pool := range s.pools {
+		if pool.id == sp.id {
+			s.pools = append(s.pools[:poolIdx], s.pools[:poolIdx+1]...)
+			break
+		}
+	}
 
 	return nil
 }
@@ -298,8 +312,13 @@ func (*ServerStorageService) StorageServiceIdStorageGroupIdGet(storageServiceId,
 	return ec.ErrNotAcceptable
 }
 
-func (*ServerStorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId string) error {
-	return ec.ErrNotAcceptable
+func (s *ServerStorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId string) error {
+	sp := s.findStoragePool(storageServiceId, storageGroupId)
+	if sp == nil {
+		return ec.ErrNotFound
+	}
+
+	return nil
 }
 
 func (*ServerStorageService) StorageServiceIdEndpointsGet(storageServiceId string, model *sf.EndpointCollectionEndpointCollection) error {
@@ -346,8 +365,18 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 		return ec.ErrBadRequest
 	}
 
+	modelFsOem, ok := model.Oem["FileSystem"]
+	if !ok {
+		return ec.ErrBadRequest
+	}
+
+	fsOem, ok := modelFsOem.(map[string]interface{})
+	if !ok {
+		return ec.ErrBadRequest
+	}
+
 	oem := server.FileSystemOem{}
-	if err := openapi.UnmarshalOem(model.Oem, &oem); err != nil {
+	if err := openapi.UnmarshalOem(fsOem, &oem); err != nil {
 		return ec.ErrBadRequest
 	}
 
@@ -357,7 +386,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 	}
 
 	fs := FileSystem{
-		id:                   p.id,
+		id:                   p.id, // File System Id same as Pool Id
 		pool:                 p,
 		api:                  api,
 		serverStorageService: s,
@@ -366,7 +395,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 	s.fileSystems = append(s.fileSystems, fs)
 	p.fileSystem = &s.fileSystems[len(s.fileSystems)-1]
 
-	return nil
+	return s.StorageServiceIdFileSystemIdGet(storageServiceId, p.id, model)
 }
 
 func (s *ServerStorageService) StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId string, model *sf.FileSystemV122FileSystem) error {

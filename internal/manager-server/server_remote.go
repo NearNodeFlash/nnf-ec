@@ -18,31 +18,46 @@ const (
 )
 
 type RemoteServerController struct {
+	client  http.Client
 	Address string
+}
+
+func NewRemoteServerController(opts ServerControllerOptions) ServerControllerApi {
+	return &RemoteServerController{
+		Address: opts.Address,
+		client:  http.Client{Timeout: 0},
+	}
+}
+
+func (c *RemoteServerController) Connected() bool {
+	_, err := c.client.Get(c.Url(""))
+	return err == nil
 }
 
 func (c *RemoteServerController) NewStorage(pid uuid.UUID) *Storage {
 
-	pool := sf.StoragePoolV150StoragePool{
+	model := sf.StoragePoolV150StoragePool{
 		Id: pid.String(),
 	}
 
-	req, _ := json.Marshal(pool)
+	req, _ := json.Marshal(model)
 
-	rsp, err := http.Post(
+	rsp, err := c.client.Post(
 		c.Url("/StoragePools"),
 		"application/json",
 		bytes.NewBuffer(req),
 	)
+
+	if rsp != nil {
+		defer rsp.Body.Close()
+	}
 
 	if err != nil {
 		log.WithError(err).Errorf("New Server Storage: Http Error")
 		return nil
 	}
 
-	defer rsp.Body.Close()
-
-	if err := json.NewDecoder(rsp.Body).Decode(&pool); err != nil {
+	if err := json.NewDecoder(rsp.Body).Decode(&model); err != nil {
 		log.WithError(err).Errorf("New Server Storage: Failed to decode JSON response")
 		return nil
 	}
@@ -53,25 +68,45 @@ func (c *RemoteServerController) NewStorage(pid uuid.UUID) *Storage {
 	}
 }
 
+func (c *RemoteServerController) Delete(s *Storage) error {
+	req, err := http.NewRequest(http.MethodDelete, c.Url(fmt.Sprintf("/StoragePools/%s", s.Id.String())), nil)
+	if err != nil {
+		return err
+	}
+
+	rsp, err := c.client.Do(req)
+	if rsp != nil {
+		defer rsp.Body.Close()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *RemoteServerController) GetStatus(s *Storage) StorageStatus {
 
-	rsp, err := http.Get(
+	rsp, err := c.client.Get(
 		c.Url(fmt.Sprintf("/StoragePools/%s", s.Id.String())),
 	)
+	if rsp != nil {
+		defer rsp.Body.Close()
+	}
+
 	if err != nil {
 		log.WithError(err).Errorf("Get Status: Http Error")
 		return StorageStatus_Error
 	}
 
-	defer rsp.Body.Close()
-
-	pool := sf.StoragePoolV150StoragePool{}
-	if err := json.NewDecoder(rsp.Body).Decode(&pool); err != nil {
+	model := sf.StoragePoolV150StoragePool{}
+	if err := json.NewDecoder(rsp.Body).Decode(&model); err != nil {
 		log.WithError(err).Errorf("Get Status: Failed to decode JSON response")
 		return StorageStatus_Error
 	}
 
-	switch pool.Status.State {
+	switch model.Status.State {
 	case sf.STARTING_RST:
 		return StorageStatus_Starting
 	case sf.ENABLED_RST:
@@ -83,56 +118,63 @@ func (c *RemoteServerController) GetStatus(s *Storage) StorageStatus {
 
 func (c *RemoteServerController) CreateFileSystem(s *Storage, f FileSystemApi, mp string) error {
 
-	fileSystem := sf.FileSystemV122FileSystem{
+	model := sf.FileSystemV122FileSystem{
 		StoragePool: sf.OdataV4IdRef{OdataId: fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools/%s", RemoteStorageServiceId, s.Id.String())},
 		Oem:         map[string]interface{}{"FileSystem": FileSystemOem{Name: f.Name()}},
 	}
 
-	req, _ := json.Marshal(fileSystem)
+	req, err := json.Marshal(model)
+	if err != nil {
+		return err
+	}
 
-	rsp, err := http.Post(
-		c.Url("/FileSystems"),
+	rsp, err := c.client.Post(
+		c.Url("/FileSystems"), // /redfish/v1/StorageServices/{StorageServiceId}/FileSystems
 		"application/json",
 		bytes.NewBuffer(req),
 	)
+
+	if rsp != nil {
+		defer rsp.Body.Close()
+	}
 
 	if err != nil {
 		log.WithError(err).Errorf("Create File System: Http Error")
 		return err
 	}
 
-	defer rsp.Body.Close()
-
-	if err := json.NewDecoder(rsp.Body).Decode(&fileSystem); err != nil {
+	if err := json.NewDecoder(rsp.Body).Decode(&model); err != nil {
 		log.WithError(err).Errorf("Create File System: Failed to decode JSON response")
 		return err
 	}
 
-	return c.createMountPoint(&fileSystem, mp)
+	return c.createMountPoint(&model, mp)
 }
 
 func (c *RemoteServerController) createMountPoint(fs *sf.FileSystemV122FileSystem, mp string) error {
 
-	fileShare := sf.FileShareV120FileShare{
+	model := sf.FileShareV120FileShare{
 		FileSharePath: mp,
 	}
 
-	req, _ := json.Marshal(fileShare)
+	req, _ := json.Marshal(model)
 
-	rsp, err := http.Post(
-		c.Url(fmt.Sprintf("/FileSystems/%s", fs.Id)),
+	rsp, err := c.client.Post(
+		c.Url(fmt.Sprintf("/FileSystems/%s/ExportedFileShares", fs.Id)),
 		"application/json",
 		bytes.NewBuffer(req),
 	)
+
+	if rsp != nil {
+		defer rsp.Body.Close()
+	}
 
 	if err != nil {
 		log.WithError(err).Errorf("Create Mount Point: Http Error")
 		return err
 	}
 
-	defer rsp.Body.Close()
-
-	if err := json.NewDecoder(rsp.Body).Decode(&fileShare); err != nil {
+	if err := json.NewDecoder(rsp.Body).Decode(&model); err != nil {
 		log.WithError(err).Errorf("Create Mount Point: Failed to decode JSON response")
 		return err
 	}

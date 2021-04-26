@@ -76,6 +76,9 @@ type Endpoint struct {
 
 	fabricId string
 
+	// This is the Server Controller used for managing the endpoint
+	serverCtrl server.ServerControllerApi
+
 	config         *ServerConfig
 	storageService *StorageService
 }
@@ -283,25 +286,29 @@ func (s *StorageService) createStorageGroup(sp *StoragePool, endpoint *Endpoint)
 
 	groupId = groupId + 1
 
-	isNnf := func(ep *Endpoint) bool {
-		model := sf.EndpointV150Endpoint{}
-		fabric.FabricIdEndpointsEndpointIdGet(ep.fabricId, ep.id, &model)
-		if model.ConnectedEntities[0].EntityType == sf.PROCESSOR_EV150ET {
-			return true
-		}
-
-		return false
-	}
-
-	ctrl := s.serverControllerProvider.NewServerController(
-		server.ServerControllerOptions{Local: isNnf(endpoint)})
-
 	return &StorageGroup{
 		id:             strconv.Itoa(groupId),
 		endpoint:       endpoint,
-		serverStorage:  ctrl.NewStorage(sp.uid),
+		serverStorage:  endpoint.serverCtrl.NewStorage(sp.uid),
 		storagePool:    sp,
 		storageService: s,
+	}
+}
+
+func (s *StorageService) deleteStorageGroup(sg *StorageGroup) {
+	sp := sg.storagePool
+	for storageGroupIdx, storageGroup := range sp.storageGroups {
+		if storageGroup.id == sg.id {
+			sp.storageGroups = append(sp.storageGroups[:storageGroupIdx], sp.storageGroups[storageGroupIdx+1:]...)
+			break
+		}
+	}
+
+	for storageGroupIdx, storageGroup := range s.groups {
+		if storageGroup.id == sg.id {
+			s.groups = append(s.groups[:storageGroupIdx], s.groups[storageGroupIdx+1:]...)
+			break
+		}
 	}
 }
 
@@ -465,8 +472,6 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 		return err
 	}
 
-	log.Debugf("%+v", conf)
-
 	s.id = conf.Id
 	s.config = conf
 
@@ -522,16 +527,33 @@ func PortEventHandler(event PortEvent, data interface{}) {
 		return
 	}
 
-	endpoint := Endpoint{
-		id:             ep.Id(),
-		name:           ep.Name(),
-		fabricId:       event.FabricId,
-		controllerId:   ep.ControllerId(),
-		state:          sf.ENABLED_RST, // TODO: Port Down Ev
-		storageService: s,
+	isNnf := func(ep *fabric.Endpoint) bool {
+		model := sf.EndpointV150Endpoint{}
+		fabric.FabricIdEndpointsEndpointIdGet(event.FabricId, ep.Id(), &model)
+		if model.ConnectedEntities[0].EntityType == sf.PROCESSOR_EV150ET {
+			return true
+		}
+
+		return false
 	}
 
-	s.endpoints[endpointIdx] = endpoint
+	endpoint := &s.endpoints[endpointIdx]
+
+	endpoint.id = ep.Id()
+	endpoint.name = ep.Name()
+	endpoint.controllerId = ep.ControllerId()
+	endpoint.fabricId = event.FabricId // Should just link to the fabric.Endpoint
+
+	opts := server.ServerControllerOptions{
+		Local:   isNnf(ep),
+		Address: endpoint.config.Address,
+	}
+
+	endpoint.serverCtrl = s.serverControllerProvider.NewServerController(opts)
+
+	if endpoint.serverCtrl.Connected() {
+		endpoint.state = sf.ENABLED_RST
+	}
 }
 
 func (*StorageService) StorageServicesGet(model *sf.StorageServiceCollectionStorageServiceCollection) error {
@@ -844,7 +866,7 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 		return ec.ErrNotAcceptable
 	}
 
-	if ep.state != sf.ENABLED_RST {
+	if !ep.serverCtrl.Connected() {
 		return ec.ErrNotAcceptable
 	}
 
@@ -915,6 +937,8 @@ func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, st
 
 	sp := sg.storagePool
 
+	// Detach the endpoint from the NVMe namespaces
+
 	for _, volume := range sp.providingVolumes {
 		if err := nvme.DetachControllers(volume.volume, []uint16{sg.endpoint.controllerId}); err != nil {
 			log.WithError(err).Errorf("Failed to detach controllers")
@@ -922,12 +946,13 @@ func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, st
 		}
 	}
 
-	for storageGroupIdx, storageGroup := range s.groups {
-		if storageGroup.id == sg.id {
-			s.groups = append(s.groups[:storageGroupIdx], s.groups[storageGroupIdx+1:]...)
-			break
-		}
+	// Notify the Server the namespaces were removed
+
+	if err := sg.serverStorage.Delete(); err != nil {
+		return ec.ErrInternalServerError
 	}
+
+	s.deleteStorageGroup(sg)
 
 	return nil
 }
@@ -950,13 +975,26 @@ func (*StorageService) StorageServiceIdEndpointsGet(storageServiceId string, mod
 
 // StorageServiceIdEndpointIdGet -
 func (*StorageService) StorageServiceIdEndpointIdGet(storageServiceId, endpointId string, model *sf.EndpointV150Endpoint) error {
-	_, e := findEndpoint(storageServiceId, endpointId)
-	if e == nil {
+	_, ep := findEndpoint(storageServiceId, endpointId)
+	if ep == nil {
 		return ec.ErrNotFound
 	}
 
-	if err := fabric.FabricIdEndpointsEndpointIdGet(e.fabricId, e.id, model); err != nil {
+	// Ask the fabric manager to fill it the endpoint details
+	if err := fabric.FabricIdEndpointsEndpointIdGet(ep.fabricId, ep.id, model); err != nil {
 		return err
+	}
+
+	// Since the Fabric Manager is only aware of PCI-e Connectivity, if we have a different
+	// view of the endpoint from our ability to controller the server, record the state here.
+	if model.Status.State == sf.ENABLED_RST {
+		if ep.serverCtrl.Connected() {
+			ep.state = sf.ENABLED_RST
+		} else {
+			ep.state = sf.UNAVAILABLE_OFFLINE_RST
+		}
+
+		model.Status.State = ep.state
 	}
 
 	return nil
@@ -1002,18 +1040,23 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 		return ec.ErrNotAcceptable
 	}
 
-	// TODO: Oem should define the file system type (by name)
-	type Oem struct {
-		Type string
-	}
-
-	oem := Oem{}
-
-	if err := openapi.UnmarshalOem(model.Oem, &oem); err != nil {
+	modelFs, ok := model.Oem["FileSystem"]
+	if !ok {
 		return ec.ErrBadRequest
 	}
 
-	fsApi := server.FileSystemController.NewFileSystem(oem.Type)
+	modelFsOem, ok := modelFs.(map[string]interface{})
+	if !ok {
+		return ec.ErrBadRequest
+	}
+
+	oem := server.FileSystemOem{}
+
+	if err := openapi.UnmarshalOem(modelFsOem, &oem); err != nil {
+		return ec.ErrBadRequest
+	}
+
+	fsApi := server.FileSystemController.NewFileSystem(oem.Name)
 	if fsApi == nil {
 		return ec.ErrNotAcceptable
 	}

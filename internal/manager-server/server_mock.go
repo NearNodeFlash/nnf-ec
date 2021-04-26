@@ -15,11 +15,17 @@ func NewMockServerController() ServerControllerApi {
 type MockServerController struct {
 }
 
+func (c *MockServerController) Connected() bool { return true }
+
 func (c *MockServerController) NewStorage(pid uuid.UUID) *Storage {
 	return &Storage{
 		Id:   pid,
 		ctrl: c,
 	}
+}
+
+func (c *MockServerController) Delete(s *Storage) error {
+	return nil
 }
 
 func (*MockServerController) GetStatus(s *Storage) StorageStatus {

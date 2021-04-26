@@ -39,8 +39,12 @@ type ServerControllerOptions struct {
 // a Server in the Rabbit NNF topology. That is - A remote initiator endpoint or
 // the local NNF server.
 type ServerControllerApi interface {
+	Connected() bool
+	
 	// Allocate a new Storage object to be managed by this controller
 	NewStorage(uuid.UUID) *Storage
+
+	Delete(*Storage) error
 
 	// Retrieve the status of the provided Storage object from the controller
 	GetStatus(*Storage) StorageStatus

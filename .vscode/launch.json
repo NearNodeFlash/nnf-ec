@@ -20,12 +20,12 @@
             }
         },
         {
-            "name": "Http, Cli, Purge",
+            "name": "Http",
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/nnf_ec.go",
-            "args": ["--http", "--port=8080", "--cli", "--purge"],
+            "args": ["--http", "--port=8080", "--log"],
         },
         {
             "name": "Http, Mock",
@@ -34,6 +34,14 @@
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/nnf_ec.go",
             "args": ["--mock", "--http", "--port=8080", "--log"],
+        },
+        {
+            "name": "Server",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}/cmd/server/nnf_server.go",
+            "args": [],
         },
     ]
 }

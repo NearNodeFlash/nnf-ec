@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -76,6 +77,35 @@ type NamespaceMetadata struct {
 	Id        uuid.UUID
 }
 
+type NamespaceMetadataError struct {
+	data *NamespaceMetadata
+}
+
+func NewNamespaceMetadataError(data *NamespaceMetadata) *NamespaceMetadataError {
+	return &NamespaceMetadataError{data: data}
+}
+
+func (e *NamespaceMetadataError) Error() string {
+	if NamespaceMeatadataSignature != e.data.Signature {
+		return fmt.Sprintf("Namespace Metadata Signature Invalid: Expected: %#08x Actual: %#08x", NamespaceMeatadataSignature, e.data.Signature)
+	}
+
+	if NamespaceMeatadataRevision != e.data.Revision {
+		return fmt.Sprintf("Namespace Metadata Revision Invalid: Expected: %d Actual: %d", NamespaceMeatadataRevision, e.data.Revision)
+	}
+
+	return "Unknown"
+}
+
+func (e *NamespaceMetadataError) Is(err error) bool {
+	_, ok := err.(*NamespaceMetadataError)
+	return ok
+}
+
+var (
+	ErrNamespaceMetadata = NewNamespaceMetadataError(nil)
+)
+
 func EncodeNamespaceMetadata(pid uuid.UUID, index uint16, count uint16) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -94,9 +124,15 @@ func EncodeNamespaceMetadata(pid uuid.UUID, index uint16, count uint16) ([]byte,
 
 func DecodeNamespaceMetadata(buf []byte) (*NamespaceMetadata, error) {
 
-	md := new(NamespaceMetadata)
+	data := new(NamespaceMetadata)
 
-	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, md)
+	if err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, data); err != nil {
+		return nil, err
+	}
 
-	return md, err
+	if (data.Signature != NamespaceMeatadataSignature) || (data.Revision != NamespaceMeatadataRevision) {
+		return data, NewNamespaceMetadataError(data)
+	}
+
+	return data, nil
 }

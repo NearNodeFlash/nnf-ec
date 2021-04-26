@@ -1,11 +1,24 @@
 package server
 
-//"testing"
+import (
+	"testing"
 
-//"github.com/google/uuid"
+	"github.com/google/uuid"
+)
 
-/*
-func TestCreateFilesystem(t *testing.T) {
+func _TestNsid(t *testing.T) {
+
+	ns := "/dev/nvme0n5"
+
+	id, err := getNamespaceId(ns)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Namespace %s ID %d", ns, id)
+}
+
+func _TestCreateZfsFilesystem(t *testing.T) {
 	// Warning, this assume the existence of some NVMe devices
 
 	fsConfig, _ := loadConfig()
@@ -13,8 +26,9 @@ func TestCreateFilesystem(t *testing.T) {
 
 	pid := uuid.MustParse("00000000-0000-0000-0000-000000000000")
 
-	ctrl := NewServerController(true)
-	pool := ctrl.NewServerStoragePool(pid)
+	provider := DefaultServerControllerProvider{}
+	ctrl := provider.NewServerController(ServerControllerOptions{Local: true})
+	pool := ctrl.NewStorage(pid)
 
 	if pool == nil {
 		t.Fatalf("Could not allocate storage pool %s", pid)
@@ -29,4 +43,3 @@ func TestCreateFilesystem(t *testing.T) {
 		t.Errorf("Create File System Failed %s", err)
 	}
 }
-*/

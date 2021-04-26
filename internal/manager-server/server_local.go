@@ -1,13 +1,15 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 
 	"stash.us.cray.com/rabsw/nnf-ec/internal/common"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/logging"
@@ -19,16 +21,29 @@ func (DefaultServerControllerProvider) NewServerController(opts ServerController
 	if opts.Local {
 		return &LocalServerController{}
 	}
-	return &RemoteServerController{opts.Address}
+	return NewRemoteServerController(opts)
 }
 
 type LocalServerController struct {
 	storage []Storage
 }
 
+func (c *LocalServerController) Connected() bool { return true }
+
 func (c *LocalServerController) NewStorage(pid uuid.UUID) *Storage {
 	c.storage = append(c.storage, Storage{Id: pid, ctrl: c})
 	return &c.storage[len(c.storage)-1]
+}
+
+func (c *LocalServerController) Delete(s *Storage) error {
+	for storageIdx, storage := range c.storage {
+		if storage.Id == s.Id {
+			c.storage = append(c.storage[:storageIdx], c.storage[storageIdx+1:]...)
+			break
+		}
+	}
+
+	return nil
 }
 
 func (c *LocalServerController) GetStatus(s *Storage) StorageStatus {
@@ -36,7 +51,10 @@ func (c *LocalServerController) GetStatus(s *Storage) StorageStatus {
 	// We really shouldn't need to refresh on every GetStatus() call if we're correctly
 	// tracking udev add/remove events. There should be a single refresh on launch (or
 	// possibily a udev-info call to pull in the initial hardware?)
-	c.Discover(nil)
+	if err := c.Discover(nil); err != nil {
+		logrus.WithError(err).Errorf("Local Server Controller: Discovery Error")
+		return StorageStatus_Error
+	}
 
 	// There should always be 1 or more namespces, so zero namespaces mean we are still starting.
 	// Once we've recovered the expected number of namespaces (nsExpected > 0) we continue to
@@ -78,12 +96,11 @@ func (c *LocalServerController) Discover(newStorageFunc func(*Storage)) error {
 
 	for _, ns := range nss {
 		sns, err := c.newStorageNamespace(ns)
-		if err != nil {
-			return err
-		}
 
-		if sns == nil {
+		if errors.Is(err, common.ErrNamespaceMetadata) {
 			continue
+		} else if err != nil {
+			return err
 		}
 
 		s := c.findStorage(sns.poolId)
@@ -98,12 +115,14 @@ func (c *LocalServerController) Discover(newStorageFunc func(*Storage)) error {
 				newStorageFunc(s)
 			}
 
-			continue
+		} else {
+
+			// We've identified a pool for this particular namespace
+			// Add the namespace to the pool if it's not present.
+			s.UpsertStorageNamespace(sns)
+
 		}
 
-		// We've identified a pool for this particular namespace
-		// Add the namespace to the pool if it's not present.
-		s.UpsertStorageNamespace(sns)
 	}
 
 	return nil
@@ -120,7 +139,7 @@ func (c *LocalServerController) findStorage(pid uuid.UUID) *Storage {
 }
 
 func (c *LocalServerController) namespaces() ([]string, error) {
-	nss, err := c.run("ls -A1 /dev/nvme[0-1023]n[1-128]")
+	nss, err := c.run("ls -A1 /dev/nvme* | grep -E \"nvme[0-9]+n[0-9]+\"")
 
 	// The above will return an err if zero namespaces exist. In
 	// this case, ENOENT is returned and we should instead return
@@ -135,13 +154,20 @@ func (c *LocalServerController) namespaces() ([]string, error) {
 }
 
 func (c *LocalServerController) newStorageNamespace(path string) (*StorageNamespace, error) {
-	// First we need to identify the namespace for the provided path.
-	nsidstr, err := c.run(fmt.Sprintf(`nvme id-ns %s | awk 'match($0, "NVME Identify Namespace ([0-9])+:$", m) {printf m[1]}'`, path))
+
+	// First we need to identify the NSID for the provided path.
+	nsid, err := getNamespaceId(path)
 	if err != nil {
 		return nil, err
 	}
 
-	nsid, err := strconv.Atoi(string(nsidstr))
+	// Retrieve the namespace GUID
+	guidStr, err := c.run(fmt.Sprintf("nvme id-ns %s --namespace-id=%d | awk '/nguid/{printf $3}'", path, nsid))
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := uuid.ParseBytes(guidStr)
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +183,7 @@ func (c *LocalServerController) newStorageNamespace(path string) (*StorageNamesp
 	}
 
 	return &StorageNamespace{
+		id:        id,
 		path:      path,
 		nsid:      nsid,
 		poolId:    meta.Id,
@@ -169,4 +196,43 @@ func (c *LocalServerController) run(cmd string) ([]byte, error) {
 	return logging.Cli.Trace(cmd, func(cmd string) ([]byte, error) {
 		return exec.Command("bash", "-c", cmd).Output()
 	})
+}
+
+// https://elixir.bootlin.com/linux/latest/source/include/uapi/asm-generic/ioctl.h
+const (
+	_IOC_NONE  = 0x0
+	_IOC_WRITE = 0x1
+	_IOC_READ  = 0x2
+
+	_IOC_NRBITS   = 8
+	_IOC_TYPEBITS = 8
+	_IOC_SIZEBITS = 14
+	_IOC_DIRBITS  = 2
+
+	_IOC_NRSHIFT   = 0
+	_IOC_TYPESHIFT = _IOC_NRSHIFT + _IOC_NRBITS
+	_IOC_SIZESHIFT = _IOC_TYPESHIFT + _IOC_TYPEBITS
+	_IOC_DIRSHIFT  = _IOC_SIZESHIFT + _IOC_SIZEBITS
+)
+
+func _IOC(dir uint, t uint, nr uint, size uint) uint {
+	return (dir << _IOC_DIRSHIFT) |
+		(t << _IOC_TYPESHIFT) |
+		(nr << _IOC_NRSHIFT) |
+		(size << _IOC_SIZESHIFT)
+}
+
+func _IO(t uint, nr uint) uint { return _IOC(_IOC_NONE, t, nr, 0) }
+
+// https://github.com/linux-nvme/nvme-cli/blob/master/linux/nvme_ioctl.h
+var _NVME_IOCTL_ID = func() uint { return _IO('N', 0x40) }()
+
+func getNamespaceId(path string) (int, error) {
+	fd, err := unix.Open(path, unix.O_RDONLY, 0)
+	if err != nil {
+		return -1, err
+	}
+	defer unix.Close(fd)
+
+	return unix.IoctlRetInt(fd, _NVME_IOCTL_ID)
 }

@@ -44,30 +44,34 @@ type StorageNamespace struct {
 	debug bool // If this storage namespace is in debug mode
 }
 
-func (p *Storage) GetStatus() StorageStatus {
-	return p.ctrl.GetStatus(p)
+func (s *Storage) GetStatus() StorageStatus {
+	return s.ctrl.GetStatus(s)
 }
 
-func (p *Storage) CreateFileSystem(fs FileSystemApi, mountpoint string) error {
-	return p.ctrl.CreateFileSystem(p, fs, mountpoint)
+func (s *Storage) Delete() error {
+	return s.ctrl.Delete(s)
 }
 
-func (p *Storage) DeleteFileSystem(fs FileSystemApi) error {
-	return p.ctrl.DeleteFileSystem(p)
+func (s *Storage) CreateFileSystem(fs FileSystemApi, mountpoint string) error {
+	return s.ctrl.CreateFileSystem(s, fs, mountpoint)
+}
+
+func (s *Storage) DeleteFileSystem(fs FileSystemApi) error {
+	return s.ctrl.DeleteFileSystem(s)
 }
 
 // Returns the list of devices for this pool.
-func (p *Storage) Devices() []string {
-	devices := make([]string, len(p.ns))
-	for idx := range p.ns {
-		devices[idx] = p.ns[idx].path
+func (s *Storage) Devices() []string {
+	devices := make([]string, len(s.ns))
+	for idx := range s.ns {
+		devices[idx] = s.ns[idx].path
 	}
 
 	return devices
 }
 
-func (p *Storage) UpsertStorageNamespace(sns *StorageNamespace) {
-	for _, ns := range p.ns {
+func (s *Storage) UpsertStorageNamespace(sns *StorageNamespace) {
+	for _, ns := range s.ns {
 		// Debug mode uses matching paths to track the namespaces
 		// This isn't practical in production because the same namespace
 		// and come and go on different paths.
@@ -83,7 +87,9 @@ func (p *Storage) UpsertStorageNamespace(sns *StorageNamespace) {
 		}
 	}
 
-	p.ns = append(p.ns, *sns)
+	s.ns = append(s.ns, *sns)
+
+	s.nsExpected = sns.poolTotal
 }
 
 type StorageStatus string
