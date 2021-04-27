@@ -6,18 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func _TestNsid(t *testing.T) {
-
-	ns := "/dev/nvme0n5"
-
-	id, err := getNamespaceId(ns)
-	if err != nil {
-		t.Error(err)
-	}
-
-	t.Logf("Namespace %s ID %d", ns, id)
-}
-
 func _TestCreateZfsFilesystem(t *testing.T) {
 	// Warning, this assume the existence of some NVMe devices
 
