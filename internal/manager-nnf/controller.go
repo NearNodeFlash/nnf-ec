@@ -4,11 +4,11 @@ import (
 	server "stash.us.cray.com/rabsw/nnf-ec/internal/manager-server"
 )
 
-type NnfControllerInterface interface{
+type NnfControllerInterface interface {
 	ServerControllerProvider() server.ServerControllerProvider
 }
 
-type NnfController struct{
+type NnfController struct {
 	serverControllerProvider server.ServerControllerProvider
 }
 

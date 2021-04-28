@@ -47,7 +47,7 @@ type Switch struct {
 	config *SwitchConfig
 	ports  []Port
 
-	fabric   *Fabric
+	fabric *Fabric
 	//mgmtPort *Port
 
 	// Information is cached on switch initialization
@@ -1144,7 +1144,7 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 
 	// TODO: Correctly report endpoint state
 	model.Status = sf.ResourceStatus{
-		State: sf.ENABLED_RST,
+		State:  sf.ENABLED_RST,
 		Health: sf.OK_RH,
 	}
 
@@ -1169,7 +1169,7 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 	return nil
 }
 
-// FabricIdEndpointGroupsGet - 
+// FabricIdEndpointGroupsGet -
 func FabricIdEndpointGroupsGet(fabricId string, model *sf.EndpointGroupCollectionEndpointGroupCollection) error {
 	f := findFabric(fabricId)
 	if f == nil {

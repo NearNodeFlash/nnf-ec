@@ -45,10 +45,10 @@ type Api interface {
 	RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdDelete(w http.ResponseWriter, r *http.Request)
 }
 
-// Storage Service API defines the interface for the above API methods to call. Each API method must have 
+// Storage Service API defines the interface for the above API methods to call. Each API method must have
 // an equivalent method. Methods take request paramters and a Redfish / Swordfish model to populate.
 type StorageServiceApi interface {
-	Initialize(NnfControllerInterface) error 
+	Initialize(NnfControllerInterface) error
 
 	StorageServicesGet(*sf.StorageServiceCollectionStorageServiceCollection) error
 	StorageServiceIdGet(string, *sf.StorageServiceV150StorageService) error
@@ -62,7 +62,7 @@ type StorageServiceApi interface {
 	StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(string, string, string, *sf.VolumeCollectionVolumeCollection) error
 	StorageServiceIdStoragePoolIdAlloctedVolumesGet(string, string, *sf.VolumeCollectionVolumeCollection) error
 	StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(string, string, string, *sf.VolumeV161Volume) error
-	
+
 	StorageServiceIdStorageGroupsGet(string, *sf.StorageGroupCollectionStorageGroupCollection) error
 	StorageServiceIdStorageGroupPost(string, *sf.StorageGroupV150StorageGroup) error
 	StorageServiceIdStorageGroupIdGet(string, string, *sf.StorageGroupV150StorageGroup) error
@@ -76,7 +76,7 @@ type StorageServiceApi interface {
 	StorageServiceIdFileSystemIdGet(string, string, *sf.FileSystemV122FileSystem) error
 	StorageServiceIdFileSystemIdDelete(string, string) error
 
-	StorageServiceIdFileSystemIdExportedSharesGet(string, string, *sf.FileShareCollectionFileShareCollection ) error
+	StorageServiceIdFileSystemIdExportedSharesGet(string, string, *sf.FileShareCollectionFileShareCollection) error
 	StorageServiceIdFileSystemIdExportedSharesPost(string, string, *sf.FileShareV120FileShare) error
 	StorageServiceIdFileSystemIdExportedShareIdGet(string, string, string, *sf.FileShareV120FileShare) error
 	StorageServiceIdFileSystemIdExportedShareIdDelete(string, string, string) error

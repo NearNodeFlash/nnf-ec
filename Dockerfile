@@ -3,22 +3,19 @@
 #
 # Provides Docker image build instructions for nnf-ec
 #
-# Author: Tim Morneau
+# Author: Nate Roiger
 #
-# © Copyright 2020 Hewlett Packard Enterprise Development LP
+# © Copyright 2021 Hewlett Packard Enterprise Development LP
 #
 # -----------------------------------------------------------------
 
 # Copyright 2020 HPE.  All Rights Reserved
-FROM dtr.dev.cray.com/baseos/centos:centos7 AS base
+FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest AS base
 
 WORKDIR /
 
 # Install base dependencies
-#RUN yum install -y wget tar git make rpm-build
 RUN yum install -y wget \
-                   subversion \
-                   mod_dav_svn \
                    which \
                    make \
                    gcc \
@@ -29,9 +26,8 @@ RUN yum install -y wget \
 # Get updated version of git from new repo
 RUN yum install -y git
 
-# Download and install Golang v1.14.4
-RUN CRASH // needs update to go v1.16+
-RUN wget https://golang.org/dl/go1.14.4.linux-amd64.tar.gz && tar -xzf go1.14.4.linux-amd64.tar.gz && rm -rf go*.tar.gz
+# Download and install Golang v1.16.3
+RUN wget https://golang.org/dl/go1.16.3.linux-amd64.tar.gz && tar -xzf go1.16.3.linux-amd64.tar.gz && rm -rf go*.tar.gz
 
 # Set Go environment
 ENV GOROOT="/go"
@@ -42,26 +38,45 @@ ENV PATH="${PATH}:${GOROOT}/bin"  \
     GOSUMDB="on"                  \
     GO111MODULE="on"
 
-ENV PROJECT ${GOPATH}/src/stash.us.cray.com/sp/nnf-ec
+ENV PROJECT $GOPATH/src/stash.us.cray.com/rabsw/nnf-ec
 
 # Copy everything needed to create image
-RUN mkdir -p $PROJECT
 WORKDIR $PROJECT
-COPY cmd ./cmd
-COPY ec ./ec
-COPY internal ./internal
-COPY pkg ./pkg
-COPY go.mod go.sum ./
-#RUN go mod vendor
-COPY vendor ./vendor
-COPY bin ./bin
+COPY cmd ./cmd/
+COPY pkg ./pkg/
+COPY internal ./internal/
+COPY static-analysis ./static-analysis/
+COPY go.mod go.sum runContainerTest.sh ./
+
+# vendor directory is not in git, need to generate it
+RUN go mod vendor
+
 
 # Build nnf-ec binary
 RUN set -ex && go build -v -i -o /usr/local/bin/nnf-ec ./cmd/nnf_ec.go
-
 ENTRYPOINT ["/bin/sh"]
 
-FROM dtr.dev.cray.com/baseos/centos:centos7 AS application
+# The base testing container
+FROM base AS base_testing
+
+# go unit tests
+FROM base_testing AS container-unit-test
+WORKDIR $PROJECT
+ENTRYPOINT ["sh", "runContainerTest.sh"]
+
+# the static-analysis-codestyle-container
+FROM base_testing as codestyle
+WORKDIR $PROJECT
+ENTRYPOINT ["sh", "static-analysis/docker_codestyle_entry.sh"]
+
+# the static-analysis-lint-container
+FROM base_testing as lint
+WORKDIR $PROJECT
+ENTRYPOINT ["sh", "static-analysis/docker_lint_entry.sh"]
+
+
+# Image build is here
+FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest AS application
 ENV PROJECT ${GOPATH}/src/stash.us.cray.com/rabsw/nnf-ec
 
 # Pull over nnf-ec binary from base stage, add dependencies
@@ -69,5 +84,3 @@ COPY --from=0 /usr/local/bin/nnf-ec /usr/local/bin/nnf-ec
 #RUN yum install -y udev bash && yum clean all
 
 ENTRYPOINT ["/usr/local/bin/nnf-ec"]
-
-

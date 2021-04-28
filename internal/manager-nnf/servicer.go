@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultApiService -
-type DefaultApiService struct{
+type DefaultApiService struct {
 	ss StorageServiceApi
 }
 

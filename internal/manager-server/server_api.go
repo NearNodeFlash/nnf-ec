@@ -31,7 +31,7 @@ type ServerControllerProvider interface {
 }
 
 type ServerControllerOptions struct {
-	Local bool // Set to true if the server controller is local to the running program
+	Local   bool   // Set to true if the server controller is local to the running program
 	Address string // IP Address of the Server
 }
 
@@ -40,7 +40,7 @@ type ServerControllerOptions struct {
 // the local NNF server.
 type ServerControllerApi interface {
 	Connected() bool
-	
+
 	// Allocate a new Storage object to be managed by this controller
 	NewStorage(uuid.UUID) *Storage
 

@@ -220,9 +220,10 @@ func Routes() []TestRoute {
 
 func TestFabricManagerEndpoints(t *testing.T) {
 
-	t.Skip("skipping test for now")
+	t.Skip("MockController doesn't shutdown until the entire test suite is finished.\n" +
+		"Skipping test because TestWalkFabricEndpoints checks the endpoints. Consider deleting")
 
-	opts := ec.Options{Http: true, Port: 8080, Log: true}
+	opts := ec.Options{Http: true, Port: 8080, Log: true, Verbose: true}
 	MockController.Init(&opts)
 
 	go MockController.Run()
@@ -434,12 +435,20 @@ func RouteCollections() []TestRoute {
 				}
 			},
 		},
+
+		// Storage Services
+		{
+			Name:  "RedfishV1StorageServicesGet",
+			URL:   "/redfish/v1/StorageServices",
+			Count: 1,
+			Func:  nil,
+		},
 	}
 }
 
-func TestWalkTheEndpoints(t *testing.T) {
+func TestWalkFabricEndpoints(t *testing.T) {
 
-	opts := ec.Options{Http: true, Port: 8080, Log: true}
+	opts := ec.Options{Http: true, Port: 8080, Log: true, Verbose: true}
 	MockController.Init(&opts)
 
 	go MockController.Run()
