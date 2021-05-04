@@ -53,6 +53,22 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdGet(w http.R
 	EncodeResponse(model, err, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdCapacitySourceGet -
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdCapacitySourceGet(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+
+	model := sf.CapacityCapacitySource{
+		OdataId:   fmt.Sprintf("/redfish/v1/StorageServices/%s/CapacitySource", storageServiceId),
+		OdataType: "#CapacitySource.v1_0_0.CapacitySource",
+		Name:      "Capacity Source",
+	}
+
+	err := s.ss.StorageServiceIdCapacitySourceGet(storageServiceId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsGet -
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)

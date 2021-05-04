@@ -16,6 +16,8 @@ type Api interface {
 	RedfishV1StorageServicesGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdGet(w http.ResponseWriter, r *http.Request)
 
+	RedfishV1StorageServicesStorageServiceIdCapacitySourceGet(w http.ResponseWriter, r *http.Request)
+
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsPost(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request)
@@ -52,6 +54,8 @@ type StorageServiceApi interface {
 
 	StorageServicesGet(*sf.StorageServiceCollectionStorageServiceCollection) error
 	StorageServiceIdGet(string, *sf.StorageServiceV150StorageService) error
+
+	StorageServiceIdCapacitySourceGet(string, *sf.CapacityCapacitySource) error
 
 	StorageServiceIdStoragePoolsGet(string, *sf.StoragePoolCollectionStoragePoolCollection) error
 	StorageServiceIdStoragePoolsPost(string, *sf.StoragePoolV150StoragePool) error

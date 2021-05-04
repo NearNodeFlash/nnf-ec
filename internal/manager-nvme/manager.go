@@ -209,6 +209,18 @@ func GetStorage() []*Storage {
 	return storage
 }
 
+func EnumerateStorage(storageHandlerFunc func(odataId string, capacityBytes uint64, unallocatedBytes uint64)) error {
+	for _, s := range mgr.storage {
+		if err := s.refreshCapacity(); err != nil {
+			return err
+		}
+
+		storageHandlerFunc(s.fmt("/StoragePools"), s.capacityBytes, s.unallocatedBytes)
+	}
+
+	return nil
+}
+
 func CreateVolume(s *Storage, capacityBytes uint64, data []byte) (*Volume, error) {
 	return s.createVolume(capacityBytes, data)
 }
@@ -322,6 +334,41 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 	}
 
 	return stat
+}
+
+func (s *Storage) refreshCapacity() error {
+
+	ctrl, err := s.device.IdentifyController(0)
+	if err != nil {
+		return err
+	}
+
+	capacityToUnit64 := func(c [16]byte) (lo uint64, hi uint64) {
+		lo, hi = 0, 0
+		for i := 0; i < 8; i++ {
+			lo, hi = lo<<8, hi<<8
+			lo += uint64(c[7-i])
+			hi += uint64(c[15-i])
+		}
+
+		return lo, hi
+	}
+
+	totalCapacityLo, totalCapacityHi := capacityToUnit64(ctrl.TotalNVMCapacity)
+
+	s.capacityBytes = totalCapacityLo
+	if totalCapacityHi != 0 {
+		return fmt.Errorf("Unsupported Capacity 0x%x_%x: will overflow uint64", totalCapacityHi, totalCapacityLo)
+	}
+
+	unallocatedCapacityLo, unallocatedCapacityHi := capacityToUnit64(ctrl.UnallocatedNVMCapacity)
+	if unallocatedCapacityHi != 0 {
+		return fmt.Errorf("Unsupported Capacity 0x%x_%x: will overflow uint64", unallocatedCapacityHi, unallocatedCapacityLo)
+	}
+
+	s.unallocatedBytes = unallocatedCapacityLo
+
+	return nil
 }
 
 func (s *Storage) createVolume(capacityBytes uint64, metadata []byte) (*Volume, error) {
@@ -662,30 +709,33 @@ func StorageIdStoragePoolsGet(storageId string, model *sf.StoragePoolCollectionS
 
 	model.MembersodataCount = 1
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
-	model.Members[0].OdataId = fmt.Sprintf("/redfish/v1/Storage/%s/StoragePool/%s", storageId, defaultStoragePoolId)
+	model.Members[0].OdataId = fmt.Sprintf("/redfish/v1/Storage/%s/StoragePools/%s", storageId, defaultStoragePoolId)
 
 	return nil
 }
 
 // StorageIdStoragePoolIdGet -
 func StorageIdStoragePoolIdGet(storageId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
-	_, sp := findStoragePool(storageId, storagePoolId)
+	s, sp := findStoragePool(storageId, storagePoolId)
 	if sp == nil {
 		return ec.ErrNotFound
+	}
+
+	if err := s.refreshCapacity(); err != nil {
+		return ec.ErrInternalServerError
 	}
 
 	// TODO: This should reflect the total namespaces allocated over the drive
 	model.Capacity = sf.CapacityV100Capacity{
 		Data: sf.CapacityV100CapacityInfo{
-			AllocatedBytes:   0,
-			ConsumedBytes:    0,
-			GuaranteedBytes:  0,
-			ProvisionedBytes: 0,
+			AllocatedBytes:   int64(s.capacityBytes - s.unallocatedBytes),
+			ConsumedBytes:    int64(s.capacityBytes - s.unallocatedBytes),
+			GuaranteedBytes:  int64(s.unallocatedBytes),
+			ProvisionedBytes: int64(s.capacityBytes),
 		},
 	}
 
-	// TODO
-	model.RemainingCapacityPercent = 0
+	model.RemainingCapacityPercent = int64(float64(s.unallocatedBytes/s.capacityBytes) * 100.0)
 
 	return nil
 }
