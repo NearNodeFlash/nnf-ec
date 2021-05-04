@@ -41,6 +41,15 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdGet,
 		},
 
+		/* -------------------- STORAGE SERVICE CAPACITY ------------------- */
+
+		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdCapacitySourcesGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/CapacitySource",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdCapacitySourceGet,
+		},
+
 		/* ------------------------- STORAGE POOLS ------------------------- */
 
 		{

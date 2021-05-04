@@ -128,6 +128,7 @@ type ExportedFileShare struct {
 }
 
 const (
+	DefaultCapacitySourceId            = "0"
 	DefaultStorageServiceId            = "unassigned" // This is loaded from config
 	DefaultStoragePoolCapacitySourceId = "0"
 	DefaultAllocatedVolumeId           = "0"
@@ -574,10 +575,40 @@ func (*StorageService) StorageServiceIdGet(storageServiceId string, model *sf.St
 	}
 
 	model.Id = s.id
+
 	model.StoragePools = sf.OdataV4IdRef{OdataId: s.fmt("/StoragePools")}
 	model.StorageGroups = sf.OdataV4IdRef{OdataId: s.fmt("/StorageGroups")}
 	model.Endpoints = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints")}
 	model.FileSystems = sf.OdataV4IdRef{OdataId: s.fmt("/FileSystems")}
+
+	model.Links.CapacitySource = sf.OdataV4IdRef{OdataId: s.fmt("/CapacitySource")}
+	return nil
+}
+
+func (*StorageService) StorageServiceIdCapacitySourceGet(storageServiceId string, model *sf.CapacityCapacitySource) error {
+	s := findStorageService(storageServiceId)
+	if s == nil {
+		return ec.ErrNotFound
+	}
+
+	model.Id = DefaultCapacitySourceId
+
+	totalCapacityBytes, totalUnallocatedBytes := uint64(0), uint64(0)
+	if err := nvme.EnumerateStorage(func(odataId string, capacityBytes uint64, unallocatedBytes uint64) {
+
+		// TODO: OdataId could be used to link to the underlying StoragePool that is the NVMe Device
+		//       That would require a new Storage Pool Collection that lives off the CapacitySource and
+		//       is properly linked.
+		totalCapacityBytes += capacityBytes
+		totalUnallocatedBytes += unallocatedBytes
+	}); err != nil {
+		return ec.ErrInternalServerError
+	}
+
+	model.ProvidedCapacity.Data.GuaranteedBytes = int64(totalUnallocatedBytes)
+	model.ProvidedCapacity.Data.ProvisionedBytes = int64(totalCapacityBytes)
+	model.ProvidedCapacity.Data.AllocatedBytes = int64(totalCapacityBytes - totalUnallocatedBytes)
+	model.ProvidedCapacity.Data.ConsumedBytes = model.ProvidedCapacity.Data.AllocatedBytes
 
 	return nil
 }

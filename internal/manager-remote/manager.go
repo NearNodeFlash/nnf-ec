@@ -202,6 +202,10 @@ func (s *ServerStorageService) StorageServiceIdGet(storageServiceId string, mode
 	return nil
 }
 
+func (s *ServerStorageService) StorageServiceIdCapacitySourceGet(storageServiceId string, model *sf.CapacityCapacitySource) error {
+	return ec.ErrNotAcceptable
+}
+
 func (s *ServerStorageService) StorageServiceIdStoragePoolsGet(storageServiceId string, model *sf.StoragePoolCollectionStoragePoolCollection) error {
 	if !s.isStorageService(storageServiceId) {
 		return ec.ErrNotFound

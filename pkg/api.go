@@ -31,10 +31,17 @@ func (s *storageService) Get() (*sf.StorageServiceV150StorageService, error) {
 	return model, err
 }
 
+func (s *storageService) Capacity() (*sf.CapacityCapacitySource, error) {
+	model := new(sf.CapacityCapacitySource)
+	err := s.get("/redfish/v1/StorageServices/NNF/CapacitySource", model)
+
+	return model, err
+}
+
 func (s *storageService) ProvisionStorage()
 
 func (s *storageService) get(path string, model interface{}) error {
-	
+
 	rsp, err := s.client.Get(fmt.Sprintf("http://%s:%s%s", s.address, s.port, path))
 	if rsp != nil {
 		defer rsp.Body.Close()
