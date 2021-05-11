@@ -27,6 +27,6 @@ rules:
   resourceNames: ["csds-dpapi"]
   resources: ["deployments/finalizers"]
   verbs: ["update"]
-- apiGroups: ["dpm.cray.hpe.com"]
+- apiGroups: ["dpm.cray.com"]
   resources: ["*"]
   verbs: ["*"]
