@@ -17,7 +17,7 @@ const (
 	StorageServiceRoot = "/redfish/v1/StorageServices/NNF"
 )
 
-func Connect(address, port string) *storageService {
+func NewStorageServiceConnection(address, port string) *storageService {
 	return &storageService{
 		address: address,
 		port:    port,
@@ -31,11 +31,9 @@ type storageService struct {
 	client  http.Client
 }
 
-func (s *storageService) GetStorageService() (*sf.StorageServiceV150StorageService, error) {
+func (s *storageService) CheckConnection() error {
 	model := new(sf.StorageServiceV150StorageService)
-	err := s.get(StorageServiceRoot, model)
-
-	return model, err
+	return s.get(StorageServiceRoot, model)
 }
 
 func (s *storageService) GetCapacity() (*sf.CapacityCapacitySource, error) {
@@ -71,7 +69,7 @@ func (s *storageService) GetStoragePool(odataid string) (*sf.StoragePoolV150Stor
 	return model, err
 }
 
-func (s *storageService) AllocateStoragePool(capacityBytes int64) (*sf.StoragePoolV150StoragePool, error) {
+func (s *storageService) CreateStoragePool(capacityBytes int64) (*sf.StoragePoolV150StoragePool, error) {
 	model := new(sf.StoragePoolV150StoragePool)
 
 	model.CapacityBytes = capacityBytes
