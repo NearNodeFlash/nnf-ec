@@ -31,9 +31,10 @@ type storageService struct {
 	client  http.Client
 }
 
-func (s *storageService) CheckConnection() error {
+func (s *storageService) Get() (*sf.StorageServiceV150StorageService, error) {
 	model := new(sf.StorageServiceV150StorageService)
-	return s.get(StorageServiceRoot, model)
+	err := s.get(StorageServiceRoot, model)
+	return model, err
 }
 
 func (s *storageService) GetCapacity() (*sf.CapacityCapacitySource, error) {
@@ -125,7 +126,6 @@ func (s *storageService) CreateFileShare(fileSystem *sf.FileSystemV122FileSystem
 
 	return model, err
 }
-
 
 func (s *storageService) get(path string, model interface{}) error {
 	return s.do(http.MethodGet, path, model)
