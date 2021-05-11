@@ -44,6 +44,13 @@ func (s *storageService) GetCapacity() (*sf.CapacityCapacitySource, error) {
 	return model, err
 }
 
+func (s *storageService) GetServer(odataid string) (*sf.EndpointV150Endpoint, error) {
+	model := new(sf.EndpointV150Endpoint)
+	err := s.get(odataid, model)
+
+	return model, err
+}
+
 func (s *storageService) GetServers() ([]sf.EndpointV150Endpoint, error) {
 
 	collection := new(sf.EndpointCollectionEndpointCollection)
