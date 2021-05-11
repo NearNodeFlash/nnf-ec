@@ -13,6 +13,10 @@ import (
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
+const (
+	StorageServiceRoot = "/redfish/v1/StorageServices/NNF"
+)
+
 func Connect(address, port string) *storageService {
 	return &storageService{
 		address: address,
@@ -27,21 +31,47 @@ type storageService struct {
 	client  http.Client
 }
 
-func (s *storageService) Get() (*sf.StorageServiceV150StorageService, error) {
+func (s *storageService) GetStorageService() (*sf.StorageServiceV150StorageService, error) {
 	model := new(sf.StorageServiceV150StorageService)
-	err := s.get("/redfish/v1/StorageServices/NNF", model)
+	err := s.get(StorageServiceRoot, model)
 
 	return model, err
 }
 
-func (s *storageService) Capacity() (*sf.CapacityCapacitySource, error) {
+func (s *storageService) GetCapacity() (*sf.CapacityCapacitySource, error) {
 	model := new(sf.CapacityCapacitySource)
-	err := s.get("/redfish/v1/StorageServices/NNF/CapacitySource", model)
+	err := s.get(fmt.Sprintf("%s/CapacitySource", StorageServiceRoot), model)
 
 	return model, err
 }
 
-func (s *storageService) AllocateStorage(capacityBytes int64) (*sf.StoragePoolV150StoragePool, error) {
+func (s *storageService) GetServers() ([]sf.EndpointV150Endpoint, error) {
+
+	collection := new(sf.EndpointCollectionEndpointCollection)
+	err := s.get(fmt.Sprintf("%s/Endpoints", StorageServiceRoot), collection)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoints := make([]sf.EndpointV150Endpoint, len(collection.Members))
+	for idx, ref := range collection.Members {
+		err = s.get(ref.OdataId, &endpoints[idx])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return endpoints, nil
+}
+
+func (s *storageService) GetStoragePool(odataid string) (*sf.StoragePoolV150StoragePool, error) {
+	model := new(sf.StoragePoolV150StoragePool)
+	err := s.get(odataid, model)
+
+	return model, err
+}
+
+func (s *storageService) AllocateStoragePool(capacityBytes int64) (*sf.StoragePoolV150StoragePool, error) {
 	model := new(sf.StoragePoolV150StoragePool)
 
 	model.CapacityBytes = capacityBytes
@@ -50,7 +80,7 @@ func (s *storageService) AllocateStorage(capacityBytes int64) (*sf.StoragePoolV1
 		Compliance: nnf.RelaxedAllocationComplianceType,
 	})
 
-	err := s.post("/redfish/v1/StorageServices/NNF/StoragePools", model)
+	err := s.post(fmt.Sprintf("%s/StoragePools", StorageServiceRoot), model)
 
 	return model, err
 }
@@ -61,7 +91,14 @@ func (s *storageService) CreateStorageGroup(pool *sf.StoragePoolV150StoragePool,
 	model.Links.StoragePool.OdataId = pool.OdataId
 	model.Links.ServerEndpoint.OdataId = endpoint.OdataId
 
-	err := s.post("/redfish/v1/StorageServices/NNF/StorageGroups", model)
+	err := s.post(fmt.Sprintf("%s/StorageGroups", StorageServiceRoot), model)
+
+	return model, err
+}
+
+func (s *storageService) GetStorageGroup(odataid string) (*sf.StorageGroupV150StorageGroup, error) {
+	model := new(sf.StorageGroupV150StorageGroup)
+	err := s.get(odataid, model)
 
 	return model, err
 }
@@ -74,7 +111,7 @@ func (s *storageService) CreateFileSystem(pool *sf.StoragePoolV150StoragePool, f
 		Name: fileSystem,
 	})
 
-	err := s.post("/redfish/v1/StorageServices/NNF/FileSystems", model)
+	err := s.post(fmt.Sprintf("%s/FileSystems", StorageServiceRoot), model)
 
 	return model, err
 }
@@ -86,10 +123,11 @@ func (s *storageService) CreateFileShare(fileSystem *sf.FileSystemV122FileSystem
 	model.Links.FileSystem.OdataId = fileSystem.OdataId
 	model.Links.Endpoint.OdataId = endpoint.OdataId
 
-	err := s.post(fileSystem.OdataId+"/ExportedFileShares", model)
+	err := s.post(fmt.Sprintf("%s/ExportedFileShares", fileSystem.OdataId), model)
 
 	return model, err
 }
+
 
 func (s *storageService) get(path string, model interface{}) error {
 	return s.do(http.MethodGet, path, model)

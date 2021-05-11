@@ -8,82 +8,46 @@
 #   pullPolicy: "" (default = "IfNotPresent")
 cray-service:
   # imagesHost: "s-lmo-anastl:5000"
-  nameOverride: csds-dpapi
+  nameOverride: nnf-ec
   type: DaemonSet
   service:
     enabled: False
   replicaCount: 1
-  serviceAccountName: csds-dpapi
+  serviceAccountName: nnf-ec
   tolerations:
     - key: "node-type"
       operator: "Equal"
       value: "storage"
       effect: "NoSchedule"
   containers:
-    cray-csds-dpapi:
-      name: dpapi
+    cray-nnf-ec:
+      name: cray-nnf-ec
       image:
-        # repository: cray/cray-csds-dpapi
-        # repository: cray/cray-dp-api
-        repository: roiger/dp-api
-        pullPolicy: Always
-      securityContext:
-        privileged: true
+        repository: cray/cray-nnf-ec
+        tag: latest
+        pullPolicy: Never
+      command: ["nnf-ec"]
+      args: ["--http", "--port=8080", "--mock", "--log", "--verbose"]
       ports:
-        - name: dp-api-service
+        - name: nnf-api-service
           containerPort: 8080
-        - name: grpc
-          containerPort: 50057
-      env:
-      - name: WATCH_NAMESPACE
-        value: ""
-      - name: POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: POD_HOST
-        valueFrom:
-          fieldRef:
-            fieldPath: spec.nodeName
-      - name: DISCOVERY_NAMESPACE
-        value: default
-      - name: RABBIT
-        value: "1"
-    cray-csds-nnf-ec:
-      name: nnf-ec
-      image:
-        # repository: cray/cray-csds-dm-ec
-        # repository: cray/cray-dp-drive-mgmt-elmnt-cntrl
-        repository: roiger/nnf-ec
-        pullPolicy: Always
       securityContext:
         privileged: true
       volumeMounts:
       - mountPath: /dev
         name: dev-dir
-      env:
-      - name: WATCH_NAMESPACE
-        value: ""
-        ports:
-          - name: nnf-ec-grpc
-            containerPort: 50057
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: POD_HOST
-        valueFrom:
-          fieldRef:
-            fieldPath: spec.nodeName
-      - name: DISCOVERY_NAMESPACE
-        value: default
-      - name: RABBIT
-        value: "1"
+      - mountPath: /mnt
+        name: mnt-dir
+        mountPropagation: Bidirectional
   volumes:
   - name: dev-dir
     hostPath:
       path: /dev
+  - name: mnt-dir
+    hostPath:
+      path: /mnt
   nodeSelector:
-    cray.dpm.dg.dpm-storage-node: "true"
+    cray.dpm.dg.dpm-nnf-node: "true"
 
 global:
   chart:

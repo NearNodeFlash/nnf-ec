@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------
 
 # Copyright 2020 HPE.  All Rights Reserved
-FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest AS base
+FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest AS builder
 
 WORKDIR /
 
@@ -57,7 +57,7 @@ RUN set -ex && go build -v -i -o /usr/local/bin/nnf-ec ./cmd/nnf_ec.go
 ENTRYPOINT ["/bin/sh"]
 
 # The base testing container
-FROM base AS base_testing
+FROM builder AS base_testing
 
 # go unit tests
 FROM base_testing AS container-unit-test
@@ -74,13 +74,12 @@ FROM base_testing as lint
 WORKDIR $PROJECT
 ENTRYPOINT ["sh", "static-analysis/docker_lint_entry.sh"]
 
-
 # Image build is here
 FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest AS application
-ENV PROJECT ${GOPATH}/src/stash.us.cray.com/rabsw/nnf-ec
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Pull over nnf-ec binary from base stage, add dependencies
-COPY --from=0 /usr/local/bin/nnf-ec /usr/local/bin/nnf-ec
+COPY --from=builder /usr/local/bin/nnf-ec /usr/local/bin/nnf-ec
 #RUN yum install -y udev bash && yum clean all
 
 ENTRYPOINT ["/usr/local/bin/nnf-ec"]
