@@ -122,6 +122,13 @@ func (s *storageService) CreateFileSystem(pool *sf.StoragePoolV150StoragePool, f
 	return model, err
 }
 
+func (s *storageService) GetFileSystem(odataid string) (*sf.FileSystemV122FileSystem, error) {
+	model := new(sf.FileSystemV122FileSystem)
+	err := s.get(odataid, model)
+
+	return model, err
+}
+
 func (s *storageService) CreateFileShare(fileSystem *sf.FileSystemV122FileSystem, endpoint *sf.EndpointV150Endpoint, fileSharePath string) (*sf.FileShareV120FileShare, error) {
 	model := new(sf.FileShareV120FileShare)
 
