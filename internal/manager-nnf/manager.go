@@ -582,6 +582,9 @@ func (*StorageService) StorageServiceIdGet(storageServiceId string, model *sf.St
 
 	model.Id = s.id
 
+	model.Status.State = sf.ENABLED_RST
+	model.Status.Health = sf.OK_RH
+
 	model.StoragePools = sf.OdataV4IdRef{OdataId: s.fmt("/StoragePools")}
 	model.StorageGroups = sf.OdataV4IdRef{OdataId: s.fmt("/StorageGroups")}
 	model.Endpoints = sf.OdataV4IdRef{OdataId: s.fmt("/Endpoints")}
@@ -716,6 +719,9 @@ func (*StorageService) StorageServiceIdStoragePoolIdGet(storageServiceId, storag
 		DurableName:       p.uid.String(),
 		DurableNameFormat: sf.UUID_RV1100DNF,
 	}
+
+	model.Status.State = sf.ENABLED_RST
+	model.Status.Health = sf.OK_RH
 
 	model.Links.StorageGroupsodataCount = int64(len(p.storageGroups))
 	model.Links.StorageGroups = make([]sf.OdataV4IdRef, model.Links.StorageGroupsodataCount)
