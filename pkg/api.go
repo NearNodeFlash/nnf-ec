@@ -70,9 +70,9 @@ func (s *storageService) GetServers() ([]sf.EndpointV150Endpoint, error) {
 	return endpoints, nil
 }
 
-func (s *storageService) GetStoragePool(odataid string) (*sf.StoragePoolV150StoragePool, error) {
+func (s *storageService) GetStoragePool(id string) (*sf.StoragePoolV150StoragePool, error) {
 	model := new(sf.StoragePoolV150StoragePool)
-	err := s.get(odataid, model)
+	err := s.get(fmt.Sprintf("%s/StoragePools/%s", StorageServiceRoot, id), model)
 
 	return model, err
 }
