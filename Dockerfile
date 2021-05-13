@@ -47,9 +47,10 @@ COPY pkg ./pkg/
 COPY internal ./internal/
 COPY static-analysis ./static-analysis/
 COPY go.mod go.sum runContainerTest.sh ./
+COPY vendor/ ./vendor/
 
 # vendor directory is not in git, need to generate it
-RUN go mod vendor
+#RUN go mod vendor
 
 
 # Build nnf-ec binary

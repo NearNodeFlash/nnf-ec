@@ -3,7 +3,9 @@ package nnf
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 
 	nnf "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nnf"
@@ -17,12 +19,25 @@ const (
 	StorageServiceRoot = "/redfish/v1/StorageServices/NNF"
 )
 
-func NewStorageServiceConnection(address, port string) *storageService {
-	return &storageService{
+// NewStorageServiceConnection will create a new connection to the NNF Storage Service. Will return
+// the storage service capable of supporting various create and get operations. Will return nil if
+// the service cannot be reached.
+func NewStorageServiceConnection(address, port string) (*storageService, error) {
+	ss := &storageService{
 		address: address,
 		port:    port,
 		client:  http.Client{},
 	}
+
+	if _, err := ss.Get(); err != nil {
+		if errors.Is(err, &net.DNSError{}) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return ss, nil
 }
 
 type storageService struct {
