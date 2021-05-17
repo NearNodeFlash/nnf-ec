@@ -21,6 +21,12 @@ import (
 	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
 )
 
+const (
+	Name = "nnf-ec"
+	Port = 50057
+	Version = "v2"
+)
+
 type Options struct {
 	mock bool // Enable mock interfaces for Switches, NVMe, and NNF
 	cli  bool // Enable CLI commands instead of binary
@@ -69,9 +75,9 @@ func NewController(opts *Options) *ec.Controller {
 	}
 
 	return &ec.Controller{
-		Name:    "Near Node Flash",
-		Port:    50057,
-		Version: "v2",
+		Name:    Name,
+		Port:    Port,
+		Version: Version,
 		Routers: NewDefaultApiRouters(switchCtrl, nvmeCtrl, nnfCtrl),
 	}
 }
