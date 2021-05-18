@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 
 	nnf "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nnf"
 	server "stash.us.cray.com/rabsw/nnf-ec/internal/manager-server"
@@ -31,8 +30,19 @@ func NewStorageServiceConnection(address, port string) (*storageService, error) 
 	}
 
 	if _, err := ss.Get(); err != nil {
-		if os.IsTimeout(err) || errors.Is(err, &net.DNSError{}) {
-			return nil, nil
+
+		var operr *net.OpError
+		if errors.As(err, &operr) {
+			if operr.Op == "read" { // Connection refused (not ready?)
+				return nil, nil
+			}
+		}
+
+		var dnserr *net.DNSError
+		if errors.As(err, &dnserr) {
+			if dnserr.IsTemporary || dnserr.IsTimeout || dnserr.IsNotFound {
+				return nil, nil
+			}
 		}
 
 		return nil, err
