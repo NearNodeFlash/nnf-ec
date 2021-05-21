@@ -442,7 +442,12 @@ func (fs *FileSystem) createFileShare(sg *StorageGroup, mountRoot string) *Expor
 }
 
 func (sh *ExportedFileShare) initialize(mountpoint string) error {
-	return sh.storageGroup.serverStorage.CreateFileSystem(sh.fileSystem.fsApi, mountpoint)
+
+	opts := server.FileSystemOptions{
+		"mountpoint": mountpoint,
+	}
+
+	return sh.storageGroup.serverStorage.CreateFileSystem(sh.fileSystem.fsApi, opts)
 }
 
 func (sh *ExportedFileShare) getStatus() *sf.ResourceStatus {
@@ -854,7 +859,6 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 	}
 
 	fields = strings.Split(model.Links.ServerEndpoint.OdataId, "/")
-
 	if len(fields) != s.resourceIndex+1 {
 		return ec.ErrNotAcceptable
 	}
@@ -1051,12 +1055,11 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 	}
 
 	oem := server.FileSystemOem{}
-
 	if err := openapi.UnmarshalOem(modelFsOem, &oem); err != nil {
 		return ec.ErrBadRequest
 	}
 
-	fsApi := server.FileSystemController.NewFileSystem(oem.Name)
+	fsApi := server.FileSystemController.NewFileSystem(oem.Type, oem.Name)
 	if fsApi == nil {
 		return ec.ErrNotAcceptable
 	}

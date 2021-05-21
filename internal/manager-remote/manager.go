@@ -380,7 +380,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 		return ec.ErrBadRequest
 	}
 
-	api := server.FileSystemController.NewFileSystem(oem.Name)
+	api := server.FileSystemController.NewFileSystem(oem.Type, oem.Name)
 	if api == nil {
 		return ec.ErrBadRequest
 	}
@@ -466,7 +466,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesPost(st
 		return ec.ErrNotAcceptable
 	}
 
-	if err := fs.pool.serverStorage.CreateFileSystem(fs.api, model.FileSharePath); err != nil {
+	if err := fs.pool.serverStorage.CreateFileSystem(fs.api, model.Oem); err != nil {
 		return ec.ErrInternalServerError
 	}
 

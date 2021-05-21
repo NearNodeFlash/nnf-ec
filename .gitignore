@@ -11,3 +11,5 @@ nnf_server
 
 cmd/commands.log
 commands.log
+
+scripts/__py_cache__/
