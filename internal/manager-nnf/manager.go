@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
 
@@ -1158,6 +1159,18 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedSharesPost(storageSer
 	// File System and supports the Exported Share.
 	sg := fs.storagePool.findStorageGroupByEndpoint(ep)
 	if sg == nil {
+		return ec.ErrNotAcceptable
+	}
+
+	refreshState:
+	switch sg.status().State {
+	case sf.ENABLED_RST:
+		break
+	case sf.STARTING_RST:
+		log.Infof("Storage group starting, delay 1s")
+		time.Sleep(time.Second)
+		goto refreshState
+	default:
 		return ec.ErrNotAcceptable
 	}
 

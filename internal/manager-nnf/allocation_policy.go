@@ -70,10 +70,14 @@ func NewAllocationPolicy(config AllocationConfig, oem map[string]interface{}) Al
 		}
 
 		if err := openapi.UnmarshalOem(oem, &overrides); err == nil {
-			policy = overrides.Policy
-			compliance = overrides.Compliance
-		}
+			if overrides.Policy != "default" {
+				policy = overrides.Policy
+			}
 
+			if overrides.Compliance != "default" {
+				compliance = overrides.Compliance
+			}
+		}
 	}
 
 	switch policy {
