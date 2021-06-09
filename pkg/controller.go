@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	Name = "nnf-ec"
-	Port = 50057
+	Name    = "nnf-ec"
+	Port    = 50057
 	Version = "v2"
 )
 
