@@ -127,6 +127,10 @@ func (sh *FileShare) OdataId() string {
 	return sh.fileSystem.OdataId() + fmt.Sprintf("/ExportedFileShares/%s", sh.id)
 }
 
+func (s *ServerStorageService) Id() string {
+	return s.id
+}
+
 func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 
 	// Ensure the server is initialized

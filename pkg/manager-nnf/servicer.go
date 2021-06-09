@@ -19,6 +19,10 @@ func NewDefaultApiService(ss StorageServiceApi) Api {
 	return &DefaultApiService{ss: ss}
 }
 
+func (s *DefaultApiService) Id() string {
+	return s.ss.Id()
+}
+
 func (s *DefaultApiService) Initialize(ctrl NnfControllerInterface) error {
 	return s.ss.Initialize(ctrl)
 }
