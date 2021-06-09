@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"stash.us.cray.com/rabsw/ec"
-	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
+	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 

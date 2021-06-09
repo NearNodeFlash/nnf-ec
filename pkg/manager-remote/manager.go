@@ -9,8 +9,8 @@ import (
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 
-	nnf "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nnf"
-	server "stash.us.cray.com/rabsw/nnf-ec/internal/manager-server"
+	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
+	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 )
 
 type ServerStorageService struct {

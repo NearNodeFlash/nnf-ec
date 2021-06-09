@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	. "stash.us.cray.com/rabsw/nnf-ec/internal/events"
+	. "stash.us.cray.com/rabsw/nnf-ec/pkg/events"
 
-	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
-	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
-	server "stash.us.cray.com/rabsw/nnf-ec/internal/manager-server"
+	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
+	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
+	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -1162,7 +1162,7 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedSharesPost(storageSer
 		return ec.ErrNotAcceptable
 	}
 
-	refreshState:
+refreshState:
 	switch sg.status().State {
 	case sf.ENABLED_RST:
 		break

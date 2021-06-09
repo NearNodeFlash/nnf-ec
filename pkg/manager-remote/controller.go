@@ -5,8 +5,8 @@ import (
 
 	ec "stash.us.cray.com/rabsw/ec"
 
-	nnf "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nnf"
-	server "stash.us.cray.com/rabsw/nnf-ec/internal/manager-server"
+	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
+	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 )
 
 type Options struct{}

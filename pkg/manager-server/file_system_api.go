@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/logging"
+	"stash.us.cray.com/rabsw/nnf-ec/pkg/logging"
 )
 
 type FileSystemControllerApi interface {

@@ -37,6 +37,10 @@ clean-codestyle:
 # push:
 # 	docker push $(DTR_IMGPATH):$(PROD_VERSION)
 
+kind-push:
+	@echo TODO
+
+
 clean:
 	docker container prune --force
 	docker image prune --force

@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/common"
-	"stash.us.cray.com/rabsw/nnf-ec/internal/logging"
+	"stash.us.cray.com/rabsw/nnf-ec/pkg/common"
+	"stash.us.cray.com/rabsw/nnf-ec/pkg/logging"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/manager-server/nvme"
+	"stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server/nvme"
 )
 
 type DefaultServerControllerProvider struct{}
