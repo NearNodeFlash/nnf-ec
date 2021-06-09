@@ -463,6 +463,10 @@ func (sh *ExportedFileShare) fmt(format string, a ...interface{}) string {
 	return sh.fileSystem.fmt("/ExportedFileShares/%s", sh.id) + fmt.Sprintf(format, a...)
 }
 
+func (s *StorageService) Id() string {
+	return s.id
+}
+
 func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 
 	storageService = StorageService{
