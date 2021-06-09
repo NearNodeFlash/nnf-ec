@@ -21,7 +21,6 @@ COPY go.sum go.sum
 # Copy the Go source tree
 COPY cmd/ cmd/
 COPY pkg/ pkg/
-COPY internal/ internal/
 COPY vendor/ vendor/
 
 # Build
