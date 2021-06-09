@@ -16,9 +16,9 @@ import (
 
 	ec "stash.us.cray.com/rabsw/ec"
 
-	fabric "stash.us.cray.com/rabsw/nnf-ec/internal/manager-fabric"
-	nnf "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nnf"
-	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/manager-nvme"
+	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
+	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
+	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
 )
 
 const (
