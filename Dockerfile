@@ -21,18 +21,25 @@ COPY go.sum go.sum
 # Copy the Go source tree
 COPY cmd/ cmd/
 COPY pkg/ pkg/
-COPY vendor/ vendor/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE=stash.us.cray.com go build -a -o nnf-ec ./cmd/nnf_ec.go
 
 # Run Go unit tests
-FROM builder
+FROM builder AS container-unit-test
 COPY runContainerTest.sh runContainerTest.sh
 ENTRYPOINT ["sh", "runContainerTest.sh"]
 
 # Setup Static Analysis
-# TODO: This should move to pre-commit check
+# TODO: These should move to pre-commit check
+FROM builder as codestyle
+COPY static-analysis/docker_codestyle_entry.sh static-analysis/docker_codestyle_entry.sh
+ENTRYPOINT ["sh", "static-analysis/docker_codestyle_entry.sh"]
+
+# the static-analysis-lint-container
+FROM builder as lint
+COPY static-analysis/docker_lint_entry.sh static-analysis/docker_lint_entry.sh
+ENTRYPOINT ["sh", "static-analysis/docker_lint_entry.sh"]
 
 # The final application release product container
 FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest

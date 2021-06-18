@@ -356,7 +356,7 @@ func (s *StorageService) createFileSystem(sp *StoragePool, fsApi server.FileSyst
 }
 
 func (p *StoragePool) OdataId() string {
-	return fmt.Sprintf("%s/StoragePools/%s", p.storageService.id, p.id)
+	return fmt.Sprintf("%s/StoragePools/%s", p.storageService.OdataId(), p.id)
 }
 
 func (p *StoragePool) OdataIdRef(ref string) sf.OdataV4IdRef {
