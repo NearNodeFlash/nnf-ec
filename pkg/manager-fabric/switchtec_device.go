@@ -52,7 +52,7 @@ func (d *SwitchtecDevice) GetFirmwareVersion() (string, error) {
 
 func (d *SwitchtecDevice) GetModel() (string, error) {
 	id, err := d.dev.GetDeviceId()
-	
+
 	return strconv.Itoa(int(id)), err
 }
 

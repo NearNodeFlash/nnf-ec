@@ -11,7 +11,7 @@ require (
 	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	stash.us.cray.com/rabsw/ec v1.0.7
+	stash.us.cray.com/rabsw/ec v1.0.10
 	stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210504180337-d48363de461a
 	stash.us.cray.com/rabsw/switchtec-fabric v1.0.12
 )
