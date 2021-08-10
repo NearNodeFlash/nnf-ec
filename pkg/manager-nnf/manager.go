@@ -546,7 +546,7 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 func PortEventHandler(event PortEvent, data interface{}) {
 	s := data.(*StorageService)
 
-	if event.PortType != PORT_TYPE_USP {
+	if event.PortType != USP_PortType {
 		return
 	}
 
