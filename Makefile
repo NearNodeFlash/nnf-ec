@@ -10,6 +10,9 @@ all: image
 vendor:
 	GOPRIVATE=stash.us.cray.com go mod vendor
 
+vet:
+	go vet `go list -f {{.Dir}} ./...`
+
 fmt:
 	go fmt `go list -f {{.Dir}} ./...`
 

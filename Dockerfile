@@ -23,7 +23,7 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE=stash.us.cray.com go build -a -o nnf-ec ./cmd/nnf_ec.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOPRIVATE=stash.us.cray.com go build -a -o nnf-ec ./cmd/nnf_ec.go
 
 # Run Go unit tests
 FROM builder AS container-unit-test

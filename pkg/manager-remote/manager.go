@@ -373,22 +373,12 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 		return ec.ErrBadRequest
 	}
 
-	modelFsOem, ok := model.Oem["FileSystem"]
-	if !ok {
-		return ec.ErrBadRequest
-	}
-
-	fsOem, ok := modelFsOem.(map[string]interface{})
-	if !ok {
-		return ec.ErrBadRequest
-	}
-
 	oem := server.FileSystemOem{}
-	if err := openapi.UnmarshalOem(fsOem, &oem); err != nil {
+	if err := openapi.UnmarshalOem(model.Oem, &oem); err != nil {
 		return ec.ErrBadRequest
 	}
 
-	api := server.FileSystemController.NewFileSystem(oem.Type, oem.Name)
+	api := server.FileSystemController.NewFileSystem(oem)
 	if api == nil {
 		return ec.ErrBadRequest
 	}

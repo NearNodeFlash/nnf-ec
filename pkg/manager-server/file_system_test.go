@@ -28,7 +28,8 @@ func _TestFileSystemZfs(t *testing.T) {
 
 	pool, ctrl := prepare(t, uuid.MustParse("00000000-0000-0000-0000-000000000000"))
 
-	fs := ctrl.NewFileSystem("ZFS", "test")
+	oem := FileSystemOem{Name: "test", Type: "ZFS"}
+	fs := ctrl.NewFileSystem(oem)
 	if fs == nil {
 		t.Fatalf("Could not allocate ZFS file system")
 	}
@@ -46,7 +47,8 @@ func _TestFileSystemLvm(t *testing.T) {
 
 	pool, ctrl := prepare(t, uuid.MustParse("5d340875-a5c2-4e86-9406-37751954c022"))
 
-	fs := ctrl.NewFileSystem("LVM", "test")
+	oem := FileSystemOem{Name: "test", Type: "LVM"}
+	fs := ctrl.NewFileSystem(oem)
 	if fs == nil {
 		t.Fatal("Could not create LVM file system")
 	}
