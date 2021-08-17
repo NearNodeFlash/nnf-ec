@@ -139,7 +139,7 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 	}
 
 	// Perform an initial discovery of existing storage pools
-	if err := s.ctrl.Discover(s.NewStorage); err != nil {
+	if err := s.ctrl.Discover(nil, s.NewStorage); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 				}
 
 				// Trigger discovery of NVMe devices
-				if err := s.ctrl.Discover(s.NewStorage); err != nil {
+				if err := s.ctrl.Discover(nil, s.NewStorage); err != nil {
 					fmt.Printf("Discover Storage Error %s\n", err)
 				}
 			}
