@@ -60,6 +60,8 @@ func (c *fileSystemController) NewFileSystem(oem FileSystemOem) FileSystemApi {
 		return NewFileSystemZfs(oem)
 	} else if (&FileSystemLvm{}).IsType(oem) {
 		return NewFileSystemLvm(oem)
+	} else if (&FileSystemXfs{}).IsType(oem) {
+		return NewFileSystemXfs(oem)
 	} else if (&FileSystemLustre{}).IsType(oem) {
 		log.Info("EEE lustre", "targetType", oem.TargetType)
 		return NewFileSystemLustre(oem)

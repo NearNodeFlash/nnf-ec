@@ -14,4 +14,5 @@ nnf_server
 cmd/commands.log
 commands.log
 
-scripts/__py_cache__/
+scripts/__pycache__/
+*.py[cod]
