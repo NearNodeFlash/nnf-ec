@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"stash.us.cray.com/rabsw/ec"
+
 	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
 	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 )
@@ -190,12 +191,12 @@ func (s *ServerStorageService) NewStorage(storage *server.Storage) {
 }
 
 func (s *ServerStorageService) StorageServicesGet(model *sf.StorageServiceCollectionStorageServiceCollection) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (s *ServerStorageService) StorageServiceIdGet(storageServiceId string, model *sf.StorageServiceV150StorageService) error {
 	if !s.isStorageService(storageServiceId) {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.Id = s.id
@@ -207,12 +208,12 @@ func (s *ServerStorageService) StorageServiceIdGet(storageServiceId string, mode
 }
 
 func (s *ServerStorageService) StorageServiceIdCapacitySourceGet(storageServiceId string, model *sf.CapacityCapacitySource) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (s *ServerStorageService) StorageServiceIdStoragePoolsGet(storageServiceId string, model *sf.StoragePoolCollectionStoragePoolCollection) error {
 	if !s.isStorageService(storageServiceId) {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(s.pools))
@@ -227,7 +228,7 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsGet(storageServiceId 
 func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
 	pid, err := uuid.Parse(model.Id)
 	if err != nil {
-		return ec.ErrBadRequest
+		return ec.NewErrBadRequest()
 	}
 
 	for _, pool := range s.pools {
@@ -244,7 +245,7 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId
 func (s *ServerStorageService) StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
 	p := s.findStoragePool(storageServiceId, storagePoolId)
 	if p == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.Id = p.id
@@ -271,11 +272,11 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolIdGet(storageServiceId
 func (s *ServerStorageService) StorageServiceIdStoragePoolIdDelete(storageServiceId, storagePoolId string) error {
 	sp := s.findStoragePool(storageServiceId, storagePoolId)
 	if sp == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	if sp.fileSystem != nil {
-		return ec.ErrNotAcceptable
+		return ec.NewErrNotAcceptable()
 	}
 
 	for poolIdx, pool := range s.pools {
@@ -289,15 +290,15 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolIdDelete(storageServic
 }
 
 func (*ServerStorageService) StorageServiceIdStoragePoolIdCapacitySourcesGet(storageServiceId, storagePoolId string, model *sf.CapacitySourceCollectionCapacitySourceCollection) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (*ServerStorageService) StorageServiceIdStoragePoolIdCapacitySourceIdGet(storageServiceId, storagePoolId, capacitySourceId string, model *sf.CapacityCapacitySource) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (*ServerStorageService) StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVolumesGet(storageServiceId, storagePoolId, capacitySourceId string, model *sf.VolumeCollectionVolumeCollection) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (*ServerStorageService) StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
@@ -309,37 +310,37 @@ func (*ServerStorageService) StorageServiceIdStoragePoolIdAllocatedVolumeIdGet(s
 }
 
 func (*ServerStorageService) StorageServiceIdStorageGroupsGet(storageServiceId string, model *sf.StorageGroupCollectionStorageGroupCollection) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (*ServerStorageService) StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.StorageGroupV150StorageGroup) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (*ServerStorageService) StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, model *sf.StorageGroupV150StorageGroup) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (s *ServerStorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, storageGroupId string) error {
 	sp := s.findStoragePool(storageServiceId, storageGroupId)
 	if sp == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	return nil
 }
 
 func (*ServerStorageService) StorageServiceIdEndpointsGet(storageServiceId string, model *sf.EndpointCollectionEndpointCollection) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (*ServerStorageService) StorageServiceIdEndpointIdGet(storageServiceId, endpointId string, model *sf.EndpointV150Endpoint) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 }
 
 func (s *ServerStorageService) StorageServiceIdFileSystemsGet(storageServiceId string, model *sf.FileSystemCollectionFileSystemCollection) error {
 	if !s.isStorageService(storageServiceId) {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(s.fileSystems))
@@ -353,7 +354,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsGet(storageServiceId s
 
 func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId string, model *sf.FileSystemV122FileSystem) error {
 	if !s.isStorageService(storageServiceId) {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	p := func() *StoragePool {
@@ -366,21 +367,21 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 	}()
 
 	if p == nil {
-		return ec.ErrBadRequest
+		return ec.NewErrBadRequest()
 	}
 
 	if p.fileSystem != nil {
-		return ec.ErrBadRequest
+		return ec.NewErrBadRequest()
 	}
 
 	oem := server.FileSystemOem{}
 	if err := openapi.UnmarshalOem(model.Oem, &oem); err != nil {
-		return ec.ErrBadRequest
+		return ec.NewErrBadRequest()
 	}
 
 	api := server.FileSystemController.NewFileSystem(oem)
 	if api == nil {
-		return ec.ErrBadRequest
+		return ec.NewErrBadRequest()
 	}
 
 	fs := FileSystem{
@@ -399,7 +400,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 func (s *ServerStorageService) StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId string, model *sf.FileSystemV122FileSystem) error {
 	fs := s.findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.Id = fs.id
@@ -413,11 +414,11 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdGet(storageServiceId,
 func (s *ServerStorageService) StorageServiceIdFileSystemIdDelete(storageServiceId, fileSystemId string) error {
 	fs := s.findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	if err := fs.api.Delete(); err != nil {
-		return ec.ErrInternalServerError
+		return ec.NewErrInternalServerError()
 	}
 
 	fs.pool.fileSystem = nil
@@ -435,7 +436,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdDelete(storageService
 func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesGet(storageServiceId, fileSystemId string, model *sf.FileShareCollectionFileShareCollection) error {
 	fs := s.findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	if fs.fileShare == nil {
@@ -453,19 +454,19 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesGet(sto
 func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystemId string, model *sf.FileShareV120FileShare) error {
 	fs := s.findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	if len(model.FileSharePath) == 0 {
-		return ec.ErrBadRequest
+		return ec.NewErrBadRequest()
 	}
 
 	if fs.fileShare != nil {
-		return ec.ErrNotAcceptable
+		return ec.NewErrNotAcceptable()
 	}
 
 	if err := fs.pool.serverStorage.CreateFileSystem(fs.api, model.Oem); err != nil {
-		return ec.ErrInternalServerError
+		return ec.NewErrInternalServerError()
 	}
 
 	fs.fileShare = &FileShare{id: fs.id, fileSystem: fs}
@@ -476,7 +477,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesPost(st
 func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId string, model *sf.FileShareV120FileShare) error {
 	sh := s.findFileShare(storageServiceId, fileSystemId, exportedShareId)
 	if sh == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.Id = sh.id
@@ -488,7 +489,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedShareIdGet(st
 func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedShareIdDelete(storageServiceId, fileSystemId, exportedShareId string) error {
 	sh := s.findFileShare(storageServiceId, fileSystemId, exportedShareId)
 	if sh == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	sh.fileSystem.fileShare = nil

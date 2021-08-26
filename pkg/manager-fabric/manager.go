@@ -7,8 +7,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"stash.us.cray.com/rabsw/ec"
 	"stash.us.cray.com/rabsw/nnf-ec/pkg/api"
+	"stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	"stash.us.cray.com/rabsw/nnf-ec/pkg/events"
 	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/switchtec"
 
@@ -1053,7 +1053,7 @@ func GetEndpointFromPortEvent(event events.PortEvent) (*Endpoint, error) {
 		}
 	}
 
-	return nil, ec.ErrNotFound
+	return nil, ec.NewErrNotFound()
 }
 
 // Get -
@@ -1069,7 +1069,7 @@ func Get(model *sf.FabricCollectionFabricCollection) error {
 func FabricIdGet(fabricId string, model *sf.FabricV120Fabric) error {
 	f := findFabric(fabricId)
 	if f == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.FabricType = sf.PC_IE_PP
@@ -1085,7 +1085,7 @@ func FabricIdGet(fabricId string, model *sf.FabricV120Fabric) error {
 func FabricIdSwitchesGet(fabricId string, model *sf.SwitchCollectionSwitchCollection) error {
 	f := findFabric(fabricId)
 	if f == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(f.switches))
@@ -1101,7 +1101,7 @@ func FabricIdSwitchesGet(fabricId string, model *sf.SwitchCollectionSwitchCollec
 func FabricIdSwitchesSwitchIdGet(fabricId string, switchId string, model *sf.SwitchV140Switch) error {
 	_, s := findSwitch(fabricId, switchId)
 	if s == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.Id = switchId
@@ -1122,7 +1122,7 @@ func FabricIdSwitchesSwitchIdGet(fabricId string, switchId string, model *sf.Swi
 func FabricIdSwitchesSwitchIdPortsGet(fabricId string, switchId string, model *sf.PortCollectionPortCollection) error {
 	_, s := findSwitch(fabricId, switchId)
 	if s == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(s.ports))
@@ -1168,7 +1168,7 @@ func FabricIdSwitchesSwitchIdPortsPortIdGet(fabricId string, switchId string, po
 func FabricIdEndpointsGet(fabricId string, model *sf.EndpointCollectionEndpointCollection) error {
 	f := findFabric(fabricId)
 	if f == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(f.endpoints))
@@ -1184,7 +1184,7 @@ func FabricIdEndpointsGet(fabricId string, model *sf.EndpointCollectionEndpointC
 func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *sf.EndpointV150Endpoint) error {
 	_, ep := findEndpoint(fabricId, endpointId)
 	if ep == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	role := func(ep *Endpoint) sf.EndpointV150EntityRole {
@@ -1246,7 +1246,7 @@ func FabricIdEndpointsEndpointIdGet(fabricId string, endpointId string, model *s
 func FabricIdEndpointGroupsGet(fabricId string, model *sf.EndpointGroupCollectionEndpointGroupCollection) error {
 	f := findFabric(fabricId)
 	if f == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(f.endpointGroups))
@@ -1261,7 +1261,7 @@ func FabricIdEndpointGroupsGet(fabricId string, model *sf.EndpointGroupCollectio
 func FabricIdEndpointGroupsEndpointIdGet(fabricId string, groupId string, model *sf.EndpointGroupV130EndpointGroup) error {
 	f, epg := findEndpointGroup(fabricId, groupId)
 	if epg == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.Links.EndpointsodataCount = int64(len(epg.endpoints))
@@ -1283,7 +1283,7 @@ func FabricIdEndpointGroupsEndpointIdGet(fabricId string, groupId string, model 
 func FabricIdConnectionsGet(fabricId string, model *sf.ConnectionCollectionConnectionCollection) error {
 	f := findFabric(fabricId)
 	if f == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	model.MembersodataCount = int64(len(f.connections))
@@ -1299,7 +1299,7 @@ func FabricIdConnectionsGet(fabricId string, model *sf.ConnectionCollectionConne
 func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, model *sf.ConnectionV100Connection) error {
 	f, c := findConnection(fabricId, connectionId)
 	if c == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	endpointGroup := c.endpointGroup
@@ -1342,10 +1342,10 @@ func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, mo
 
 // FabricIdConnectionsConnectionIdPatch -
 func FabricIdConnectionsConnectionIdPatch(fabricId string, connectionId string, model *sf.ConnectionV100Connection) error {
-	return ec.ErrNotAcceptable
+	return ec.NewErrNotAcceptable()
 	/*
 		if !isFabric(fabricId) {
-			return ec.ErrNotFound
+			return ec.NewErrNotFound()
 		}
 
 		c, err := fabric.findConnection(connectionId)
@@ -1442,15 +1442,15 @@ func (f *Fabric) ConvertPortEventToRelativePortIndex(event events.PortEvent) (in
 func (f *Fabric) FindDownstreamEndpoint(portId, functionId string) (string, error) {
 	idx, err := strconv.Atoi(portId)
 	if err != nil {
-		return "", ec.ErrNotFound
+		return "", ec.NewErrNotFound()
 	}
 	port := f.findPortByType(sf.DOWNSTREAM_PORT_PV130PT, idx)
 	if port == nil {
-		return "", ec.ErrNotFound
+		return "", ec.NewErrNotFound()
 	}
 	ep := port.findEndpoint(functionId)
 	if ep == nil {
-		return "", ec.ErrNotFound
+		return "", ec.NewErrNotFound()
 	}
 
 	return fmt.Sprintf("/redfish/v1/Fabrics/%s/Endpoints/%s", f.id, ep.id), nil

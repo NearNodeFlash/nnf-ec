@@ -6,7 +6,7 @@ import (
 
 	"github.com/senseyeio/duration"
 
-	"stash.us.cray.com/rabsw/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
@@ -306,7 +306,7 @@ func MetricDefinitionIdGet(model *sf.MetricDefinitionV110MetricDefinition, id st
 
 	m := findMetric(id)
 	if m == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	*model = *m.definition
@@ -330,7 +330,7 @@ func MetricReportDefinitionsGet(model *sf.MetricReportDefinitionCollectionMetric
 func MetricReportDefinitionIdGet(model *sf.MetricReportDefinitionV133MetricReportDefinition, id string) error {
 	m := findMetric(id)
 	if m == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	*model = *m.reportDefinition
@@ -354,13 +354,13 @@ func MetricReportsGet(model *sf.MetricReportCollectionMetricReportCollection) er
 func MetricReportIdGet(model *sf.MetricReportV140MetricReport, id string) error {
 	m := findMetric(id)
 	if m == nil {
-		return ec.ErrNotFound
+		return ec.NewErrNotFound()
 	}
 
 	if m.reportDefinition.MetricReportDefinitionType == sf.ON_REQUEST_MRDV133MRDT {
 		values, err := m.generator(m.reportDefinition)
 		if err != nil {
-			return ec.ErrInternalServerError.WithError(err).WithCause("Failed to generate metric report")
+			return ec.NewErrInternalServerError().WithError(err).WithCause("Failed to generate metric report")
 		}
 
 		m.record(values)

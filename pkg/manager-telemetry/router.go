@@ -1,7 +1,7 @@
 package telemetry
 
 import (
-	"stash.us.cray.com/rabsw/ec"
+	"stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 )
 
 // Router contains all the Redfish / Swordfish API calls for the Telemetry Service
@@ -29,45 +29,45 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 	s := r.servicer
 	return ec.Routes{
 		{
-			Name: "RedfishV1TelemetryServiceGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService",
+			Name:        "RedfishV1TelemetryServiceGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService",
 			HandlerFunc: s.RedfishV1TelemetryServiceGet,
 		},
 		{
-			Name: "RedfishV1TelemetryMetricDefinitionsGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService/MetricDefinitions",
+			Name:        "RedfishV1TelemetryMetricDefinitionsGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService/MetricDefinitions",
 			HandlerFunc: s.RedfishV1TelemetryMetricDefinitionsGet,
 		},
 		{
-			Name: "RedfishV1TelemetryMetricDefinitionIdGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService/MetricDefinitions/{MetricDefinitionId}",
+			Name:        "RedfishV1TelemetryMetricDefinitionIdGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService/MetricDefinitions/{MetricDefinitionId}",
 			HandlerFunc: s.RedfishV1TelemetryMetricDefinitionIdGet,
 		},
 		{
-			Name: "RedfishV1TelemetryMetricReportDefinitionsGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService/MetricReportDefinitions",
+			Name:        "RedfishV1TelemetryMetricReportDefinitionsGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService/MetricReportDefinitions",
 			HandlerFunc: s.RedfishV1TelemetryMetricReportDefinitionsGet,
 		},
 		{
-			Name: "RedfishV1TelemetryMetricReportDefinitionIdGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService/MetricReportDefinitions/{MetricReportDefinitionId}",
+			Name:        "RedfishV1TelemetryMetricReportDefinitionIdGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService/MetricReportDefinitions/{MetricReportDefinitionId}",
 			HandlerFunc: s.RedfishV1TelemetryMetricReportDefinitionIdGet,
 		},
 		{
-			Name: "RedfishV1TelemetryMetricReportsGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService/MetricReports",
+			Name:        "RedfishV1TelemetryMetricReportsGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService/MetricReports",
 			HandlerFunc: s.RedfishV1TelemetryMetricReportsGet,
 		},
 		{
-			Name: "RedfishV1TelemetryMetricReportIdGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/TelemetryService/MetricReports/{MetricReportId}",
+			Name:        "RedfishV1TelemetryMetricReportIdGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/TelemetryService/MetricReports/{MetricReportId}",
 			HandlerFunc: s.RedfishV1TelemetryMetricReportIdGet,
 		},
 	}

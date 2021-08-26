@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 
-	"stash.us.cray.com/rabsw/ec"
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 )
 
 func main() {

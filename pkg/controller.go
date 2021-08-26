@@ -15,8 +15,7 @@ import (
 	"flag"
 	"os"
 
-	ec "stash.us.cray.com/rabsw/ec"
-
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
 	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"

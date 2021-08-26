@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"stash.us.cray.com/rabsw/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )

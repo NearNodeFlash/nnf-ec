@@ -3,8 +3,7 @@ package remote
 import (
 	"flag"
 
-	ec "stash.us.cray.com/rabsw/ec"
-
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
 	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 )
