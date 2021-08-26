@@ -969,6 +969,10 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		connection.endpointGroup = endpointGroup
 	}
 
+	if err := initializeMetrics(); err != nil {
+		return err
+	}
+
 	events.PortEventManager.Subscribe(events.PortEventSubscriber{
 		HandlerFunc: PortEventHandler,
 		Data:        m,
