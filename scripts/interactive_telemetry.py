@@ -121,9 +121,10 @@ class Monitor(Command):
                 'Throughput': 0}
 
         # Now, retrieve the properties every so often and display them on the screen
-        print('Starting Bandwidth Monitor...CTRL+C to exit')
+        interval = 1
+        print(f'Starting Bandwidth Monitor with {interval}s intervals...CTRL+C to exit')
         while True:
-            time.sleep(5)
+            time.sleep(interval)
             
             response = self.conn.get(f'/MetricReports/{id}')
             if not response.ok:

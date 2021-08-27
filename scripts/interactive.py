@@ -4,6 +4,8 @@ import cmd, argparse, json
 
 import connection
 
+from common import ByteSizeStringToIntegerBytes
+
 class Command(cmd.Cmd):
     def __init__(self, conn: connection.Connection, **kwargs):
         self.conn = conn
@@ -27,9 +29,14 @@ class StoragePool(Command):
     prompt = '(nnf)' + '(storage pool)'
 
     def do_create(self, arg):
-        'Create a Storage Pool of specific [SIZE]'
+        'Create a Storage Pool of specific [SIZE = 1GB]'
 
+        if arg is None or arg == "":
+            arg = '1GB'
+            print(f"No size specified - defaulting to {arg}")
+            
         try:
+            arg = ByteSizeStringToIntegerBytes(arg)
             payload = {
                 'Capacity': {'Data': {'AllocatedBytes': int(arg)}},
                 'Oem': {'Compliance': 'relaxed'}
@@ -132,7 +139,7 @@ class FileSystem(Command):
 
     def do_share(self,arg):
         'File Share operations for [FILE SYSTEM ID]'
-        if arg == None or len(arg) == "":
+        if arg == None or arg == "":
             print('Expected one argument [FILE SYSTEM ID]')
             return
             
