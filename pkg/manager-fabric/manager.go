@@ -569,7 +569,7 @@ func (p *Port) Initialize() error {
 
 				f := port.swtch.fabric
 				if len(epPort.Ep.Functions) < 1 /*PF*/ +f.managementEndpointCount+f.upstreamEndpointCount {
-					return fmt.Errorf("Port %s: Insufficient function count %d", port.id, len(epPort.Ep.Functions))
+					log.Warnf("Port %s: Insufficient function count %d", port.id, len(epPort.Ep.Functions))
 				}
 
 				for idx, f := range epPort.Ep.Functions {
@@ -676,6 +676,11 @@ func (p *Port) bind() error {
 
 						if logicalPortId > int(^uint8(0)) {
 							panic(fmt.Sprintf("Logical port ID %d to large for bind operation", logicalPortId))
+						}
+
+						if endpoint.pdfid == 0 {
+							log.Errorf("Endpoint has no PDFID, skipping bind to initiator port %d (%s)", initiatorPort.config.Port, initiatorPort.config.Name)
+							continue
 						}
 
 						if endpoint.bound {
