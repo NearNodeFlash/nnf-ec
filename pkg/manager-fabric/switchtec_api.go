@@ -28,19 +28,19 @@ type SwitchtecDeviceInterface interface {
 	GetPortStatus() ([]switchtec.PortLinkStat, error)
 	GetPortMetrics() (PortMetrics, error)
 	GetEvents() ([]switchtec.GfmsEvent, error)
-	
+
 	EnumerateEndpoint(uint8, func(epPort *switchtec.DumpEpPortDevice) error) error
 
 	Bind(uint8, uint8, uint16) error
 }
 
 type PortMetric struct {
-	PhysPortId                 uint8
+	PhysPortId uint8
 
 	// NOTE: This is a terrible definition in the switchtec package - these are raw Tx/Rx counter values
 	// that can be _used_ for calculating the bandwidth. Think about renaming this in the switchtec package
 	// to something like "PortMetrics"
-	switchtec.BandwidthCounter 
+	switchtec.BandwidthCounter
 }
 
 type PortMetrics []PortMetric

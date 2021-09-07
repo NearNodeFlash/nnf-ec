@@ -27,15 +27,15 @@ func (*DefaultApiRouter) Start() error {
 func (r *DefaultApiRouter) Routes() ec.Routes {
 	return ec.Routes{
 		{
-			Name: "RedfishV1RegistriesGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/Registries",
+			Name:        "RedfishV1RegistriesGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/Registries",
 			HandlerFunc: r.servicer.RedfishV1RegistriesGet,
 		},
 		{
-			Name: "RedfishV1RegistriesRegistryIdGet",
-			Method: ec.GET_METHOD,
-			Path: "/redfish/v1/Registries/{RegistryId}",
+			Name:        "RedfishV1RegistriesRegistryIdGet",
+			Method:      ec.GET_METHOD,
+			Path:        "/redfish/v1/Registries/{RegistryId}",
 			HandlerFunc: r.servicer.RedfishV1RegistriesRegistryIdGet,
 		},
 	}

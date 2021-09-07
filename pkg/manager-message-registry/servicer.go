@@ -15,7 +15,7 @@ func NewDefaultApiService() Api {
 }
 
 func (*DefaultApiService) RedfishV1RegistriesGet(w http.ResponseWriter, r *http.Request) {
-	
+
 	model := sf.MessageRegistryFileCollectionMessageRegistryFileCollection{
 		OdataId:   "/redfish/v1/Registries",
 		OdataType: "#MessageRegistryFileCollection.v1_0_0.MessageRegistryFileCollection",

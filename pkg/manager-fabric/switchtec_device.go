@@ -78,7 +78,7 @@ func (d *SwitchtecDevice) GetPortMetrics() (PortMetrics, error) {
 	metrics := make(PortMetrics, len(portIds))
 	for idx := range portIds {
 		metrics[idx] = PortMetric{
-			PhysPortId: portIds[idx].PhysPortId,
+			PhysPortId:       portIds[idx].PhysPortId,
 			BandwidthCounter: counters[idx],
 		}
 	}
