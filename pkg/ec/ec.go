@@ -387,7 +387,7 @@ func EncodeResponse(s interface{}, err error, w http.ResponseWriter) {
 	if err != nil {
 		// If the supplied error is of an Element Controller Controller Error type,
 		// encode the response to a new error response packet.
-		var e *controllerError
+		var e *ControllerError
 		if errors.As(err, &e) {
 			w.WriteHeader(e.statusCode)
 			s = NewErrorResponse(e, s)

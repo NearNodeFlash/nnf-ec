@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	. "stash.us.cray.com/rabsw/nnf-ec/pkg/events"
-
 	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
+	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
 	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
 	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 
@@ -526,10 +526,8 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 	// by the NNF Storage Service.
 	s.resourceIndex = strings.Count(s.OdataIdRef("/StoragePool/0").OdataId, "/")
 
-	PortEventManager.Subscribe(PortEventSubscriber{
-		HandlerFunc: PortEventHandler,
-		Data:        s,
-	})
+	// Subscribe ourselves to events
+	event.EventManager.Subscribe(s)
 
 	// Initialize the Server Manager - considered internal to
 	// the NNF Manager
@@ -541,54 +539,51 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 	return nil
 }
 
-// PortEventHandler is a callback to the Port Event Manager for receiving
-// Port Events.
-func PortEventHandler(event PortEvent, data interface{}) {
-	s := data.(*StorageService)
+func (s *StorageService) EventHandler(e event.Event) error {
 
-	if event.PortType != USP_PortType {
-		return
-	}
-
-	ep, err := fabric.GetEndpointFromPortEvent(event)
-	if err != nil {
-		log.WithError(err).Errorf("Unable to find endpoint for event %+v", event)
-		return
-	}
-
-	endpointIdx := ep.Index()
-	if !(endpointIdx < len(s.endpoints)) {
-		log.Errorf("Endpoint index %d beyond supported endpoint count %d", endpointIdx, len(s.endpoints))
-		return
-	}
-
-	isNnf := func(ep *fabric.Endpoint) bool {
-		model := sf.EndpointV150Endpoint{}
-		fabric.FabricIdEndpointsEndpointIdGet(event.FabricId, ep.Id(), &model)
-		if model.ConnectedEntities[0].EntityType == sf.PROCESSOR_EV150ET {
-			return true
+	log.Infof("Storage Service: Event Received %+v", e)
+	if e.Is(msgreg.UpstreamLinkEstablishedFabric("", "")) || e.Is(msgreg.DegradedUpstreamLinkEstablishedFabric("", "")) {
+		var switchId, portId string
+		if err := e.Args(&switchId, &portId); err != nil {
+			return ec.NewErrInternalServerError().WithError(err).WithCause("event parameters illformed")
 		}
 
-		return false
+		ep, err := fabric.GetEndpoint(switchId, portId)
+		if err != nil {
+			return ec.NewErrInternalServerError().WithError(err).WithCause("failed to locate endpoint")
+		}
+
+		isNnf := func(ep *fabric.Endpoint) bool {
+			model := sf.EndpointV150Endpoint{}
+			fabric.FabricIdEndpointsEndpointIdGet(fabric.FabricId, ep.Id(), &model)
+			if model.ConnectedEntities[0].EntityType == sf.PROCESSOR_EV150ET {
+				return true
+			}
+
+			return false
+		}
+
+		endpoint := &s.endpoints[ep.Index()]
+
+		endpoint.id = ep.Id()
+		endpoint.name = ep.Name()
+		endpoint.controllerId = ep.ControllerId()
+		endpoint.fabricId = fabric.FabricId
+
+		opts := server.ServerControllerOptions{
+			Local:   isNnf(ep),
+			Address: endpoint.config.Address,
+		}
+
+		endpoint.serverCtrl = s.serverControllerProvider.NewServerController(opts)
+
+		if endpoint.serverCtrl.Connected() {
+			endpoint.state = sf.ENABLED_RST
+		}
+
 	}
 
-	endpoint := &s.endpoints[endpointIdx]
-
-	endpoint.id = ep.Id()
-	endpoint.name = ep.Name()
-	endpoint.controllerId = ep.ControllerId()
-	endpoint.fabricId = event.FabricId // Should just link to the fabric.Endpoint
-
-	opts := server.ServerControllerOptions{
-		Local:   isNnf(ep),
-		Address: endpoint.config.Address,
-	}
-
-	endpoint.serverCtrl = s.serverControllerProvider.NewServerController(opts)
-
-	if endpoint.serverCtrl.Connected() {
-		endpoint.state = sf.ENABLED_RST
-	}
+	return nil
 }
 
 //

@@ -16,6 +16,11 @@ vet:
 fmt:
 	go fmt `go list -f {{.Dir}} ./...`
 
+generate:
+	( cd ./pkg/manager-message-registry/generator && go build msgenerator.go )
+	go generate ./...
+	go fmt ./pkg/manager-message-registry/registries
+
 test: 
 	go test -v ./...
 	

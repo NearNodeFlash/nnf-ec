@@ -284,8 +284,8 @@ sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874/go.mod h
 sigs.k8s.io/structured-merge-diff/v3 v3.0.0/go.mod h1:PlARxl6Hbt/+BC80dRLi1qAmnMqwqDg62YvvVkZjemw=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 sigs.k8s.io/yaml v1.2.0/go.mod h1:yfXDCHCao9+ENCvLSE62v9VSji2MKu5jeNfTrofGhJc=
-stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210830201758-8dbd76f01e7d h1:jAezcBsfbnY2mB4QrgWSjo54NYJFy6GlgGHaHH6di9g=
-stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210830201758-8dbd76f01e7d/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
+stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210901173448-bf6324a31efb h1:Wss9WrQKXcycGhricn59TjTQUEhiYE79hv3Oxa2biq0=
+stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210901173448-bf6324a31efb/go.mod h1:JsHNQiOI30oIGDKjigIECIKIHfcPmDZJIVmloQ9SI8g=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.15 h1:cEFsCFmvYZleA2gSU/OZwc6mRa4fMuVL1VTzKJIGrls=
 stash.us.cray.com/rabsw/switchtec-fabric v1.0.15/go.mod h1:ukeUmbO/SeRv1fU5mM/fH/TVLhk4FIy7dJhyZy1RAYw=
 stash.us.cray.com/sp/dp-api v0.0.3/go.mod h1:FUzEPxIOBeBoO84LSpSpFe+V9/ZUmKcD/lCp2NUqPVE=

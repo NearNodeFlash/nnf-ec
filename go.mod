@@ -15,7 +15,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/grpc v1.35.0
 	gopkg.in/yaml.v2 v2.4.0
-	stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210830201758-8dbd76f01e7d
+	stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210901173448-bf6324a31efb
 	stash.us.cray.com/rabsw/switchtec-fabric v1.0.15
 	stash.us.cray.com/sp/dp-api v0.1.8
 	stash.us.cray.com/sp/dp-common v0.1.5

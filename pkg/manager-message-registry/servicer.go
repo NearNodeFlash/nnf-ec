@@ -41,3 +41,7 @@ func (*DefaultApiService) RedfishV1RegistriesRegistryIdGet(w http.ResponseWriter
 
 	EncodeResponse(model, err, w)
 }
+
+func (*DefaultApiService) RedfishV1RegistriesRegistryIdRegistryGet(w http.ResponseWriter, r *http.Request) {
+	EncodeResponse(nil, nil, w)
+}

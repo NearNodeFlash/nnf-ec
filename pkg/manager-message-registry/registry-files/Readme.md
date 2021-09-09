@@ -1,1 +1,0 @@
-Message Registries are maintained by DMTF at https://redfish.dmtf.org/registries/

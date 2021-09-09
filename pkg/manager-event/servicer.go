@@ -11,11 +11,11 @@ import (
 )
 
 type DefaultApiService struct {
-	manager
+	*manager
 }
 
 func NewDefaultApiService() Api {
-	return &DefaultApiService{}
+	return &DefaultApiService{manager: &EventManager}
 }
 
 func (s *DefaultApiService) Initialize() error {
