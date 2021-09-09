@@ -12,8 +12,6 @@ import (
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
 
-	//"stash.us.cray.com/rabsw/nnf-ec/pkg/events"
-
 	log "github.com/sirupsen/logrus"
 
 	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
@@ -256,7 +254,7 @@ func (s *Storage) initialize() error {
 
 	ctrl, err := s.device.IdentifyController(0)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to indentify controller: Error: %w", err)
 	}
 
 	s.pfid = ctrl.ControllerId
@@ -742,7 +740,7 @@ func StorageIdStoragePoolIdGet(storageId, storagePoolId string, model *sf.Storag
 	}
 
 	if err := s.refreshCapacity(); err != nil {
-		return ec.NewErrInternalServerError()
+		return ec.NewErrInternalServerError().WithError(err).WithCause(fmt.Sprintf("storage %s read capacity failed", storageId))
 	}
 
 	// TODO: This should reflect the total namespaces allocated over the drive
@@ -780,14 +778,16 @@ func StorageIdControllersGet(storageId string, model *sf.StorageControllerCollec
 func StorageIdControllerIdGet(storageId, controllerId string, model *sf.StorageControllerV100StorageController) error {
 	_, c := findStorageController(storageId, controllerId)
 	if c == nil {
-		return ec.NewErrNotFound()
+		return ec.NewErrNotFound().WithCause(fmt.Sprintf("Storage Controller not found: Storage: %s Controller: %s", storageId, controllerId))
 	}
 
 	// Fill in the relative endpoint for this storage controller
 	endpointId, err := FabricController.FindDownstreamEndpoint(storageId, controllerId)
 	if err != nil {
-		return err
+		return ec.NewErrNotFound().WithError(err).WithCause(fmt.Sprintf("Storage Controller fabric endpoint not found: Storage: %s Controller: %s", storageId, controllerId))
 	}
+
+	model.Id = c.id
 
 	model.Links.EndpointsodataCount = 1
 	model.Links.Endpoints = make([]sf.OdataV4IdRef, model.Links.EndpointsodataCount)

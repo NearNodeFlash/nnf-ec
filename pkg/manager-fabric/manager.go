@@ -542,7 +542,7 @@ func (p *Port) Initialize() error {
 			return func(epPort *switchtec.DumpEpPortDevice) error {
 
 				if switchtec.EpPortType(epPort.Hdr.Typ) != switchtec.DeviceEpPortType {
-					return fmt.Errorf("Port non-device type (%#02x)", epPort.Hdr.Typ)
+					return fmt.Errorf("Port %s: Non-device type (%#02x)", port.id, epPort.Hdr.Typ)
 				}
 
 				if epPort.Ep.Functions == nil {
