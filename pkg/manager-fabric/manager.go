@@ -419,15 +419,18 @@ StatusLoop:
 					if status.linkStatus == sf.LINK_UP_PV130LS {
 						if status.negLinkWidth == status.cfgLinkWidth && status.curLinkRateGBps == status.maxLinkRateGBps {
 							eventMap[sf.UPSTREAM_PORT_PV130PT] = msgreg.UpstreamLinkEstablishedFabric
+							eventMap[sf.MANAGEMENT_PORT_PV130PT] = msgreg.UpstreamLinkEstablishedFabric
 							eventMap[sf.DOWNSTREAM_PORT_PV130PT] = msgreg.DownstreamLinkEstablishedFabric
 							eventMap[sf.INTERSWITCH_PORT_PV130PT] = msgreg.InterswitchLinkEstablishedFabric
 						} else {
 							eventMap[sf.UPSTREAM_PORT_PV130PT] = msgreg.DegradedUpstreamLinkEstablishedFabric
+							eventMap[sf.MANAGEMENT_PORT_PV130PT] = msgreg.DegradedUpstreamLinkEstablishedFabric
 							eventMap[sf.DOWNSTREAM_PORT_PV130PT] = msgreg.DegradedDownstreamLinkEstablishedFabric
 							eventMap[sf.INTERSWITCH_PORT_PV130PT] = msgreg.DegradedInterswitchLinkEstablishedFabric
 						}
 					} else {
 						eventMap[sf.UPSTREAM_PORT_PV130PT] = msgreg.UpstreamLinkDroppedFabric
+						eventMap[sf.MANAGEMENT_PORT_PV130PT] = msgreg.UpstreamLinkDroppedFabric
 						eventMap[sf.DOWNSTREAM_PORT_PV130PT] = msgreg.DownstreamLinkDroppedFabric
 						eventMap[sf.INTERSWITCH_PORT_PV130PT] = msgreg.InterswitchLinkDroppedFabric
 					}

@@ -98,6 +98,7 @@ const (
 	StorageStatus_Starting StorageStatus = "starting"
 	StorageStatus_Ready                  = "ready"
 	StorageStatus_Error                  = "error"
+	StorageStatus_Disabled               = "disabled"
 )
 
 func (s StorageStatus) State() sf.ResourceState {

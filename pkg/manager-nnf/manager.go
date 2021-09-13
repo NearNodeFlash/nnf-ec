@@ -519,6 +519,7 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 			state:          sf.UNAVAILABLE_OFFLINE_RST,
 			config:         &conf.RemoteConfig.Servers[endpointIdx],
 			storageService: s,
+			serverCtrl:     server.NewDisabledServerController(),
 		}
 	}
 
@@ -542,7 +543,11 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 func (s *StorageService) EventHandler(e event.Event) error {
 
 	log.Infof("Storage Service: Event Received %+v", e)
-	if e.Is(msgreg.UpstreamLinkEstablishedFabric("", "")) || e.Is(msgreg.DegradedUpstreamLinkEstablishedFabric("", "")) {
+
+	linkEstablished := e.Is(msgreg.UpstreamLinkEstablishedFabric("", "")) || e.Is(msgreg.DegradedUpstreamLinkEstablishedFabric("", ""))
+	linkDropped := e.Is(msgreg.UpstreamLinkDroppedFabric("", ""))
+
+	if linkEstablished || linkDropped {
 		var switchId, portId string
 		if err := e.Args(&switchId, &portId); err != nil {
 			return ec.NewErrInternalServerError().WithError(err).WithCause("event parameters illformed")
@@ -553,34 +558,33 @@ func (s *StorageService) EventHandler(e event.Event) error {
 			return ec.NewErrInternalServerError().WithError(err).WithCause("failed to locate endpoint")
 		}
 
-		isNnf := func(ep *fabric.Endpoint) bool {
-			model := sf.EndpointV150Endpoint{}
-			fabric.FabricIdEndpointsEndpointIdGet(fabric.FabricId, ep.Id(), &model)
-			if model.ConnectedEntities[0].EntityType == sf.PROCESSOR_EV150ET {
-				return true
-			}
-
-			return false
-		}
-
 		endpoint := &s.endpoints[ep.Index()]
 
-		endpoint.id = ep.Id()
-		endpoint.name = ep.Name()
-		endpoint.controllerId = ep.ControllerId()
-		endpoint.fabricId = fabric.FabricId
+		if linkEstablished {
 
-		opts := server.ServerControllerOptions{
-			Local:   isNnf(ep),
-			Address: endpoint.config.Address,
+			endpoint.id = ep.Id()
+			endpoint.name = ep.Name()
+			endpoint.controllerId = ep.ControllerId()
+			endpoint.fabricId = fabric.FabricId
+
+			opts := server.ServerControllerOptions{
+				Local:   ep.Type() == sf.PROCESSOR_EV150ET,
+				Address: endpoint.config.Address,
+			}
+
+			endpoint.serverCtrl = s.serverControllerProvider.NewServerController(opts)
+
+			if endpoint.serverCtrl.Connected() {
+				endpoint.state = sf.ENABLED_RST
+			} else {
+				endpoint.state = sf.STANDBY_OFFLINE_RST
+			}
+
+		} else if linkDropped {
+
+			endpoint.serverCtrl = server.NewDisabledServerController()
+			endpoint.state = sf.UNAVAILABLE_OFFLINE_RST
 		}
-
-		endpoint.serverCtrl = s.serverControllerProvider.NewServerController(opts)
-
-		if endpoint.serverCtrl.Connected() {
-			endpoint.state = sf.ENABLED_RST
-		}
-
 	}
 
 	return nil

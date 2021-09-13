@@ -23,6 +23,9 @@ generate:
 
 test: 
 	go test -v ./...
+
+linux:
+	env GOOS=linux GOARCH=amd64 GOPRIVATE=stash.us.cray.com go build -o ${DEV_IMGNAME} ./cmd/nnf_ec.go
 	
 image:
 	docker build --rm --file Dockerfile --label $(DTR_IMGPATH):$(PROD_VERSION) --tag $(DTR_IMGPATH):$(PROD_VERSION) .
