@@ -3,7 +3,7 @@ package nnf
 import (
 	"net/http"
 
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 )
 
 // API defines the programming interface for the Redfish / Swordfish routes. Each method is

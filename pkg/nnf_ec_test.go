@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
 )
 
 var controllerOption = NewMockOptions()

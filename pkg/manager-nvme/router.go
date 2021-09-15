@@ -1,7 +1,7 @@
 package nvme
 
 import (
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
 )
 
 // Router contains all the Redfish / Swordfish API calls that are hosted by

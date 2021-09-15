@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 )
 
 //go:embed config_default.yaml

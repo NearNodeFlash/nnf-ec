@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg"
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
 )
 
 func main() {

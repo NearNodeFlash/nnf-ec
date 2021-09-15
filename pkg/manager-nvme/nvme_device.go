@@ -7,7 +7,7 @@ import (
 
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 
-	"stash.us.cray.com/rabsw/switchtec-fabric/pkg/nvme"
+	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type SwitchtecNvmeController struct{}

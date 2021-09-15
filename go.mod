@@ -4,19 +4,17 @@ go 1.16
 
 require (
 	github.com/HewlettPackard/structex v1.0.2
-	github.com/golang/protobuf v1.4.3
-	github.com/google/uuid v1.2.0
+	github.com/alecthomas/kong v0.2.17
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/mattn/go-isatty v0.0.14
+	github.com/pkg/term v1.1.0
 	github.com/rs/cors v1.8.0
 	github.com/senseyeio/duration v0.0.0-20180430131211-7c2a214ada46
+	github.com/sigurn/crc8 v0.0.0-20160107002456-e55481d6f45c
+	github.com/sigurn/utils v0.0.0-20190728110027-e1fefb11a144 // indirect
 	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
-	golang.org/x/sys v0.0.0-20210603125802-9665404d3644
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/grpc v1.35.0
+	go.chromium.org/luci v0.0.0-20210915061045-7722a2154c29
+	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
 	gopkg.in/yaml.v2 v2.4.0
-	stash.us.cray.com/rabsw/rfsf-openapi v0.1.14-0.20210901173448-bf6324a31efb
-	stash.us.cray.com/rabsw/switchtec-fabric v1.0.15
-	stash.us.cray.com/sp/dp-api v0.1.8
-	stash.us.cray.com/sp/dp-common v0.1.5
 )

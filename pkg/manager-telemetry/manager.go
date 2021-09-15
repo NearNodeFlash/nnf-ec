@@ -6,8 +6,8 @@ import (
 
 	"github.com/senseyeio/duration"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 )
 
 var TelemetryManager = manager{}

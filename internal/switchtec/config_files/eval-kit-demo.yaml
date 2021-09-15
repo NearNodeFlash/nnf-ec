@@ -1,0 +1,58 @@
+# Sample configuration file for the Rabbit eval kit hardware
+version: v1
+metadata:
+  name: eval-kit-demo
+options:
+  - fabric-ctrl: uart # Controller Fabric commands over UART
+  - virt-mgmt-ctrl: uart # Control Virtualization Management commands over UART
+devices:
+  - id: 0
+    metadata:
+      name: PAX 0
+    domains:
+      - name: Rabbit
+        port: 24
+      - name: Bunny 0
+        port: 32
+      - name: Bunny 1
+        port: 34
+      - name: Bunny 2
+        port: 36
+      - name: Bunny 3
+        port: 38 
+      ### I don't have Stack 5 configured yet
+      #- name: Bunny 4
+      #  port: 40
+      #- name: Bunny 5
+      #  port: 42
+      #- name: Bunny 6
+      #  port: 44
+      #- name: Bunny 7
+      #  port: 46
+      ###   
+    endpoints: [8, 10, 12, 14, 16, 18, 20, 22, 48]
+  - id: 1
+    metadata:
+      name: PAX 1
+    domains:
+      - name: Rabbit
+        port: 24        
+      - name: Bunny 8
+        port: 32
+      - name: Bunny 9
+        port: 34
+      - name: Bunny 10
+        port: 36
+      - name: Bunny 11
+        port: 38
+      ### I don't have Stack 5 configured yet
+      #- name: Bunny 12
+      #  port: 40
+      #- name: Bunny 13
+      #  port: 42
+      #- name: Bunny 14
+      #  port: 44
+      #- name: Bunny 15
+      #  port: 46  
+      ###  
+    endpoints: [8, 10, 12, 14, 16, 18, 20, 22, 48]

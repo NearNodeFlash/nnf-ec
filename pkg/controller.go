@@ -15,7 +15,7 @@ import (
 	"flag"
 	"os"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
 	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry"

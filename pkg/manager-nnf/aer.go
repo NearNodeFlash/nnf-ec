@@ -5,8 +5,8 @@ import (
 
 	events "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 )
 
 // Automatic Error Reporting Service Wraps the provided Storage Service API with automatic

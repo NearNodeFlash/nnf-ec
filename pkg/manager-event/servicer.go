@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 
+	"stash.us.cray.com/rabsw/nnf-ec/internal/ec"
 	. "stash.us.cray.com/rabsw/nnf-ec/pkg/common"
-	"stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 )
 
 type DefaultApiService struct {

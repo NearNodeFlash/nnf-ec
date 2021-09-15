@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
 	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
 	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
 	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	openapi "stash.us.cray.com/rabsw/rfsf-openapi/pkg/common"
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	openapi "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/common"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 )
 
 var storageService = StorageService{}

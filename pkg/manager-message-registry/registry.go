@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sf "stash.us.cray.com/rabsw/rfsf-openapi/pkg/models"
+	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 )
 
 //go:generate ./generator/msgenerator ./registries/Base.1.10.0.json
