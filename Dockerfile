@@ -20,6 +20,7 @@ COPY go.sum go.sum
 
 # Copy the Go source tree
 COPY cmd/ cmd/
+COPY internal/ internal/
 COPY pkg/ pkg/
 
 # Build
