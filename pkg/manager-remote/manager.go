@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
 	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
 )

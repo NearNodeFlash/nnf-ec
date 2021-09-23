@@ -9,7 +9,7 @@ import (
 	"stash.us.cray.com/rabsw/nnf-ec/pkg/common"
 	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/common"
+	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
 )
 
 // AllocationPolicy -

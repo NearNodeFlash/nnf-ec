@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type Subscription interface {

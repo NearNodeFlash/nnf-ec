@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type MockSwitchtecController struct {

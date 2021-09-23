@@ -7,15 +7,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/ec"
 	"stash.us.cray.com/rabsw/nnf-ec/pkg/api"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
 	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
 
 	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

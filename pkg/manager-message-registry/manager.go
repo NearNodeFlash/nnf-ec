@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var MessageRegistryManager = manager{}

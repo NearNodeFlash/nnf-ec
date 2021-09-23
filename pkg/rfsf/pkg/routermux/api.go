@@ -12,7 +12,7 @@ package routermux
 import (
 	"net/http"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // DefaultApiRouter defines the required methods for binding the api requests to a responses for the DefaultApi

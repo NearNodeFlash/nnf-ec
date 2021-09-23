@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Event Manager:

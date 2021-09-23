@@ -107,7 +107,7 @@ if __name__ == '__main__':
 	"strings"
 
 	"github.com/gorilla/mux"
-	openapi "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
+	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
  )
 
 // A StoragePlatformApiController binds http requests to an api service and writes the service results to the http response

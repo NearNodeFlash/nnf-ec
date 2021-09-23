@@ -14,10 +14,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/internal/ec"
+	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/models"
 	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (
