@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"encoding/json"
 )
@@ -101,17 +102,18 @@ type testModel struct {
 func TestHttp(t *testing.T) {
 
 	var c = Controller{
-		Name:    "TestController",
-		Port:    8080,
-		Version: "0.0",
+		Name: "TestController",
+		Port: 8081,
 		Routers: Routers{
 			NewTestApiRouter(),
 		},
 	}
 
 	c.Init(&Options{Http: true, Log: true, Verbose: true})
+	defer c.Close()
 
 	go c.Run()
+	time.Sleep(1 * time.Second)
 
 	Request(t, &c, GET_METHOD)
 	Request(t, &c, POST_METHOD)

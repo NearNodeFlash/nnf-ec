@@ -225,6 +225,7 @@ func TestFabricManagerEndpoints(t *testing.T) {
 
 	opts := ec.Options{Http: true, Port: 8080, Log: true, Verbose: true}
 	MockController.Init(&opts)
+	defer MockController.Close()
 
 	go MockController.Run()
 
@@ -449,7 +450,9 @@ func RouteCollections() []TestRoute {
 func TestWalkFabricEndpoints(t *testing.T) {
 
 	opts := ec.Options{Http: true, Port: 8080, Log: true, Verbose: true}
+	
 	MockController.Init(&opts)
+	defer MockController.Close()
 
 	go MockController.Run()
 

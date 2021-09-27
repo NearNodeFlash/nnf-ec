@@ -48,13 +48,17 @@ func retrieveStorageService(t *testing.T, model *sf.StorageServiceV150StorageSer
 }
 
 func startMockController() {
-	opts := ec.Options{Http: true, Port: 8080, Log: true, Verbose: true}
-	MockController.Init(&opts)
+	opts := ec.NewDefaultOptions()
+	MockController.Init(opts)
 
 	go MockController.Run()
 
 	// Allow the MockController to get started before sending it anything.
 	time.Sleep(time.Second)
+}
+
+func stopMockController() {
+	MockController.Close()
 }
 
 const (
@@ -67,6 +71,7 @@ func TestStorageServiceCreatePool(t *testing.T) {
 		"Skipping test because TestWalkFabricEndpoints checks the endpoints. Consider deleting")
 
 	startMockController()
+	defer stopMockController()
 
 	var storageServices sf.StorageServiceV150StorageService
 	retrieveStorageService(t, &storageServices)
@@ -99,24 +104,3 @@ func TestStorageServiceCreatePool(t *testing.T) {
 
 	postStoragePool()
 }
-
-// ------------------ Original post code
-// resp, err := http.Post(url, "application/json; charset=utf-8", bytes.NewBuffer(jsonReq))
-// if err != nil {
-// 	log.Fatalln(err)
-// }
-
-// defer resp.Body.Close()
-// bodyBytes, _ := ioutil.ReadAll(resp.Body)
-
-// bodyString := string(bodyBytes)
-// fmt.Println(bodyString)
-
-/// Retrieve/query StorageServices
-///
-
-/// Create StorageServices
-///
-
-/// Destroy StorageServices
-///

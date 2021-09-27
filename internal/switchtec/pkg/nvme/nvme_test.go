@@ -46,8 +46,8 @@ func TestAdminCmdStructex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sz != 16*4 {
-		t.Fatalf("Admin Command Size incorrect: Expected:%d Actual: %d", 16*4, sz)
+	if sz != 72 {
+		t.Fatalf("Admin Command Size incorrect: Expected: %d Actual: %d", 72, sz)
 	}
 }
 
@@ -58,6 +58,7 @@ func TestIdentifyNamespaceStructex(t *testing.T) {
 	id.Size = 1048576
 	id.Capacity = 1048576
 	id.MultiPathIOSharingCapabilities.Sharing = 1
+	id.Reserved192[0] = 0xFF
 
 	buf := structex.NewBuffer(id)
 	if err := structex.Encode(buf, id); err != nil {
