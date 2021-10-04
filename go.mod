@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/HewlettPackard/structex v1.0.2
 	github.com/alecthomas/kong v0.2.17
+	github.com/dgraph-io/badger/v3 v3.2103.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/mattn/go-isatty v0.0.14

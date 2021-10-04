@@ -56,8 +56,11 @@ clean-codestyle:
 kind-push: image
 	kind load docker-image $(DTR_IMGPATH):$(PROD_VERSION)
 
-clean:
+clean: clean-db
 	docker container prune --force
 	docker image prune --force
 	docker rmi $(DTR_IMGPATH):$(PROD_VERSION)
 	go clean all
+
+clean-db:
+	find . -name "*.db" -type d -exec rm -rf {} +

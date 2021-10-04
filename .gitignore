@@ -11,8 +11,13 @@ vendor/
 nnf_ec
 nnf_server
 
+
 cmd/commands.log
 commands.log
+
+# Key-Value Database
+kvdebug
+*.db
 
 scripts/__pycache__/
 *.py[cod]
