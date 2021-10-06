@@ -391,6 +391,10 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 	return nil
 }
 
+func (s *StorageService) Close() error {
+	return s.store.Close()
+}
+
 func (s *StorageService) EventHandler(e event.Event) error {
 
 	log.Infof("Storage Service: Event Received %+v", e)

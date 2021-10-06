@@ -9,6 +9,8 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/mattn/go-isatty v0.0.14
+	github.com/onsi/ginkgo v1.16.5-0.20211001031228-98001bf0ed33
+	github.com/onsi/gomega v1.15.0
 	github.com/pkg/term v1.1.0
 	github.com/rs/cors v1.8.0
 	github.com/senseyeio/duration v0.0.0-20180430131211-7c2a214ada46

@@ -10,6 +10,8 @@ type NvmeController interface {
 
 type NvmeDeviceController interface {
 	Initialize() error
+	Close() error
+	
 	NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error)
 }
 

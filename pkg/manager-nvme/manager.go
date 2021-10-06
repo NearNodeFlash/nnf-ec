@@ -624,6 +624,10 @@ func Initialize(ctrl NvmeController) error {
 	return nil
 }
 
+func Close() error {
+	return mgr.ctrl.Close()
+}
+
 func (m *Manager) EventHandler(e event.Event) error {
 
 	linkEstablished := e.Is(msgreg.DownstreamLinkEstablishedFabric("", "")) || e.Is(msgreg.DegradedDownstreamLinkEstablishedFabric("", ""))

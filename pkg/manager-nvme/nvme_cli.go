@@ -28,6 +28,7 @@ func (cliNvmeController) NewNvmeDeviceController() NvmeDeviceController {
 type cliNvmeDeviceController struct{}
 
 func (ctrl cliNvmeDeviceController) Initialize() error { return nil }
+func (ctrl cliNvmeDeviceController) Close() error      { return nil }
 
 func (cliNvmeDeviceController) NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 	spath := fabric.GetSwitchPath(fabricId, switchId)

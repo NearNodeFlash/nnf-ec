@@ -50,6 +50,11 @@ func (mgr *MockNvmePersistenceManager) initialize() (err error) {
 	return
 }
 
+// Close -
+func (mgr *MockNvmePersistenceManager) close() error {
+	return mgr.store.Close()
+}
+
 // Load will load the provided device with any recorded events so the device appears to have
 // all the NVMe Namespaces with the attached Controllers.
 func (mgr *MockNvmePersistenceManager) load(dev *mockDevice) error {

@@ -178,6 +178,10 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 	return nil
 }
 
+func (s *ServerStorageService) Close() error {
+	return nil
+}
+
 func (s *ServerStorageService) NewStorage(storage *server.Storage) {
 
 	pool := StoragePool{

@@ -20,6 +20,8 @@ func NewTestApiRouter() Router {
 func (*TestApiRouter) Name() string { return "TestRouter" }
 func (*TestApiRouter) Init() error  { return nil }
 func (*TestApiRouter) Start() error { return nil }
+func (*TestApiRouter) Close() error { return nil }
+
 func (*TestApiRouter) Routes() Routes {
 	return Routes{{
 		Name:        "TestGet",

@@ -30,6 +30,10 @@ func (ctrl *MockNvmeDeviceController) Initialize() error {
 	return ctrl.mockPersistenceManager.initialize()
 }
 
+func (ctrl *MockNvmeDeviceController) Close() error {
+	return ctrl.mockPersistenceManager.close()
+}
+
 func (ctrl MockNvmeDeviceController) NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 	dev := &mockDevice{
 		virtualizationManagement: true,
@@ -252,7 +256,9 @@ func (d *mockDevice) ListAttachedControllers(namespaceId nvme.NamespaceIdentifie
 
 	controllerIds := make([]uint16, 0)
 	for _, ctrl := range ns.attachedControllers {
-		controllerIds = append(controllerIds, ctrl.id)
+		if ctrl != nil {
+			controllerIds = append(controllerIds, ctrl.id)
+		}
 	}
 
 	return controllerIds, nil

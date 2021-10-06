@@ -23,6 +23,7 @@ func (SwitchtecNvmeController) NewNvmeDeviceController() NvmeDeviceController {
 type SwitchtecNvmeDeviceController struct{}
 
 func (SwitchtecNvmeDeviceController) Initialize() error { return nil }
+func (SwitchtecNvmeDeviceController) Close() error      { return nil }
 
 func (SwitchtecNvmeDeviceController) NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 	return newNvmeDevice(fabricId, switchId, portId)
