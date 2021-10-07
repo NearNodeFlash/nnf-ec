@@ -143,6 +143,14 @@ func (d *nvmeDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvm
 		return 0, err
 	}
 
+	// Workaround for SSST drives that improperly report only one NumberOfLBAFormats, but actually
+	// support two - with the second being the most performant 4096 sector size.
+	if dns.NumberOfLBAFormats == 1 {
+		if ((1 << dns.LBAFormats[1].LBADataSize) == 4096) && (dns.LBAFormats[1].RelativePerformance == 0) {
+			dns.NumberOfLBAFormats = 2
+		}
+	}
+
 	// We then iterate over the LBA formats presented by the drive and look for
 	// the best performing LBA format that has no metadata.
 	var bestPerformance = ^uint8(0) // Performance improves as the RelativePerformance value gets lower

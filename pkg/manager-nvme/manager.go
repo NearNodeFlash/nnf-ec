@@ -316,6 +316,16 @@ func (s *Storage) initialize() error {
 		return err
 	}
 
+	// Workaround for SSST drives that improperly report only one NumberOfLBAFormats, but actually
+	// support two - with the second being the most performant 4096 sector size.
+	if ns.NumberOfLBAFormats == 1 {
+		
+		if ((1 << ns.LBAFormats[1].LBADataSize) == 4096) && (ns.LBAFormats[1].RelativePerformance == 0) {
+			log.Warnf("Detected Device %s; Incorrect number of LBA Formats. Expected: 2 Actual: %d", s.serialNumber, ns.NumberOfLBAFormats)
+			ns.NumberOfLBAFormats = 2
+		}
+	}
+
 	bestIndex := 0
 	bestRelativePerformance := ^uint8(0)
 	for i := 0; i < int(ns.NumberOfLBAFormats); i++ {
