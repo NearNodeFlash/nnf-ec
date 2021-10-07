@@ -265,7 +265,7 @@ func (d *mockDevice) ListAttachedControllers(namespaceId nvme.NamespaceIdentifie
 }
 
 // CreateNamespace -
-func (d *mockDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error) {
+func (d *mockDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint64, sectorSizeIndex uint8) (nvme.NamespaceIdentifier, error) {
 
 	if capacityBytes > (d.capacity - d.allocatedCapacity) {
 		return 0, fmt.Errorf("Insufficient Capacity")

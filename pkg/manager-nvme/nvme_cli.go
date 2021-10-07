@@ -195,7 +195,7 @@ func (d *cliDevice) ListAttachedControllers(namespaceId nvme.NamespaceIdentifier
 	return controllerIds, nil
 }
 
-func (d *cliDevice) CreateNamespace(capacityBytes uint64, metadata []byte) (nvme.NamespaceIdentifier, error) {
+func (d *cliDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint64, sectorSizeIndex uint8) (nvme.NamespaceIdentifier, error) {
 	return ^nvme.NamespaceIdentifier(0), nil
 }
 
