@@ -149,7 +149,7 @@ func (d *nvmeDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint6
 		0,               // Data Protection Capaiblities (none)
 		0x1,             // Capabilities (sharing = 1b)
 		0,               // ANA Group Identifier (none)
-		0,               // NVM Set Identifier (non)
+		0,               // NVM Set Identifier (none)
 		100,             // Timeout (???)
 	)
 
