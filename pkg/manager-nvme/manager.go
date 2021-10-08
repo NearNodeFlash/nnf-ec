@@ -232,8 +232,8 @@ func EnumerateStorage(storageHandlerFunc func(odataId string, capacityBytes uint
 	return nil
 }
 
-func CreateVolume(s *Storage, capacityBytes uint64, data []byte) (*Volume, error) {
-	return s.createVolume(capacityBytes, data)
+func CreateVolume(s *Storage, capacityBytes uint64) (*Volume, error) {
+	return s.createVolume(capacityBytes)
 }
 
 func DeleteVolume(v *Volume) error {
@@ -314,6 +314,16 @@ func (s *Storage) initialize() error {
 	ns, err := s.device.IdentifyNamespace(CommonNamespaceIdentifier)
 	if err != nil {
 		return err
+	}
+
+	// Workaround for SSST drives that improperly report only one NumberOfLBAFormats, but actually
+	// support two - with the second being the most performant 4096 sector size.
+	if ns.NumberOfLBAFormats == 1 {
+
+		if ((1 << ns.LBAFormats[1].LBADataSize) == 4096) && (ns.LBAFormats[1].RelativePerformance == 0) {
+			log.Warnf("Detected Device %s; Incorrect number of LBA Formats. Expected: 2 Actual: %d", s.serialNumber, ns.NumberOfLBAFormats)
+			ns.NumberOfLBAFormats = 2
+		}
 	}
 
 	bestIndex := 0
@@ -401,8 +411,8 @@ func (s *Storage) refreshCapacity() error {
 	return nil
 }
 
-func (s *Storage) createVolume(capacityBytes uint64, metadata []byte) (*Volume, error) {
-	namespaceId, err := s.device.CreateNamespace(capacityBytes, metadata)
+func (s *Storage) createVolume(capacityBytes uint64) (*Volume, error) {
+	namespaceId, err := s.device.CreateNamespace(capacityBytes, uint64(s.blockSizeBytes), s.lbaFormatIndex)
 	// TODO: CreateNamespace can round up the requested capacity
 	// Need to pass in a pointer here and then get the updated capacity
 	// bytes programmed into the volume.
@@ -1028,7 +1038,7 @@ func StorageIdVolumePost(storageId string, model *sf.VolumeV161Volume) error {
 		return ec.NewErrNotFound()
 	}
 
-	volume, err := s.createVolume(uint64(model.CapacityBytes), nil)
+	volume, err := s.createVolume(uint64(model.CapacityBytes))
 
 	// TODO: We should parse the error and make it more obvious (404, 405, etc)
 	if err != nil {
