@@ -145,7 +145,7 @@ func (rh *storageGroupRecoveryReplyHandler) Metadata(data []byte) error {
 
 	rh.storageService.groups = append(rh.storageService.groups,
 		StorageGroup{
-			id:             rh.storageGroup.id,
+			id:             rh.id,
 			endpoint:       endpoint,
 			serverStorage:  endpoint.serverCtrl.NewStorage(storagePool.uid, nil /*TODO*/),
 			storagePool:    storagePool,

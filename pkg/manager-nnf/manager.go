@@ -188,9 +188,9 @@ func (s *StorageService) createStorageGroup(sp *StoragePool, endpoint *Endpoint)
 	groupId = groupId + 1
 
 	expectedNamespaces := make([]server.StorageNamespace, len(sp.providingVolumes))
-	for idx := range(sp.providingVolumes) {
+	for idx := range sp.providingVolumes {
 		expectedNamespaces[idx] = server.StorageNamespace{
-			Id: sp.providingVolumes[idx].volume.GetNamespaceId(),
+			Id:   sp.providingVolumes[idx].volume.GetNamespaceId(),
 			Guid: sp.providingVolumes[idx].volume.GetGloballyUniqueIdentifier(),
 		}
 	}

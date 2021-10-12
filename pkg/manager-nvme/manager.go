@@ -110,7 +110,7 @@ type StorageController struct {
 type Volume struct {
 	id            string
 	namespaceId   nvme.NamespaceIdentifier
-	guid		  nvme.NamespaceGloballyUniqueIdentifier
+	guid          nvme.NamespaceGloballyUniqueIdentifier
 	capacityBytes uint64
 
 	storage             *Storage
@@ -424,7 +424,7 @@ func (s *Storage) createVolume(capacityBytes uint64) (*Volume, error) {
 	s.volumes = append(s.volumes, Volume{
 		id:            id,
 		namespaceId:   namespaceId,
-		guid: guid,
+		guid:          guid,
 		capacityBytes: capacityBytes,
 		storage:       s,
 	})
@@ -465,6 +465,7 @@ func (s *Storage) recoverVolumes() error {
 		s.volumes = append(s.volumes, Volume{
 			id:            strconv.Itoa(int(nsid)),
 			namespaceId:   nsid,
+			guid:          ns.GloballyUniqueIdentifier,
 			capacityBytes: ns.Capacity,
 			storage:       s,
 		})
