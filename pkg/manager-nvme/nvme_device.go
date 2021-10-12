@@ -134,7 +134,7 @@ func (d *nvmeDevice) GetNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.I
 }
 
 // CreateNamespace -
-func (d *nvmeDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint64, sectorSizeIndex uint8) (nvme.NamespaceIdentifier, error) {
+func (d *nvmeDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint64, sectorSizeIndex uint8) (nvme.NamespaceIdentifier, nvme.NamespaceGloballyUniqueIdentifier, error) {
 
 	roundUpToMultiple := func(n, m uint64) uint64 {
 		return ((n + m - 1) / m) * m
@@ -153,7 +153,17 @@ func (d *nvmeDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint6
 		100,             // Timeout (???)
 	)
 
-	return nvme.NamespaceIdentifier(id), err
+	if err != nil {
+		return nvme.NamespaceIdentifier(0), nvme.NamespaceGloballyUniqueIdentifier{}, err
+	}
+
+	// Turn around and identify the namespace so we can read the GUID that is assigned by the controller
+	ns, err := d.dev.IdentifyNamespace(id, true)
+	if err != nil {
+		return nvme.NamespaceIdentifier(id), nvme.NamespaceGloballyUniqueIdentifier{}, err
+	}
+
+	return nvme.NamespaceIdentifier(id), ns.GloballyUniqueIdentifier, err
 }
 
 // DeleteNamespace -

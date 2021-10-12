@@ -34,12 +34,7 @@ func (cmd *IdNsCmd) Run() error {
 
 	// TODO: More details
 
-	fmt.Printf("  %-8s: %-32s : 0x", "NGUID", "Namespace GUID")
-	for i := 0; i < len(ns.GloballyUniqueIdentifier); i++ {
-		fmt.Printf("%02x", ns.GloballyUniqueIdentifier[i])
-	}
-	fmt.Printf("\n")
-
+	fmt.Printf("  %-8s: %-32s : 0x%s", "NGUID", "Namespace GUID\n", ns.GloballyUniqueIdentifier.String())
 	fmt.Printf("  %-8s: %-32s : %-2d\n", "NLBAS", "Number LBA Formats", ns.NumberOfLBAFormats)
 	for i := 0; i < int(ns.NumberOfLBAFormats); i++ {
 		f := &ns.LBAFormats[i]

@@ -12,7 +12,7 @@ func prepare(t *testing.T, pid uuid.UUID) (*Storage, FileSystemControllerApi) {
 
 	provider := DefaultServerControllerProvider{}
 	ctrl := provider.NewServerController(ServerControllerOptions{Local: true})
-	pool := ctrl.NewStorage(pid)
+	pool := ctrl.NewStorage(pid, nil)
 
 	if pool == nil {
 		t.Fatalf("Could not allocate storage pool %s", pid)

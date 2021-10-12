@@ -140,7 +140,7 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 	}
 
 	// Perform an initial discovery of existing storage pools
-	if err := s.ctrl.Discover(nil, s.NewStorage); err != nil {
+	if err := s.ctrl.Discover(nil); err != nil {
 		return err
 	}
 
@@ -167,7 +167,7 @@ func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
 				}
 
 				// Trigger discovery of NVMe devices
-				if err := s.ctrl.Discover(nil, s.NewStorage); err != nil {
+				if err := s.ctrl.Discover(nil); err != nil {
 					fmt.Printf("Discover Storage Error %s\n", err)
 				}
 			}
@@ -232,7 +232,7 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsGet(storageServiceId 
 func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
 	pid, err := uuid.Parse(model.Id)
 	if err != nil {
-		return ec.NewErrBadRequest()
+		return ec.NewErrBadRequest().WithError(err)
 	}
 
 	for _, pool := range s.pools {
@@ -241,7 +241,12 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId
 		}
 	}
 
-	s.NewStorage(s.ctrl.NewStorage(pid))
+	oem := &server.StoragePoolOem{}
+	if err := openapi.UnmarshalOem(model.Oem, oem); err != nil {
+		return ec.NewErrBadRequest().WithError(err).WithCause("Storage Pool failed to unmarshal OEM values")
+	}
+
+	s.NewStorage(s.ctrl.NewStorage(pid, oem.Namespaces))
 
 	return nil
 }
@@ -267,8 +272,12 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolIdGet(storageServiceId
 		model.Links.FileSystem = p.fileSystem.OdataIdRef("")
 	}
 
-	model.Status.State =
-		s.ctrl.GetStatus(p.serverStorage).State()
+	status, err := s.ctrl.GetStatus(p.serverStorage)
+	if err != nil {
+		return ec.NewErrInternalServerError().WithError(err).WithCause("Failed to get status of storage server")
+	}
+
+	model.Status.State = status.State()
 
 	return nil
 }
