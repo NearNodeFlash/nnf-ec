@@ -41,15 +41,21 @@ var _ = Describe("Reboot Recovery Testing", func() {
 	objectApis := [...]testRecoveryApi{
 		newTestStoragePoolObjectApi(),
 		newTestServerEndpointObjectApi(), // Not actually created, used only to read a server endpoint
-		//newTestStorageGroupObjectApi(),
+		newTestStorageGroupObjectApi(),
+		newTestFileSystemObjectApi(),
+		newTestFileShareObjectApi(),
 	}
 
 	// Test object creation up until objIdx + 1
 	for objIdx := range objectApis {
+
+		objIdx := objIdx
+		obj := objectApis[objIdx]
+
 		var c *ec.Controller
 		var ss nnf.StorageServiceApi
 
-		Describe("Create and Recover Object", func() {
+		Describe(fmt.Sprintf("Create and Recover Object %s", obj.Name()), func() {
 
 			// Before each test we start the NNF Element Controller. This will initialize
 			// everything, including the persistent database. If any data is in the DB, it
@@ -61,21 +67,21 @@ var _ = Describe("Reboot Recovery Testing", func() {
 				ss = nnf.NewDefaultStorageService()
 			})
 
-			// After each test we close the NNF Element Controller, there by safely closing
+			// After each test we close the NNF Element Controller, thereby safely closing
 			// the persistent database.
 			AfterEach(func() {
 				c.Close()
 			})
 
 			// Create the chain of objects up until the stop value
-			It("Creates the object chain", func() {
+			It(fmt.Sprintf("Creates the object chain at index %d (%s)", objIdx, obj.Name()), func() {
 				for _, objApi := range objectApis[:objIdx+1] {
 					Expect(objApi.CreateObject(ss, objectApis[:]...)).Should(Succeed())
 					Expect(objApi.VerifyObject(ss)).Should(Succeed())
 				}
 			})
 
-			It("Recovers the object chain", func() {
+			It(fmt.Sprintf("Recovers the object chain at index %d (%s)", objIdx, obj.Name()), func() {
 				for _, objApi := range objectApis[:objIdx+1] {
 					Expect(objApi.VerifyObject(ss)).Should(Succeed())
 				}
@@ -209,7 +215,7 @@ func (o *testStorageGroupObject) CreateObject(ss nnf.StorageServiceApi, objs ...
 		},
 	}
 
-	return nil
+	return ss.StorageServiceIdStorageGroupPost(ss.Id(), &o.sg)
 }
 
 func (o *testStorageGroupObject) VerifyObject(ss nnf.StorageServiceApi) error {
@@ -267,7 +273,7 @@ func (o *testFileSystemObject) DeleteObject(ss nnf.StorageServiceApi) error {
 }
 
 /*
-File System
+File Share
 */
 
 func newTestFileShareObjectApi() testRecoveryApi {
@@ -285,8 +291,8 @@ func (o *testFileShareObject) Id() string      { return o.sh.Id }
 func (o *testFileShareObject) OdataId() string { return o.sh.OdataId }
 
 func (o *testFileShareObject) CreateObject(ss nnf.StorageServiceApi, objs ...testRecoveryApi) error {
-	if objs[3].Name() != FileShareObjectName {
-		return newInvalidObjectError(3, FileShareObjectName)
+	if objs[4].Name() != FileShareObjectName {
+		return newInvalidObjectError(4, FileShareObjectName)
 	}
 
 	o.sh = sf.FileShareV120FileShare{
