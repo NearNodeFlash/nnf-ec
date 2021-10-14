@@ -615,6 +615,8 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 		return ec.NewErrInternalServerError().WithError(err).WithCause("Failed to allocate storage volumes")
 	}
 
+	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), p)
+
 	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
 }
 
@@ -701,6 +703,8 @@ func (*StorageService) StorageServiceIdStoragePoolIdDelete(storageServiceId, sto
 			s.pools = s.pools[:len(s.pools)-1]
 		}
 	}
+
+	event.EventManager.PublishResourceEvent(msgreg.ResourceRemovedResourceEvent(), p)
 
 	return nil
 }
@@ -872,6 +876,8 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 		return ec.NewErrInternalServerError().WithError(err).WithCause("failed to create storage group")
 	}
 
+	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), sg)
+
 	return s.StorageServiceIdStorageGroupIdGet(storageServiceId, sg.id, model)
 }
 
@@ -936,6 +942,8 @@ func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, st
 	}
 
 	s.deleteStorageGroup(sg)
+
+	event.EventManager.PublishResourceEvent(msgreg.ResourceRemovedResourceEvent(), sg)
 
 	return nil
 }
@@ -1049,6 +1057,8 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 		return ec.NewErrInternalServerError().WithError(err).WithCause(fmt.Sprintf("File system '%s' failed to update", fs.id))
 	}
 
+	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), fs)
+
 	return s.StorageServiceIdFileSystemIdGet(storageServiceId, fs.id, model)
 }
 
@@ -1092,6 +1102,8 @@ func (*StorageService) StorageServiceIdFileSystemIdDelete(storageServiceId, file
 			break
 		}
 	}
+
+	event.EventManager.PublishResourceEvent(msgreg.ResourceRemovedResourceEvent(), fs)
 
 	return nil
 }
@@ -1159,8 +1171,7 @@ refreshState:
 		// No error is returned, status is reflected in model
 	}
 
-	model.Id = sh.id
-	model.OdataId = sh.OdataId()
+	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), sh)
 
 	return s.StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, sh.id, model)
 }
@@ -1200,6 +1211,8 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedShareIdDelete(storage
 			break
 		}
 	}
+
+	event.EventManager.PublishResourceEvent(msgreg.ResourceRemovedResourceEvent(), sh)
 
 	return nil
 }
