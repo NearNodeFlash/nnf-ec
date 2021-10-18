@@ -370,9 +370,18 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 	s.config = conf
 
 	log.Debugf("NNF Storage Service '%s' Loaded...", conf.Metadata.Name)
+	log.Debugf("  Debug Level: %s", conf.DebugLevel)
 	log.Debugf("  Remote Config    : %+v", conf.RemoteConfig)
 	log.Debugf("  Allocation Config: %+v", conf.AllocationConfig)
 
+	level, err := log.ParseLevel(conf.DebugLevel)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to parse debug level: %s", conf.DebugLevel)
+		return err
+	}
+
+	log.SetLevel(level)
+	
 	s.endpoints = make([]Endpoint, len(conf.RemoteConfig.Servers))
 	for endpointIdx := range s.endpoints {
 		s.endpoints[endpointIdx] = Endpoint{
