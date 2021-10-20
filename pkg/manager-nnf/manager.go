@@ -97,21 +97,28 @@ func (s *StorageService) findFileSystem(fileSystemId string) *FileSystem {
 	return nil
 }
 
-func (s *StorageService) newStoragePool(name string, description string, policy AllocationPolicy) *StoragePool {
-	// Find a free Storage Pool Id
-	var poolId = -1
-	for _, p := range s.pools {
-		id, _ := strconv.Atoi(p.id)
+// Create a storage pool object with the provided variables and add it to the storage service's list of storage
+// pools. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
+// that the ID does not already exist.
+func (s *StorageService) createStoragePool(id, name, description string, policy AllocationPolicy) *StoragePool {
 
-		if poolId <= id {
-			poolId = id
+	// If no ID is supplied, find a free Storage Pool Id
+	if len(id) == 0 {
+		var poolId = -1
+		for _, p := range s.pools {
+			if id, err := strconv.Atoi(p.id); err != nil {
+				if poolId <= id {
+					poolId = id
+				}
+			}
 		}
+
+		poolId = poolId + 1
+		id = strconv.Itoa(poolId)
 	}
 
-	poolId = poolId + 1
-
 	s.pools = append(s.pools, StoragePool{
-		id:             strconv.Itoa(poolId),
+		id:             id,
 		name:           name,
 		description:    description,
 		uid:            s.allocateStoragePoolUid(),
@@ -120,47 +127,6 @@ func (s *StorageService) newStoragePool(name string, description string, policy 
 	})
 
 	return &s.pools[len(s.pools)-1]
-}
-
-func (s *StorageService) createStoragePool(uid uuid.UUID, name string, description string, policy AllocationPolicy, providingVolumes []ProvidingVolume) *StoragePool {
-
-	// Find a free Storage Pool Id
-	var poolId = -1
-	for _, p := range s.pools {
-		id, _ := strconv.Atoi(p.id)
-
-		if poolId <= id {
-			poolId = id
-		}
-	}
-
-	poolId = poolId + 1
-
-	capacityBytes := uint64(0)
-	for _, v := range providingVolumes {
-		capacityBytes += v.volume.GetCapaityBytes()
-	}
-
-	p := &StoragePool{
-		id:               strconv.Itoa(poolId),
-		name:             name,
-		description:      description,
-		uid:              uid,
-		policy:           policy,
-		providingVolumes: providingVolumes,
-		storageService:   s,
-	}
-
-	p.allocatedVolume = AllocatedVolume{
-		id:            DefaultAllocatedVolumeId,
-		capacityBytes: capacityBytes,
-	}
-
-	if p.name == "" {
-		p.name = fmt.Sprintf("Storage Pool %s", p.id)
-	}
-
-	return p
 }
 
 func (s *StorageService) findStorage(sn string) *nvme.Storage {
@@ -173,19 +139,26 @@ func (s *StorageService) findStorage(sn string) *nvme.Storage {
 	return nil
 }
 
-func (s *StorageService) createStorageGroup(sp *StoragePool, endpoint *Endpoint) *StorageGroup {
+// Create a storage group object with the provided variables and add it to the storage service's list of storage
+// groups. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
+// that the ID does not already exist.
+func (s *StorageService) createStorageGroup(id string, sp *StoragePool, endpoint *Endpoint) *StorageGroup {
 
-	// Find a free Storage Group Id
-	var groupId = -1
-	for _, g := range s.groups {
-		id, _ := strconv.Atoi(g.id)
+	if len(id) == 0 {
+		// Find a free Storage Group Id
+		var groupId = -1
+		for _, sg := range s.groups {
+			if id, err := strconv.Atoi(sg.id); err != nil {
 
-		if groupId <= id {
-			groupId = id
+				if groupId <= id {
+					groupId = id
+				}
+			}
 		}
-	}
 
-	groupId = groupId + 1
+		groupId = groupId + 1
+		id = strconv.Itoa(groupId)
+	}
 
 	expectedNamespaces := make([]server.StorageNamespace, len(sp.providingVolumes))
 	for idx := range sp.providingVolumes {
@@ -195,18 +168,19 @@ func (s *StorageService) createStorageGroup(sp *StoragePool, endpoint *Endpoint)
 		}
 	}
 
-	return &StorageGroup{
-		id:             strconv.Itoa(groupId),
+	s.groups = append(s.groups, StorageGroup{
+		id:             id,
 		endpoint:       endpoint,
 		serverStorage:  endpoint.serverCtrl.NewStorage(sp.uid, expectedNamespaces),
 		storagePool:    sp,
 		storageService: s,
-	}
-}
+	})
 
-func (s *StorageService) addStorageGroup(sg StorageGroup) {
-	s.groups = append(s.groups, sg)
-	sg.storagePool.storageGroups = append(sg.storagePool.storageGroups, &s.groups[len(s.groups)-1])
+	sg := &s.groups[len(s.groups)-1]
+
+	sp.storageGroups = append(sg.storagePool.storageGroups, sg)
+
+	return sg
 }
 
 func (s *StorageService) deleteStorageGroup(sg *StorageGroup) {
@@ -241,22 +215,29 @@ func (s *StorageService) allocateStoragePoolUid() uuid.UUID {
 	}
 }
 
-func (s *StorageService) createFileSystem(sp *StoragePool, fsApi server.FileSystemApi) *FileSystem {
+// Create a file system object with the provided variables and add it to the storage service's list of file
+// systems. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
+// that the ID does not already exist.
+func (s *StorageService) createFileSystem(id string, sp *StoragePool, fsApi server.FileSystemApi) *FileSystem {
 
-	// Find a free File System Id
-	var fileSystemId = -1
-	for _, fs := range s.fileSystems {
-		id, _ := strconv.Atoi(fs.id)
+	if len(id) == 0 {
+		// Find a free File System Id
+		var fileSystemId = -1
+		for _, fs := range s.fileSystems {
+			if id, err := strconv.Atoi(fs.id); err != nil {
 
-		if fileSystemId <= id {
-			fileSystemId = id
+				if fileSystemId <= id {
+					fileSystemId = id
+				}
+			}
 		}
+
+		fileSystemId = fileSystemId + 1
+		id = strconv.Itoa(fileSystemId)
 	}
 
-	fileSystemId = fileSystemId + 1
-
 	s.fileSystems = append(s.fileSystems, FileSystem{
-		id:             strconv.Itoa(fileSystemId),
+		id:             id,
 		fsApi:          fsApi,
 		storagePool:    sp,
 		storageService: s,
@@ -589,6 +570,21 @@ func (*StorageService) StorageServiceIdStoragePoolsGet(storageServiceId string, 
 	return nil
 }
 
+// StorageServiceIdStoragePoolIdPut -
+func (*StorageService) StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
+	s, p := findStoragePool(storageServiceId, storagePoolId)
+	if s == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
+	}
+	if p != nil {
+		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.ResourceInUseBase())
+	}
+
+	model.Id = storagePoolId
+
+	return s.StorageServiceIdStoragePoolsPost(storageServiceId, model)
+}
+
 // StorageServiceIdStoragePoolsPost -
 func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
 	s := findStorageService(storageServiceId)
@@ -623,7 +619,7 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 		return ec.NewErrNotAcceptable().WithResourceType(StorageServiceOdataType).WithError(err).WithCause("Insufficient capacity available")
 	}
 
-	p := s.newStoragePool(model.Name, model.Description, policy)
+	p := s.createStoragePool(model.Id, model.Name, model.Description, policy)
 
 	updateFunc := func() (err error) {
 		p.providingVolumes, err = policy.Allocate(p.uid)
@@ -887,8 +883,7 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 
 	// Everything validated OK - create the Storage Group
 
-	sg := s.createStorageGroup(sp, ep) // TODO: Rename to newStorageGroup
-	s.addStorageGroup(*sg)             // TODO: Move to createStorageGroup
+	sg := s.createStorageGroup(model.Id, sp, ep)
 
 	updateFunc := func() error {
 		for _, v := range sp.providingVolumes {
@@ -907,6 +902,21 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), sg)
 
 	return s.StorageServiceIdStorageGroupIdGet(storageServiceId, sg.id, model)
+}
+
+// StorageServiceIdStorageGroupIdPut
+func (*StorageService) StorageServiceIdStorageGroupIdPut(storageServiceId, storageGroupId string, model *sf.StorageGroupV150StorageGroup) error {
+	s, sg := findStorageGroup(storageServiceId, storageGroupId)
+	if s == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
+	}
+	if sg != nil {
+		return ec.NewErrNotFound().WithResourceType(StorageGroupOdataType).WithEvent(msgreg.ResourceInUseBase())
+	}
+
+	model.Id = storageGroupId
+
+	return s.StorageServiceIdStorageGroupPost(storageServiceId, model)
 }
 
 // StorageServiceIdStorageGroupIdGet -
@@ -1077,7 +1087,7 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 		return ec.NewErrNotAcceptable().WithResourceType(FileSystemOdataType).WithEvent(msgreg.PropertyValueNotInListBase(oem.Type, "Type"))
 	}
 
-	fs := s.createFileSystem(sp, fsApi)
+	fs := s.createFileSystem(model.Id, sp, fsApi)
 
 	if err := NewPersistentObject(fs, func() error { return nil }, fileSystemCreateStartLogEntryType, fileSystemCreateCompleteLogEntryType); err != nil {
 		return ec.NewErrInternalServerError().WithResourceType(FileSystemOdataType).WithError(err).WithCause(fmt.Sprintf("File system '%s' failed to create", fs.id))
@@ -1086,6 +1096,21 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), fs)
 
 	return s.StorageServiceIdFileSystemIdGet(storageServiceId, fs.id, model)
+}
+
+// StorageServiceIdFileSystemIdPut -
+func (*StorageService) StorageServiceIdFileSystemIdPut(storageServiceId, fileSystemId string, model *sf.FileSystemV122FileSystem) error {
+	s, fs := findFileSystem(storageServiceId, fileSystemId)
+	if s == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
+	}
+	if fs != nil {
+		return ec.NewErrNotAcceptable().WithResourceType(FileSystemOdataType).WithEvent(msgreg.ResourceInUseBase())
+	}
+
+	model.Id = fileSystemId
+
+	return s.StorageServiceIdFileSystemsPost(storageServiceId, model)
 }
 
 // StorageServiceIdFileSystemIdGet -
@@ -1192,7 +1217,7 @@ refreshState:
 		return ec.NewErrNotAcceptable()
 	}
 
-	sh := fs.createFileShare(sg, model.FileSharePath)
+	sh := fs.createFileShare(model.Id, sg, model.FileSharePath)
 
 	updateFunc := func() error {
 		opts := server.FileSystemOptions{
@@ -1214,6 +1239,21 @@ refreshState:
 	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), sh)
 
 	return s.StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, sh.id, model)
+}
+
+// StorageServiceIdFileSystemIdExportedShareIdPut -
+func (*StorageService) StorageServiceIdFileSystemIdExportedShareIdPut(storageServiceId, fileSystemId, exportedShareId string, model *sf.FileShareV120FileShare) error {
+	s, fs, sh := findFileShare(storageServiceId, fileSystemId, exportedShareId)
+	if fs == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(FileShareOdataType, exportedShareId))
+	}
+	if sh != nil {
+		return ec.NewErrNotAcceptable().WithResourceType(FileShareOdataType).WithEvent(msgreg.ResourceInUseBase())
+	}
+
+	model.Id = exportedShareId
+
+	return s.StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystemId, model)
 }
 
 // StorageServiceIdFileSystemIdExportedShareIdGet -

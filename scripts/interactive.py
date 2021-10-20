@@ -25,28 +25,53 @@ class Command(cmd.Cmd):
         return True
 
 class StoragePool(Command):
-    intro = 'Create/Get/List/Delete Storage Pools'
+    intro = 'Create/Put/Get/List/Delete Storage Pools'
     prompt = '(nnf)' + '(storage pool)'
+
+    def create_payload(self, size):
+        if size is None or size == "":
+            size = '1GB'
+            print(f'No size specified - defaulting to {size}')
+            
+        try:
+            size = ByteSizeStringToIntegerBytes(size)
+            payload = {
+                'Capacity': {'Data': {'AllocatedBytes': int(size)}},
+                'Oem': {'Compliance': 'relaxed'}
+            }
+            return payload
+        except ValueError:
+            print('*** SIZE argument should be integer')
+            return None
+            
 
     def do_create(self, arg):
         'Create a Storage Pool of specific [SIZE = 1GB]'
-
-        if arg is None or arg == "":
-            arg = '1GB'
-            print(f"No size specified - defaulting to {arg}")
-            
-        try:
-            arg = ByteSizeStringToIntegerBytes(arg)
-            payload = {
-                'Capacity': {'Data': {'AllocatedBytes': int(arg)}},
-                'Oem': {'Compliance': 'relaxed'}
-            }
-        except ValueError:
-            print('*** SIZE argument should be integer')
+        payload = self.create_payload(arg)
+        if payload is None:
             return
         
         self.handle_response(self.conn.post('/StoragePools', payload))
 
+    def do_put(self, arg):
+        'Create a Storage Pool with [POOL ID] [SIZE = 1GB]'
+
+        if arg is None or arg == '':
+            print('*** POOL ID is required parameter')
+            return
+
+        args = arg.split()
+        size = None
+        if len(args) >= 2:
+            id, size, *_ = args
+        else:
+            id = arg
+
+        payload = self.create_payload(size)
+        if payload is None:
+            return
+
+        self.handle_response(self.conn.put(f'/StoragePools/{id}', payload))
     def do_get(self, arg):
         'Get a Storage Pool by POOL ID'
         self.handle_response(self.conn.get(f'/StoragePools/{arg}'))
@@ -72,8 +97,16 @@ class ServerEndpoint(Command):
         self.handle_response(self.conn.get(f'/Endpoints'))
 
 class StorageGroup(Command):
-    intro = 'Create/Get/List/Delete Storage Groups'
+    intro = 'Create/Put/Get/List/Delete Storage Groups'
     prompt = '(nnf)' + '(storage group)'
+
+    def create_payload(self, pool, server):
+        return {
+            'Links': {
+                'StoragePool': { '@odata.id': f'{self.conn.base}/StoragePools/{pool}'},
+                'ServerEndpoint': { '@odata.id': f'{self.conn.base}/Endpoints/{server}'}
+            }
+        }
 
     def do_create(self,arg):
         'Create a Storage Group from [STOARGE POOL ID] [SERVER ENDPOINT ID]'
@@ -84,15 +117,21 @@ class StorageGroup(Command):
             print('Expected two arguments [STOARGE POOL ID] [SERVER ENDPOINT ID]')
             return
 
-        payload = {
-            'Links': {
-                'StoragePool': { '@odata.id': f'{self.conn.base}/StoragePools/{pool}'},
-                'ServerEndpoint': { '@odata.id': f'{self.conn.base}/Endpoints/{server}'}
-            }
-        }
-
+        payload = self.create_payload(pool, server)
         self.handle_response(self.conn.post(f'/StorageGroups', payload))
 
+    def do_put(self,arg):
+        'Create a Storage Group by [STORAGE GROUP ID] [STORAGE POOL ID] [SERVER ENDPOINT ID]'
+
+        try:
+            id, pool, server, *_ = arg.split()
+        except ValueError:
+            print('Expected three arguments [STORAGE GROUP ID] [STORAGE POOL ID] [SERVER ENDPOINT ID]')
+            return
+        
+        payload = self.create_payload(pool, server)
+        self.handle_response(self.conn.put(f'/StorageGroups/{id}', payload))
+        
     def do_get(self,arg):
         'Get a Storage Group by [STORAGE GROUP ID]'
         self.handle_response(self.conn.get(f'/StorageGroups/{arg}'))
@@ -106,25 +145,39 @@ class StorageGroup(Command):
         self.handle_response(self.conn.delete(f'/StorageGroups/{arg}'))
 
 class FileSystem(Command):
-    intro = 'Create/Get/List/Delete File Systems'
+    intro = 'Create/Put/Get/List/Delete File Systems'
     prompt = '(nnf)' + '(file system)'
+
+    def create_payload(self, type, name, pool):
+        return {
+            'Links': { 'StoragePool': {'@odata.id': f'{self.conn.base}/StoragePools/{pool}'}},
+            'Oem': { 'Type': type, 'Name': name}
+        }
 
     def do_create(self,arg):
         'Create a File System of [TYPE] [NAME] [STORAGE POOL ID]'
 
         try:
-            typ, name, pool = arg.split()[:3]
+            type, name, pool, *_ = arg.split()
         except ValueError:
             print('Expected three arguments [TYPE] [NAME] [STORAGE POOL ID]')
             return
 
-        payload = {
-            'Links': { 'StoragePool': {'@odata.id': f'{self.conn.base}/StoragePools/{pool}'}},
-            'Oem': { 'Type': typ, 'Name': name}
-        }
-
+        payload = self.create_payload(type, name, pool)
         self.handle_response(self.conn.post(f'/FileSystems', payload))
     
+    def do_put(self, arg):
+        'Create a File System by [FILE SYSTEM ID] [TYPE] [NAME] [STORAGE POOL ID]'
+
+        try:
+            id, type, name, pool, *_ = arg.split()
+        except ValueError:
+            print('Expected four arguments [FILE SYSTEM ID] [TYPE] [NAME] [STORAGE POOL ID]')
+            return
+
+        payload = self.create_payload(type, name, pool)
+        self.handle_response(self.conn.put(f'/FileSystems/{id}', payload))
+
     def do_get(self,arg):
         'Get a File System by [FILE SYSTEM ID]'
         self.handle_response(self.conn.get(f'/FileSystems/{arg}'))
@@ -146,28 +199,42 @@ class FileSystem(Command):
         FileShare(self.conn, arg).cmdloop()
 
 class FileShare(Command):
-    intro = 'Create/Get/List/Delete File Shares'
+    intro = 'Create/Put/Get/List/Delete File Shares'
     prompt = '(nnf)' + '(file system)' + '(file share)'
 
     def __init__(self, conn, fs, **kwargs):
         self.fs = fs
         super().__init__(conn, **kwargs)
 
-    def do_create(self,arg):
-        'Create a File Share to a [SERVER ENDPOINT] with [MOUNTPOINT]'
-
-        try:
-            server, mount = arg.split()[:2]
-        except ValueError:
-            print('Expected three arguments [SERVER ENDPOINT ID] [MOUNTPOINT]')
-            return
-
-        payload = {
+    def create_payload(self, server, mount):
+        return {
             'Links': { 'Endpoint': {'@odata.id': f'{self.conn.base}/Endpoints/{server}'}},
             'FileSharePath': mount
         }
 
+    def do_create(self,arg):
+        'Create a File Share to a [SERVER ENDPOINT] with [MOUNTPOINT]'
+
+        try:
+            server, mount, *_ = arg.split()
+        except ValueError:
+            print('Expected two arguments [SERVER ENDPOINT ID] [MOUNTPOINT]')
+            return
+
+        payload = self.create_payload(server, mount)
         self.handle_response(self.conn.post(f'/FileSystems/{self.fs}/ExportedFileShares', payload))
+
+    def do_put(self,arg):
+        'Put a File Share by [SHARE ID] [SERVER ENDPOINT ID] [MOUNTPOINT]'
+
+        try:
+            id, server, mount, *_ = arg.split()
+        except ValueError:
+            print('Expected three arguments [SHARE ID] [SERVER ENDPOINT ID] [MOUNTPOINT]')
+            return
+
+        payload = self.create_payload(server, mount)
+        self.handle_response(self.conn.put(f'/FileSystems/{self.fs}/ExportedFileShares/{id}', payload))
 
     def do_get(self,arg):
         'Get a File Share with [FILE SHARE ID]'

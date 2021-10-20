@@ -13,6 +13,9 @@ class Connection:
     def get(self, odataid):
         return requests.get(self.path + odataid)
 
+    def put(self, odataid, json):
+        return requests.put(self.path + odataid, json=json)
+        
     def post(self, odataid, json):
         return requests.post(self.path + odataid, json=json)
 

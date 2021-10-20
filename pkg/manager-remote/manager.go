@@ -251,6 +251,10 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId
 	return nil
 }
 
+func (s *ServerStorageService) StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
+	return ec.NewErrNotAcceptable()
+}
+
 func (s *ServerStorageService) StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
 	p := s.findStoragePool(storageServiceId, storagePoolId)
 	if p == nil {
@@ -327,6 +331,10 @@ func (*ServerStorageService) StorageServiceIdStorageGroupsGet(storageServiceId s
 }
 
 func (*ServerStorageService) StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.StorageGroupV150StorageGroup) error {
+	return ec.NewErrNotAcceptable()
+}
+
+func (*ServerStorageService) StorageServiceIdStorageGroupIdPut(storageServiceId, storageGroupId string, model *sf.StorageGroupV150StorageGroup) error {
 	return ec.NewErrNotAcceptable()
 }
 
@@ -410,6 +418,10 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 	return s.StorageServiceIdFileSystemIdGet(storageServiceId, p.id, model)
 }
 
+func (s *ServerStorageService) StorageServiceIdFileSystemIdPut(storageServiceId, fileSystemId string, model *sf.FileSystemV122FileSystem) error {
+	return ec.NewErrNotAcceptable()
+}
+
 func (s *ServerStorageService) StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId string, model *sf.FileSystemV122FileSystem) error {
 	fs := s.findFileSystem(storageServiceId, fileSystemId)
 	if fs == nil {
@@ -485,6 +497,10 @@ func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedSharesPost(st
 	fs.fileShare = &FileShare{id: fs.id, fileSystem: fs}
 
 	return nil
+}
+
+func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedShareIdPut(storageServiceId, fileSystemId, exportedShareId string, model *sf.FileShareV120FileShare) error {
+	return ec.NewErrNotAcceptable()
 }
 
 func (s *ServerStorageService) StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId string, model *sf.FileShareV120FileShare) error {

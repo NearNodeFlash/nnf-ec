@@ -144,6 +144,23 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePools
 	EncodeResponse(model, err, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPut -
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPut(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	storagePoolId := params["StoragePoolId"]
+
+	var model sf.StoragePoolV150StoragePool
+	if err := UnmarshalRequest(r, &model); err != nil {
+		EncodeResponse(model, err, w)
+		return
+	}
+
+	err := s.ss.StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete -
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
@@ -283,6 +300,23 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroup
 	EncodeResponse(model, nil, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdPut
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdPut(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	storageGroupId := params["StorageGroupId"]
+
+	var model sf.StorageGroupV150StorageGroup
+	if err := UnmarshalRequest(r, &model); err != nil {
+		EncodeResponse(model, err, w)
+		return
+	}
+
+	err := s.ss.StorageServiceIdStorageGroupIdPut(storageServiceId, storageGroupId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdGet
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStorageGroupsStorageGroupIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
@@ -384,6 +418,23 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsP
 	EncodeResponse(model, nil, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdPut
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdPut(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	fileSystemId := params["FileSystemId"]
+
+	var model sf.FileSystemV122FileSystem
+	if err := UnmarshalRequest(r, &model); err != nil {
+		EncodeResponse(nil, err, w)
+		return
+	}
+
+	err := s.ss.StorageServiceIdFileSystemIdPut(storageServiceId, fileSystemId, &model)
+
+	EncodeResponse(model, err, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdGet -
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)
@@ -443,6 +494,28 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsF
 	}
 
 	err := s.ss.StorageServiceIdFileSystemIdExportedSharesPost(storageServiceId, fileSystemId, &model)
+
+	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/FileSystems/%s/ExportedShares/%s", storageServiceId, fileSystemId, model.Id)
+	model.OdataType = FileShareOdataType
+	model.Name = "Exported File Share"
+
+	EncodeResponse(model, err, w)
+}
+
+// RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdPut -
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdFileSystemsFileSystemsIdExportedFileSharesExportedFileSharesIdPut(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+	fileSystemId := params["FileSystemsId"]
+	exportedShareId := params["ExportedFileSharesId"]
+
+	var model sf.FileShareV120FileShare
+	if err := UnmarshalRequest(r, &model); err != nil {
+		EncodeResponse(model, err, w)
+		return
+	}
+
+	err := s.ss.StorageServiceIdFileSystemIdExportedShareIdPut(storageServiceId, fileSystemId, exportedShareId, &model)
 
 	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/FileSystems/%s/ExportedShares/%s", storageServiceId, fileSystemId, model.Id)
 	model.OdataType = FileShareOdataType

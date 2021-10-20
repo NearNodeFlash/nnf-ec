@@ -75,6 +75,9 @@ func (aer *AerService) StorageServiceIdStoragePoolsPost(id string, model *sf.Sto
 func (aer *AerService) StorageServiceIdStoragePoolIdGet(id0 string, id1 string, model *sf.StoragePoolV150StoragePool) error {
 	return aer.c(aer.s.StorageServiceIdStoragePoolIdGet(id0, id1, model))
 }
+func (aer *AerService) StorageServiceIdStoragePoolIdPut(id0 string, id1 string, model *sf.StoragePoolV150StoragePool) error {
+	return aer.c(aer.s.StorageServiceIdStoragePoolIdPut(id0, id1, model))
+}
 func (aer *AerService) StorageServiceIdStoragePoolIdDelete(id0 string, id1 string) error {
 	return aer.c(aer.s.StorageServiceIdStoragePoolIdDelete(id0, id1))
 }
@@ -100,6 +103,9 @@ func (aer *AerService) StorageServiceIdStorageGroupsGet(id string, model *sf.Sto
 func (aer *AerService) StorageServiceIdStorageGroupPost(id string, model *sf.StorageGroupV150StorageGroup) error {
 	return aer.c(aer.s.StorageServiceIdStorageGroupPost(id, model))
 }
+func (aer *AerService) StorageServiceIdStorageGroupIdPut(id0 string, id1 string, model *sf.StorageGroupV150StorageGroup) error {
+	return aer.c(aer.s.StorageServiceIdStorageGroupIdPut(id0, id1, model))
+}
 func (aer *AerService) StorageServiceIdStorageGroupIdGet(id0 string, id1 string, model *sf.StorageGroupV150StorageGroup) error {
 	return aer.c(aer.s.StorageServiceIdStorageGroupIdGet(id0, id1, model))
 }
@@ -120,6 +126,9 @@ func (aer *AerService) StorageServiceIdFileSystemsGet(id string, model *sf.FileS
 func (aer *AerService) StorageServiceIdFileSystemsPost(id string, model *sf.FileSystemV122FileSystem) error {
 	return aer.c(aer.s.StorageServiceIdFileSystemsPost(id, model))
 }
+func (aer *AerService) StorageServiceIdFileSystemIdPut(id0 string, id1 string, model *sf.FileSystemV122FileSystem) error {
+	return aer.c(aer.s.StorageServiceIdFileSystemIdPut(id0, id1, model))
+}
 func (aer *AerService) StorageServiceIdFileSystemIdGet(id0 string, id1 string, model *sf.FileSystemV122FileSystem) error {
 	return aer.c(aer.s.StorageServiceIdFileSystemIdGet(id0, id1, model))
 }
@@ -132,6 +141,9 @@ func (aer *AerService) StorageServiceIdFileSystemIdExportedSharesGet(id0 string,
 }
 func (aer *AerService) StorageServiceIdFileSystemIdExportedSharesPost(id0 string, id1 string, model *sf.FileShareV120FileShare) error {
 	return aer.c(aer.s.StorageServiceIdFileSystemIdExportedSharesPost(id0, id1, model))
+}
+func (aer *AerService) StorageServiceIdFileSystemIdExportedShareIdPut(id0 string, id1 string, id2 string, model *sf.FileShareV120FileShare) error {
+	return aer.c(aer.s.StorageServiceIdFileSystemIdExportedShareIdPut(id0, id1, id2, model))
 }
 func (aer *AerService) StorageServiceIdFileSystemIdExportedShareIdGet(id0 string, id1 string, id2 string, model *sf.FileShareV120FileShare) error {
 	return aer.c(aer.s.StorageServiceIdFileSystemIdExportedShareIdGet(id0, id1, id2, model))

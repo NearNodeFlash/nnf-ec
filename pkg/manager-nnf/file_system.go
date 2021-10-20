@@ -40,21 +40,27 @@ func (fs *FileSystem) findFileShare(id string) *FileShare {
 	return nil
 }
 
+// Create a file share object with the provided variables and add it to the file systems list of file
+// shares. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
+// that the ID does not already exist.
+func (fs *FileSystem) createFileShare(id string, sg *StorageGroup, mountRoot string) *FileShare {
+	if len(id) == 0 {
+		var fileShareId = -1
+		for _, fileShare := range fs.shares {
+			if id, err := strconv.Atoi(fileShare.id); err != nil {
 
-func (fs *FileSystem) createFileShare(sg *StorageGroup, mountRoot string) *FileShare {
-	var fileShareId = -1
-	for _, fileShare := range fs.shares {
-		id, _ := strconv.Atoi(fileShare.id)
-
-		if fileShareId <= id {
-			fileShareId = id
+				if fileShareId <= id {
+					fileShareId = id
+				}
+			}
 		}
+
+		fileShareId = fileShareId + 1
+		id = strconv.Itoa(fileShareId)
 	}
 
-	fileShareId = fileShareId + 1
-
 	fs.shares = append(fs.shares, FileShare{
-		id:           strconv.Itoa(fileShareId),
+		id:           id,
 		storageGroup: sg,
 		mountRoot:    mountRoot,
 		fileSystem:   fs,

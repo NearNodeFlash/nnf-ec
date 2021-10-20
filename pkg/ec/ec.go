@@ -23,6 +23,7 @@ var (
 	GET_METHOD    = http.MethodGet
 	POST_METHOD   = http.MethodPost
 	PATCH_METHOD  = http.MethodPatch
+	PUT_METHOD    = http.MethodPut
 	DELETE_METHOD = http.MethodDelete
 )
 
@@ -221,7 +222,7 @@ func (p *HttpControllerProcessor) Close() {
 		if err := p.server.Shutdown(context.TODO()); err != nil {
 			panic(err)
 		}
-	}	
+	}
 }
 
 // HandlerFunc defines an http handler for a controller's routes. By default
