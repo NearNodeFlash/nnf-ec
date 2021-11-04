@@ -53,6 +53,7 @@ type Storage struct {
 	serialNumber     string
 	modelNumber      string
 	firmwareRevision string
+	qualifiedName    string
 
 	// Physical Function Controller ID
 	pfid uint16
@@ -283,6 +284,7 @@ func (s *Storage) initialize() error {
 	s.serialNumber = string(ctrl.SerialNumber[:])
 	s.modelNumber = string(ctrl.ModelNumber[:])
 	s.firmwareRevision = string(ctrl.FirmwareRevision[:])
+	s.qualifiedName = string(ctrl.NVMSubsystemNVMeQualifiedName[:])
 
 	capacityToUint64s := func(c [16]byte) (lo uint64, hi uint64) {
 		lo, hi = 0, 0
@@ -842,9 +844,12 @@ func StorageIdGet(storageId string, model *sf.StorageV190Storage) error {
 
 	model.Id = s.id
 	model.Status = s.getStatus()
-
-	// TODO: The model is missing a bunch of stuff
-	// Manufacturer, Model, PartNumber, SerialNumber, etc.
+	model.Identifiers = []sf.ResourceIdentifier{
+		{
+			DurableName: s.qualifiedName,
+			DurableNameFormat: sf.NQN_RV1100DNF,
+		},
+	}
 
 	model.Controllers.OdataId = fmt.Sprintf("/redfish/v1/Storage/%s/Controllers", storageId)
 	model.StoragePools.OdataId = fmt.Sprintf("/redfish/v1/Storage/%s/StoragePools", storageId)
@@ -915,7 +920,7 @@ func StorageIdControllersGet(storageId string, model *sf.StorageControllerCollec
 
 // StorageIdControllerIdGet -
 func StorageIdControllerIdGet(storageId, controllerId string, model *sf.StorageControllerV100StorageController) error {
-	_, c := findStorageController(storageId, controllerId)
+	s, c := findStorageController(storageId, controllerId)
 	if c == nil {
 		return ec.NewErrNotFound().WithCause(fmt.Sprintf("Storage Controller not found: Storage: %s Controller: %s", storageId, controllerId))
 	}
@@ -927,6 +932,10 @@ func StorageIdControllerIdGet(storageId, controllerId string, model *sf.StorageC
 	}
 
 	model.Id = c.id
+
+	model.SerialNumber = s.serialNumber
+	model.FirmwareVersion = s.firmwareRevision
+	model.Model = s.modelNumber
 
 	model.Links.EndpointsodataCount = 1
 	model.Links.Endpoints = make([]sf.OdataV4IdRef, model.Links.EndpointsodataCount)
