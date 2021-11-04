@@ -77,7 +77,9 @@ const (
 
 	mockSecondaryControllerCount = 17
 	mockMaximumNamespaceCount    = 32
-	mockCapacityInBytes          = 2 << 40 // 2TiB
+
+	mockCapacityInBytes   = 2 << 40 // 2TiB
+	mockSectorSizeInBytes = 4096
 )
 
 // Mock structurs defining the componenets of a NVMe Device
@@ -181,13 +183,13 @@ func (d *mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*n
 
 	idns := new(nvme.IdNs)
 
-	idns.Size = ns.capacity / 4096
-	idns.Capacity = ns.capacity / 4096
+	idns.Size = ns.capacity / mockSectorSizeInBytes
+	idns.Capacity = ns.capacity / mockSectorSizeInBytes
 	idns.MultiPathIOSharingCapabilities.Sharing = 1
 	idns.FormattedLBASize = nvme.FormattedLBASize{Format: 0}
 
 	idns.NumberOfLBAFormats = 1
-	idns.LBAFormats[0].LBADataSize = uint8(math.Log2(4096))
+	idns.LBAFormats[0].LBADataSize = uint8(math.Log2(mockSectorSizeInBytes))
 	idns.LBAFormats[0].MetadataSize = 0
 	idns.LBAFormats[0].RelativePerformance = 0
 
@@ -268,7 +270,7 @@ func (d *mockDevice) ListAttachedControllers(namespaceId nvme.NamespaceIdentifie
 func (d *mockDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint64, sectorSizeIndex uint8) (nvme.NamespaceIdentifier, nvme.NamespaceGloballyUniqueIdentifier, error) {
 
 	if capacityBytes > (d.capacity - d.allocatedCapacity) {
-		return 0, nvme.NamespaceGloballyUniqueIdentifier{}, fmt.Errorf("Insufficient Capacity")
+		return 0, nvme.NamespaceGloballyUniqueIdentifier{}, fmt.Errorf("Insufficient capacity: Requested: %d Available: %d", capacityBytes, (d.capacity - d.allocatedCapacity))
 	}
 
 	ns := d.findNamespace(invalidNamespaceId) // find a free namespace
@@ -277,7 +279,7 @@ func (d *mockDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint6
 	}
 
 	ns.id = nvme.NamespaceIdentifier(ns.idx)
-	ns.capacity = capacityBytes / 4096 // 4096 is always assumed
+	ns.capacity = capacityBytes / mockSectorSizeInBytes
 	ns.guid = [16]byte{
 		0, 0, 0, 0,
 		0, 0, 0, 0,
@@ -321,6 +323,8 @@ func (d *mockDevice) DeleteNamespace(namespaceId nvme.NamespaceIdentifier) error
 			return err
 		}
 	}
+
+	d.allocatedCapacity -= (ns.capacity * mockSectorSizeInBytes)
 
 	if d.persistenceMgr != nil {
 		d.persistenceMgr.recordDeleteNamespace(d, ns)

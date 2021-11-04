@@ -47,8 +47,7 @@ func (fs *FileSystem) createFileShare(id string, sg *StorageGroup, mountRoot str
 	if len(id) == 0 {
 		var fileShareId = -1
 		for _, fileShare := range fs.shares {
-			if id, err := strconv.Atoi(fileShare.id); err != nil {
-
+			if id, err := strconv.Atoi(fileShare.id); err == nil {
 				if fileShareId <= id {
 					fileShareId = id
 				}

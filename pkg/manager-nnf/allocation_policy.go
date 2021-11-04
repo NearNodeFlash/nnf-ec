@@ -129,7 +129,7 @@ func (p *SpareAllocationPolicy) Initialize(capacityBytes uint64) error {
 
 func (p *SpareAllocationPolicy) CheckCapacity() error {
 	if p.capacityBytes == 0 {
-		return fmt.Errorf("Requested capacity %#x if invalid", p.capacityBytes)
+		return fmt.Errorf("Requested capacity %#x is invalid", p.capacityBytes)
 	}
 
 	var availableBytes = uint64(0)

@@ -106,7 +106,7 @@ func (s *StorageService) createStoragePool(id, name, description string, policy 
 	if len(id) == 0 {
 		var poolId = -1
 		for _, p := range s.pools {
-			if id, err := strconv.Atoi(p.id); err != nil {
+			if id, err := strconv.Atoi(p.id); err == nil {
 				if poolId <= id {
 					poolId = id
 				}
@@ -148,7 +148,7 @@ func (s *StorageService) createStorageGroup(id string, sp *StoragePool, endpoint
 		// Find a free Storage Group Id
 		var groupId = -1
 		for _, sg := range s.groups {
-			if id, err := strconv.Atoi(sg.id); err != nil {
+			if id, err := strconv.Atoi(sg.id); err == nil {
 
 				if groupId <= id {
 					groupId = id
@@ -224,8 +224,7 @@ func (s *StorageService) createFileSystem(id string, sp *StoragePool, fsApi serv
 		// Find a free File System Id
 		var fileSystemId = -1
 		for _, fs := range s.fileSystems {
-			if id, err := strconv.Atoi(fs.id); err != nil {
-
+			if id, err := strconv.Atoi(fs.id); err == nil {
 				if fileSystemId <= id {
 					fileSystemId = id
 				}
@@ -636,6 +635,7 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 	}
 
 	if err := NewPersistentObject(p, updateFunc, storagePoolStorageCreateStartLogEntryType, storagePoolStorageCreateCompleteLogEntryType); err != nil {
+		log.WithError(err).Errorf("Failed to create volume from storage pool %s", p.id)
 		return ec.NewErrInternalServerError().WithResourceType(StorageServiceOdataType).WithError(err).WithCause("Failed to allocate storage volumes")
 	}
 
