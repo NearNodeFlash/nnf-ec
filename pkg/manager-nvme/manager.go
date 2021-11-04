@@ -464,11 +464,13 @@ func (s *Storage) recoverVolumes() error {
 			log.WithError(err).Errorf("Storage %s Failed to identify namespaces %d", s.id, nsid)
 		}
 
+		blockSizeBytes := uint64(1) << uint64(ns.LBAFormats[ns.FormattedLBASize.Format].LBADataSize)
+
 		s.volumes = append(s.volumes, Volume{
 			id:            strconv.Itoa(int(nsid)),
 			namespaceId:   nsid,
 			guid:          ns.GloballyUniqueIdentifier,
-			capacityBytes: ns.Capacity,
+			capacityBytes: ns.Capacity * blockSizeBytes,
 			storage:       s,
 		})
 
@@ -808,7 +810,10 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 	}
 
 	// Recover existing volumes
-	s.recoverVolumes()
+	if err := s.recoverVolumes(); err != nil {
+		log.WithError(err).Errorf("Storage %s - Failed to recover existing volumes", s.id)
+		return err
+	}
 
 	log.Infof("Storage %s - Ready", s.id)
 	s.state = sf.ENABLED_RST
@@ -846,7 +851,7 @@ func StorageIdGet(storageId string, model *sf.StorageV190Storage) error {
 	model.Status = s.getStatus()
 	model.Identifiers = []sf.ResourceIdentifier{
 		{
-			DurableName: s.qualifiedName,
+			DurableName:       s.qualifiedName,
 			DurableNameFormat: sf.NQN_RV1100DNF,
 		},
 	}

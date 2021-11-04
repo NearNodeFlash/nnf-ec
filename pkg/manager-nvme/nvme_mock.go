@@ -183,8 +183,8 @@ func (d *mockDevice) IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*n
 
 	idns := new(nvme.IdNs)
 
-	idns.Size = ns.capacity / mockSectorSizeInBytes
-	idns.Capacity = ns.capacity / mockSectorSizeInBytes
+	idns.Size = ns.capacity
+	idns.Capacity = ns.capacity
 	idns.MultiPathIOSharingCapabilities.Sharing = 1
 	idns.FormattedLBASize = nvme.FormattedLBASize{Format: 0}
 
@@ -294,7 +294,7 @@ func (d *mockDevice) CreateNamespace(capacityBytes uint64, sectorSizeBytes uint6
 		ns.attachedControllers[idx] = nil
 	}
 
-	d.allocatedCapacity += capacityBytes
+	d.allocatedCapacity += (ns.capacity * mockSectorSizeInBytes)
 
 	if d.persistenceMgr != nil {
 		d.persistenceMgr.recordCreateNamespace(d, ns)
