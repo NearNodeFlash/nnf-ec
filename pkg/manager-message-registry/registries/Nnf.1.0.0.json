@@ -30,7 +30,7 @@
         "ResourceOperationFailed": {
             "Description": "Indicates that operation on a resource failed",
             "LongDescription": "This message shall be used to indicate that an internal errored occurred on the resource",
-            "Message": "The requested create of resource type '%1' failed with error '%2'",
+            "Message": "The requested operation on resource type '%1' failed with error '%2'",
             "Severity": "Critical",
             "MessageSeverity": "Critical",
             "NumberOfArgs": 2,

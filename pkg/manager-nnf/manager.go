@@ -725,6 +725,7 @@ func (*StorageService) StorageServiceIdStoragePoolIdDelete(storageServiceId, sto
 		if pool.id == storagePoolId {
 			copy(s.pools[idx:], s.pools[idx+1:])
 			s.pools = s.pools[:len(s.pools)-1]
+			break
 		}
 	}
 

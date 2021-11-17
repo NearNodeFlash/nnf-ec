@@ -21,7 +21,10 @@ func NewControllerError(sc int) *ControllerError {
 func (e *ControllerError) Error() string {
 	errorString := fmt.Sprintf("Error %d: %s", e.statusCode, http.StatusText(e.statusCode))
 	if len(e.cause) != 0 {
-		return fmt.Sprintf("%s, %s", errorString, e.cause)
+		errorString += fmt.Sprintf(", Cause: %s", e.cause)
+	}
+	if e.err != nil {
+		errorString += fmt.Sprintf(", Internal Error: %s", e.err)
 	}
 	return errorString
 }
