@@ -101,8 +101,8 @@ func (sg *StorageGroup) Rollback(state uint32) error {
 	case storageGroupCreateStartLogEntryType:
 		// Rollback to a state where no controllers are attached to the storage pool
 
-		for _, v := range sg.storagePool.providingVolumes {
-			if err := v.volume.DetachController(sg.endpoint.controllerId); err != nil {
+		for _, pv := range sg.storagePool.providingVolumes {
+			if err := pv.storage.FindVolume(pv.volumeId).DetachController(sg.endpoint.controllerId); err != nil {
 				return err
 			}
 		}
@@ -171,8 +171,8 @@ func (rh *storageGroupRecoveryReplyHandler) Done() error {
 		// attached to the endpoint that we don't want to preserve since the client did not get confirmation
 		// of the action. We want to detach any controllers for this <Pool, Endpoint> pair.
 
-		for _, volume := range rh.storageGroup.storagePool.providingVolumes {
-			if err := nvme.DetachControllers(volume.volume, []uint16{rh.storageGroup.endpoint.controllerId}); err != nil {
+		for _, pv := range rh.storageGroup.storagePool.providingVolumes {
+			if err := nvme.DetachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{rh.storageGroup.endpoint.controllerId}); err != nil {
 				return err
 			}
 		}

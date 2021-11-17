@@ -261,8 +261,11 @@ func (s *Storage) SerialNumber() string     { return s.serialNumber }
 func (s *Storage) IsKioxiaDualPortConfiguration() bool {
 	return strings.Contains(s.qualifiedName, "com.kioxia:KCM61RUL960G")
 }
+func (s *Storage) FindVolume(id string) *Volume {
+	return s.findVolume(id)
+}
 
-func (s *Storage) FindVolume(namespaceId nvme.NamespaceIdentifier) (*Volume, error) {
+func (s *Storage) FindVolumeByNamespaceId(namespaceId nvme.NamespaceIdentifier) (*Volume, error) {
 	for idx, volume := range s.volumes {
 		if volume.namespaceId == namespaceId {
 			return &s.volumes[idx], nil
@@ -497,17 +500,10 @@ func (s *Storage) findVolume(volumeId string) *Volume {
 	return nil
 }
 
-func (v *Volume) GetOdataId() string {
-	return v.storage.fmt("/Volumes/%s", v.id)
-}
-
-func (v *Volume) GetCapaityBytes() uint64 {
-	return uint64(v.capacityBytes)
-}
-
-func (v *Volume) GetNamespaceId() nvme.NamespaceIdentifier {
-	return v.namespaceId
-}
+func (v *Volume) Id() string                               { return v.id }
+func (v *Volume) GetOdataId() string                       { return v.storage.fmt("/Volumes/%s", v.id) }
+func (v *Volume) GetCapaityBytes() uint64                  { return uint64(v.capacityBytes) }
+func (v *Volume) GetNamespaceId() nvme.NamespaceIdentifier { return v.namespaceId }
 
 func (v *Volume) GetGloballyUniqueIdentifier() nvme.NamespaceGloballyUniqueIdentifier {
 	return v.guid

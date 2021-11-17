@@ -35,13 +35,13 @@ type AllocatedVolume struct {
 }
 
 type ProvidingVolume struct {
-	storage *nvme.Storage
-	volume  *nvme.Volume
+	storage  *nvme.Storage
+	volumeId string
 }
 
 func (p *StoragePool) GetCapacityBytes() (capacityBytes uint64) {
-	for _, v := range p.providingVolumes {
-		capacityBytes += v.volume.GetCapaityBytes()
+	for _, pv := range p.providingVolumes {
+		capacityBytes += pv.storage.FindVolume(pv.volumeId).GetCapaityBytes()
 	}
 	return capacityBytes
 }
@@ -95,14 +95,14 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, 
 		storage := p.storageService.findStorage(volume.SerialNumber)
 
 		if storage != nil {
-			volume, err := storage.FindVolume(volume.NamespaceId)
+			volume, err := storage.FindVolumeByNamespaceId(volume.NamespaceId)
 			if err != nil {
 				return err
 			}
 
 			p.providingVolumes = append(p.providingVolumes, ProvidingVolume{
-				storage: storage,
-				volume:  volume,
+				storage:  storage,
+				volumeId: volume.Id(),
 			})
 		}
 	}
@@ -116,15 +116,14 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, 
 }
 
 func (p *StoragePool) deallocateVolumes() error {
-	for _, v := range p.providingVolumes {
-		if err := nvme.DeleteVolume(v.volume); err != nil {
+	for _, pv := range p.providingVolumes {
+		if err := nvme.DeleteVolume(pv.storage.FindVolume(pv.volumeId)); err != nil {
 			return err
 		}
 	}
 
 	return nil
 }
-
 
 // Persistent Object API
 
@@ -173,10 +172,10 @@ func (p *StoragePool) GenerateStateData(state uint32) ([]byte, error) {
 			CapacityBytes: p.GetCapacityBytes(),
 		}
 
-		for idx, v := range p.providingVolumes {
+		for idx, pv := range p.providingVolumes {
 			entry.Volumes[idx] = storagePoolPersistentVolumeInfo{
-				SerialNumber: v.storage.SerialNumber(),
-				NamespaceId:  v.volume.GetNamespaceId(),
+				SerialNumber: pv.storage.SerialNumber(),
+				NamespaceId:  pv.storage.FindVolume(pv.volumeId).GetNamespaceId(),
 			}
 		}
 

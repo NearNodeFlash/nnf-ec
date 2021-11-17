@@ -161,10 +161,11 @@ func (s *StorageService) createStorageGroup(id string, sp *StoragePool, endpoint
 	}
 
 	expectedNamespaces := make([]server.StorageNamespace, len(sp.providingVolumes))
-	for idx := range sp.providingVolumes {
+	for idx, pv := range sp.providingVolumes {
+		volume := pv.storage.FindVolume(pv.volumeId)
 		expectedNamespaces[idx] = server.StorageNamespace{
-			Id:   sp.providingVolumes[idx].volume.GetNamespaceId(),
-			Guid: sp.providingVolumes[idx].volume.GetGloballyUniqueIdentifier(),
+			Id:   volume.GetNamespaceId(),
+			Guid: volume.GetGloballyUniqueIdentifier(),
 		}
 	}
 
@@ -780,8 +781,8 @@ func (*StorageService) StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVol
 
 	model.MembersodataCount = int64(len(p.providingVolumes))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
-	for idx, v := range p.providingVolumes {
-		model.Members[idx] = sf.OdataV4IdRef{OdataId: v.volume.GetOdataId()}
+	for idx, pv := range p.providingVolumes {
+		model.Members[idx] = sf.OdataV4IdRef{OdataId: pv.storage.FindVolume(pv.volumeId).GetOdataId()}
 	}
 
 	return nil
@@ -887,8 +888,8 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 	sg := s.createStorageGroup(model.Id, sp, ep)
 
 	updateFunc := func() error {
-		for _, v := range sp.providingVolumes {
-			if err := nvme.AttachControllers(v.volume, []uint16{sg.endpoint.controllerId}); err != nil {
+		for _, pv := range sp.providingVolumes {
+			if err := nvme.AttachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{sg.endpoint.controllerId}); err != nil {
 				return err
 			}
 		}
@@ -967,8 +968,8 @@ func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, st
 
 	// Detach the endpoint from the NVMe namespaces
 
-	for _, volume := range sp.providingVolumes {
-		if err := nvme.DetachControllers(volume.volume, []uint16{sg.endpoint.controllerId}); err != nil {
+	for _, pv := range sp.providingVolumes {
+		if err := nvme.DetachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{sg.endpoint.controllerId}); err != nil {
 			log.WithError(err).Errorf("Failed to detach controllers")
 			return ec.NewErrInternalServerError().WithResourceType(StorageGroupOdataType).WithError(err).WithCause(fmt.Sprintf("Storage group '%s' Failed to detach controller '%d'", storageGroupId, sg.endpoint.controllerId))
 		}
