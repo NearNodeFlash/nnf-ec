@@ -85,8 +85,8 @@ const (
 // Mock structurs defining the componenets of a NVMe Device
 type mockDevice struct {
 	virtualizationManagement bool
-	controllers              [1 + mockSecondaryControllerCount]mockController
-	namespaces               [mockMaximumNamespaceCount]mockNamespace
+	controllers              [1 + mockSecondaryControllerCount]mockController // +1 for PF
+	namespaces               [1 + mockMaximumNamespaceCount]mockNamespace     // +1 for CommonNamespaceId = 0xFFFFFFFF
 	capacity                 uint64
 	allocatedCapacity        uint64
 
@@ -138,7 +138,7 @@ func (d *mockDevice) generateControllerAttributes(ctrl *nvme.IdCtrl) error {
 	r := rand.New(rand.NewSource(int64(deviceId)))
 
 	generateRandomBytes := func(dest []byte) {
-		mockLetters := "MOCK"
+		mockLetters := "MOCK-"
 		attributeLetters := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 		for i := 0; i < len(dest); i++ {
