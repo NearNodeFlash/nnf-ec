@@ -3,6 +3,7 @@ package nnf
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
 	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
@@ -12,12 +13,15 @@ type FileShare struct {
 	id        string
 	mountRoot string
 
-	storageGroup *StorageGroup
-	fileSystem   *FileSystem
+	storageGroupId string
+	fileSystemId   string
+
+	storageService *StorageService
 }
 
 func (sh *FileShare) OdataId() string {
-	return fmt.Sprintf("%s/ExportedFileShares/%s", sh.fileSystem.OdataId(), sh.id)
+	fs := sh.storageService.findFileSystem(sh.fileSystemId)
+	return fmt.Sprintf("%s/ExportedFileShares/%s", fs.OdataId(), sh.id)
 }
 
 func (sh *FileShare) OdataIdRef(ref string) sf.OdataV4IdRef {
@@ -25,8 +29,8 @@ func (sh *FileShare) OdataIdRef(ref string) sf.OdataV4IdRef {
 }
 
 func (sh *FileShare) getStatus() *sf.ResourceStatus {
-
-	status, _ := sh.storageGroup.serverStorage.GetStatus()
+	sg := sh.storageService.findStorageGroup(sh.storageGroupId)
+	status, _ := sg.serverStorage.GetStatus()
 	return &sf.ResourceStatus{
 		Health: sf.OK_RH,
 		State:  status.State(),
@@ -54,13 +58,19 @@ type fileSharePersistentCreateCompleteLogEntry struct {
 	FileSharePath string `json:"FileSharePath"`
 }
 
-func (sh *FileShare) GetKey() string                       { return fileShareRegistryPrefix + sh.id }
-func (sh *FileShare) GetProvider() PersistentStoreProvider { return sh.fileSystem.storageService }
+func (sh *FileShare) GetKey() string {
+	return fileShareRegistryPrefix + strings.Join([]string{sh.fileSystemId, sh.id}, ":")
+}
+
+func (sh *FileShare) GetProvider() PersistentStoreProvider {
+	fs := sh.storageService.findFileSystem(sh.fileSystemId)
+	return fs.storageService
+}
 
 func (sh *FileShare) GenerateMetadata() ([]byte, error) {
 	return json.Marshal(fileSharePersistentMetadata{
-		FileSystemId:   sh.fileSystem.id,
-		StorageGroupId: &sh.storageGroup.id,
+		FileSystemId:   sh.fileSystemId,
+		StorageGroupId: &sh.storageGroupId,
 		MountRoot:      &sh.mountRoot,
 	})
 }
@@ -80,7 +90,8 @@ func (sh *FileShare) GenerateStateData(state uint32) ([]byte, error) {
 func (sh *FileShare) Rollback(state uint32) error {
 	switch state {
 	case fileShareCreateStartLogEntryType:
-		sh.fileSystem.deleteFileShare(sh)
+		fs := sh.storageService.findFileSystem(sh.fileSystemId)
+		fs.deleteFileShare(sh)
 	}
 
 	return nil
@@ -99,14 +110,18 @@ func NewFileShareRecoveryRegistry(s *StorageService) kvstore.Registry {
 func (r *fileShareRecoveryRegistry) Prefix() string { return fileShareRegistryPrefix }
 
 func (r *fileShareRecoveryRegistry) NewReplay(id string) kvstore.ReplayHandler {
+	ids := strings.SplitN(id, ":", 2)
+
 	return &fileShareRecoveryReplayHandler{
-		fileShareId:    id,
+		fileShareId:    ids[1],
+		fileSystemId:   ids[0],
 		storageService: r.storageService,
 	}
 }
 
 type fileShareRecoveryReplayHandler struct {
 	fileShareId      string
+	fileSystemId     string
 	lastLogEntryType uint32
 	fileSystem       *FileSystem
 	storageService   *StorageService
@@ -119,12 +134,11 @@ func (rh *fileShareRecoveryReplayHandler) Metadata(data []byte) error {
 	}
 
 	fileSystem := rh.storageService.findFileSystem(metadata.FileSystemId)
-	storageGroup := rh.storageService.findStorageGroup(*metadata.StorageGroupId)
 
 	fileSystem.shares = append(fileSystem.shares, FileShare{
-		id:           rh.fileShareId,
-		fileSystem:   fileSystem,
-		storageGroup: storageGroup,
+		id:             rh.fileShareId,
+		fileSystemId:   metadata.FileSystemId,
+		storageGroupId: *metadata.StorageGroupId,
 	})
 
 	rh.fileSystem = fileSystem

@@ -23,8 +23,8 @@ type StoragePool struct {
 	allocatedVolume  AllocatedVolume
 	providingVolumes []ProvidingVolume
 
-	storageGroups []*StorageGroup
-	fileSystem    *FileSystem
+	storageGroupIds []string
+	fileSystemId    string
 
 	storageService *StorageService
 }
@@ -80,8 +80,9 @@ func (p *StoragePool) capacitySourcesGet() []sf.CapacityCapacitySource {
 }
 
 func (p *StoragePool) findStorageGroupByEndpoint(endpoint *Endpoint) *StorageGroup {
-	for _, sg := range p.storageGroups {
-		if sg.endpoint.id == endpoint.id {
+	for _, sgid := range p.storageGroupIds {
+		sg := p.storageService.findStorageGroup(sgid)
+		if sg != nil && sg.endpoint.id == endpoint.id {
 			return sg
 		}
 	}

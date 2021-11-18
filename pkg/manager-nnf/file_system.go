@@ -18,7 +18,7 @@ type FileSystem struct {
 	fsApi  server.FileSystemApi
 	shares []FileShare
 
-	storagePool    *StoragePool
+	storagePoolId  string
 	storageService *StorageService
 }
 
@@ -44,6 +44,7 @@ func (fs *FileSystem) findFileShare(id string) *FileShare {
 // shares. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
 // that the ID does not already exist.
 func (fs *FileSystem) createFileShare(id string, sg *StorageGroup, mountRoot string) *FileShare {
+
 	if len(id) == 0 {
 		var fileShareId = -1
 		for _, fileShare := range fs.shares {
@@ -58,21 +59,23 @@ func (fs *FileSystem) createFileShare(id string, sg *StorageGroup, mountRoot str
 		id = strconv.Itoa(fileShareId)
 	}
 
+	sg.fileShareId = id
+
 	fs.shares = append(fs.shares, FileShare{
-		id:           id,
-		storageGroup: sg,
-		mountRoot:    mountRoot,
-		fileSystem:   fs,
+		id:             id,
+		storageGroupId: sg.id,
+		mountRoot:      mountRoot,
+		fileSystemId:   fs.id,
+		storageService: fs.storageService,
 	})
 
-	sh := &fs.shares[len(fs.shares)-1]
-	sg.fileShare = sh
-
-	return sh
+	return &fs.shares[len(fs.shares)-1]
 }
 
 func (fs *FileSystem) deleteFileShare(sh *FileShare) {
-	sh.storageGroup.fileShare = nil
+
+	sg := fs.storageService.findStorageGroup(sh.storageGroupId)
+	sg.fileShareId = ""
 
 	for shareIdx, share := range fs.shares {
 		if share.id == sh.id {
@@ -97,7 +100,7 @@ func (fs *FileSystem) GetProvider() PersistentStoreProvider { return fs.storageS
 
 func (fs *FileSystem) GenerateMetadata() ([]byte, error) {
 	return json.Marshal(fileSystemPersistentMetadata{
-		StoragePoolId:  fs.storagePool.id,
+		StoragePoolId:  fs.storagePoolId,
 		FileSystemType: fs.fsApi.Type(),
 		FileSystemName: fs.fsApi.Name(),
 	})
@@ -154,11 +157,9 @@ func (rh *fileSystemRecoveryReplyHandler) Metadata(data []byte) error {
 		return err
 	}
 
-	storagePool := rh.storageService.findStoragePool(metadata.StoragePoolId)
-
 	rh.storageService.fileSystems = append(rh.storageService.fileSystems, FileSystem{
 		id:             rh.fileSystemId,
-		storagePool:    storagePool,
+		storagePoolId:  metadata.StoragePoolId,
 		storageService: rh.storageService,
 	})
 

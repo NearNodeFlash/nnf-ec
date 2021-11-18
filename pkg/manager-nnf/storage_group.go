@@ -30,11 +30,12 @@ type StorageGroup struct {
 	serverStorage *server.Storage
 
 	// If a file system is present on the parent Storage Pool, this object
-	// represents the Exported File Share for this Storage Group, or null
+	// represents the Exported File Share for this Storage Group, or empty
 	// if no file-system is present.
-	fileShare *FileShare
+	fileShareId string
 
-	storagePool    *StoragePool
+	storagePoolId string
+
 	storageService *StorageService
 }
 
@@ -84,7 +85,7 @@ func (sg *StorageGroup) GenerateMetadata() ([]byte, error) {
 	return json.Marshal(storageGroupPersistentMetadata{
 		Name:          sg.name,
 		Description:   sg.description,
-		StoragePoolId: sg.storagePool.id,
+		StoragePoolId: sg.storagePoolId,
 		EndpointId:    sg.endpoint.id,
 	})
 }
@@ -101,7 +102,12 @@ func (sg *StorageGroup) Rollback(state uint32) error {
 	case storageGroupCreateStartLogEntryType:
 		// Rollback to a state where no controllers are attached to the storage pool
 
-		for _, pv := range sg.storagePool.providingVolumes {
+		sp := sg.storageService.findStoragePool(sg.storagePoolId)
+		if sp == nil {
+			return fmt.Errorf("Storage Pool %s not found", sg.storagePoolId)
+		}
+
+		for _, pv := range sp.providingVolumes {
 			if err := pv.storage.FindVolume(pv.volumeId).DetachController(sg.endpoint.controllerId); err != nil {
 				return err
 			}
@@ -130,7 +136,6 @@ func (r *storageGroupRecoveryRegistry) NewReplay(id string) kvstore.ReplayHandle
 type storageGroupRecoveryReplyHandler struct {
 	id               string
 	lastLogEntryType uint32
-	storageGroup     *StorageGroup
 	storageService   *StorageService
 }
 
@@ -148,11 +153,9 @@ func (rh *storageGroupRecoveryReplyHandler) Metadata(data []byte) error {
 			id:             rh.id,
 			endpoint:       endpoint,
 			serverStorage:  endpoint.serverCtrl.NewStorage(storagePool.uid, nil /*TODO*/),
-			storagePool:    storagePool,
+			storagePoolId:  metadata.StoragePoolId,
 			storageService: rh.storageService,
 		})
-
-	rh.storageGroup = &rh.storageService.groups[len(rh.storageService.groups)-1]
 
 	return nil
 }
@@ -165,14 +168,20 @@ func (rh *storageGroupRecoveryReplyHandler) Entry(typ uint32, data []byte) error
 
 func (rh *storageGroupRecoveryReplyHandler) Done() error {
 
+	sg := rh.storageService.findStorageGroup(rh.id)
+	if sg == nil {
+		return fmt.Errorf("Storage Group Recovery: Storage Group %s not found", rh.id)
+	}
+
 	switch rh.lastLogEntryType {
 	case storageGroupCreateStartLogEntryType:
 		// In this case the storage group started, but didn't finish. We may have outstanding controllers
 		// attached to the endpoint that we don't want to preserve since the client did not get confirmation
 		// of the action. We want to detach any controllers for this <Pool, Endpoint> pair.
 
-		for _, pv := range rh.storageGroup.storagePool.providingVolumes {
-			if err := nvme.DetachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{rh.storageGroup.endpoint.controllerId}); err != nil {
+		sp := rh.storageService.findStoragePool(sg.storagePoolId)
+		for _, pv := range sp.providingVolumes {
+			if err := nvme.DetachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{sg.endpoint.controllerId}); err != nil {
 				return err
 			}
 		}
