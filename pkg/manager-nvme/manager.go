@@ -259,8 +259,10 @@ func (s *Storage) IsEnabled() bool          { return s.state == sf.ENABLED_RST }
 func (s *Storage) SerialNumber() string     { return s.serialNumber }
 
 func (s *Storage) IsKioxiaDualPortConfiguration() bool {
-	return strings.Contains(s.qualifiedName, "com.kioxia:KCM61RUL960G")
+	return strings.Contains(s.qualifiedName, "com.kioxia:KCM61RUL960G") ||
+		strings.Contains(s.qualifiedName, "com.kioxia:KCM61VUL1T60")
 }
+
 func (s *Storage) FindVolume(id string) *Volume {
 	return s.findVolume(id)
 }
