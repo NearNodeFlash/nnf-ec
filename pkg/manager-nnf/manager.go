@@ -578,21 +578,6 @@ func (*StorageService) StorageServiceIdStoragePoolsGet(storageServiceId string, 
 	return nil
 }
 
-// StorageServiceIdStoragePoolIdPut -
-func (*StorageService) StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
-	s, p := findStoragePool(storageServiceId, storagePoolId)
-	if s == nil {
-		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
-	}
-	if p != nil {
-		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.ResourceInUseBase())
-	}
-
-	model.Id = storagePoolId
-
-	return s.StorageServiceIdStoragePoolsPost(storageServiceId, model)
-}
-
 // StorageServiceIdStoragePoolsPost -
 func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
 	s := findStorageService(storageServiceId)
@@ -658,6 +643,21 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 	event.EventManager.PublishResourceEvent(msgreg.ResourceCreatedResourceEvent(), p)
 
 	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
+}
+
+// StorageServiceIdStoragePoolIdPut -
+func (*StorageService) StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
+	s, p := findStoragePool(storageServiceId, storagePoolId)
+	if s == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
+	}
+	if p != nil {
+		return s.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, model)
+	}
+
+	model.Id = storagePoolId
+
+	return s.StorageServiceIdStoragePoolsPost(storageServiceId, model)
 }
 
 // StorageServiceIdStoragePoolIdGet -
@@ -939,7 +939,7 @@ func (*StorageService) StorageServiceIdStorageGroupIdPut(storageServiceId, stora
 		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
 	}
 	if sg != nil {
-		return ec.NewErrNotFound().WithResourceType(StorageGroupOdataType).WithEvent(msgreg.ResourceInUseBase())
+		return s.StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId, model)
 	}
 
 	model.Id = storageGroupId
@@ -1143,7 +1143,7 @@ func (*StorageService) StorageServiceIdFileSystemIdPut(storageServiceId, fileSys
 		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
 	}
 	if fs != nil {
-		return ec.NewErrNotAcceptable().WithResourceType(FileSystemOdataType).WithEvent(msgreg.ResourceInUseBase())
+		return s.StorageServiceIdFileSystemIdGet(storageServiceId, fileSystemId, model)
 	}
 
 	model.Id = fileSystemId
@@ -1296,7 +1296,7 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedShareIdPut(storageSer
 		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(FileShareOdataType, exportedShareId))
 	}
 	if sh != nil {
-		return ec.NewErrNotAcceptable().WithResourceType(FileShareOdataType).WithEvent(msgreg.ResourceInUseBase())
+		return s.StorageServiceIdFileSystemIdExportedShareIdGet(storageServiceId, fileSystemId, exportedShareId, model)
 	}
 
 	model.Id = exportedShareId
