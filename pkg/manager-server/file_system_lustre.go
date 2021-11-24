@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type LustreTargetType string
@@ -33,6 +34,10 @@ var backFsTypes = map[string]LustreBackFsType{
 	"zfs":     BackFsZfs,
 }
 
+func init() {
+	FileSystemRegistry.RegisterFileSystem(&FileSystemLustre{})
+}
+
 type FileSystemLustre struct {
 	// Satisfy FileSystemApi interface.
 	FileSystem
@@ -43,7 +48,7 @@ type FileSystemLustre struct {
 	backFs     LustreBackFsType
 }
 
-func NewFileSystemLustre(oem FileSystemOem) FileSystemApi {
+func (*FileSystemLustre) New(oem FileSystemOem) FileSystemApi {
 	fs := &FileSystemLustre{
 		FileSystem: FileSystem{name: oem.Name},
 		mgsNode:    oem.MgsNode,
@@ -63,8 +68,10 @@ func (*FileSystemLustre) IsType(oem FileSystemOem) bool {
 	}
 	return ok
 }
-func (*FileSystemLustre) Type() string   { return "lustre" }
-func (f *FileSystemLustre) Name() string { return f.name }
+
+func (*FileSystemLustre) IsMockable() bool { return false }
+func (*FileSystemLustre) Type() string     { return "lustre" }
+func (f *FileSystemLustre) Name() string   { return f.name }
 
 func (f *FileSystemLustre) Create(devices []string, options FileSystemOptions) error {
 
