@@ -1,4 +1,4 @@
-module stash.us.cray.com/rabsw/nnf-ec
+module github.hpe.com/hpe/hpc-rabsw-nnf-ec
 
 go 1.16
 

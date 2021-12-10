@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 	fmt.Fprintf(file, "\n")
 	fmt.Fprintf(file, "package messageregistry\n")
 	fmt.Fprintf(file, "\n")
-	fmt.Fprintf(file, "import events \"stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event\"\n")
+	fmt.Fprintf(file, "import events \"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event\"\n")
 	fmt.Fprintf(file, "\n")
 
 	methodSuffix := fmt.Sprintf("%s", model.RegistryPrefix)

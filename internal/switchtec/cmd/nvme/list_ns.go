@@ -3,7 +3,7 @@ package nvme
 import (
 	"fmt"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // ListNsCmd For the specified controller handle, show the namespace list

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // NVME Mock Persistence - Handles the various persistent aspects of an NVMe device, specifically namespaces

@@ -3,7 +3,7 @@ package nvme
 import (
 	"fmt"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // AttachNsCmd attaches the given namespace to the given controller or comma-sep list of

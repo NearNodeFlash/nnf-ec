@@ -3,7 +3,7 @@ package nvme
 import (
 	"fmt"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // IdNsCmd Send an Identify Namespace command to the given device

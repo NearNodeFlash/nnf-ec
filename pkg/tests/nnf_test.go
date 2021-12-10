@@ -3,12 +3,12 @@ package benchmarks
 import (
 	"testing"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg"
-	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
-	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
+	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
+	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func TestStoragePools(t *testing.T) {

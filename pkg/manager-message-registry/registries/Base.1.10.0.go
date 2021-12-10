@@ -2,7 +2,7 @@
 
 package messageregistry
 
-import events "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
+import events "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
 
 // arg0: The name of the property. This argument shall contain the name of the property.
 func PropertyNotWritableBase(arg0 string) events.Event {

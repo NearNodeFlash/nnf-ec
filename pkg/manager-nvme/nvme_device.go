@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"unsafe"
 
-	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
+	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type SwitchtecNvmeController struct{}

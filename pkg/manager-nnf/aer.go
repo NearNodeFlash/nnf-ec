@@ -3,11 +3,11 @@ package nnf
 import (
 	"errors"
 
-	events "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
-	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
+	events "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
+	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry/registries"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Automatic Error Reporting Service Wraps the provided Storage Service API with automatic

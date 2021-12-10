@@ -7,15 +7,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"stash.us.cray.com/rabsw/nnf-ec/pkg/api"
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
-	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/api"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	event "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
+	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry/registries"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

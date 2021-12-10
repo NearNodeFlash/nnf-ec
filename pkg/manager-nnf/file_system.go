@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strconv"
 
-	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
 )
 
 type FileSystem struct {

@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"stash.us.cray.com/rabsw/nnf-ec/pkg/logging"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/logging"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type DefaultServerControllerProvider struct{}

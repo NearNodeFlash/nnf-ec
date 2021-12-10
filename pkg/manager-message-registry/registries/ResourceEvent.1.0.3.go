@@ -2,7 +2,7 @@
 
 package messageregistry
 
-import events "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
+import events "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
 
 // arg0: The relevant resource. This argument shall contain the name of the relevant Redfish resource.
 // arg1: The state of the resource. This argument shall contain the value of the `Health` property for the relevant Redfish resource.  The values shall be used from the definition of the `Health` enumeration in the `Resource` schema.

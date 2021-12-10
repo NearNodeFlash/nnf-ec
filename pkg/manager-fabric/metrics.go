@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	telemetry "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-telemetry"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	telemetry "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-telemetry"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func initializeMetrics() error {

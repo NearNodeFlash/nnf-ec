@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 
-	. "stash.us.cray.com/rabsw/nnf-ec/pkg/common"
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	. "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/common"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
 )
 
 // DefaultApiService -

@@ -8,7 +8,7 @@ DTR_IMGPATH=arti.dev.cray.com/$(DEV_REPONAME)/$(DEV_IMGNAME)
 all: image
 
 vendor:
-	GOPRIVATE=stash.us.cray.com go mod vendor
+	GOPRIVATE=github.hpe.com go mod vendor
 
 vet:
 	go vet `go list -f {{.Dir}} ./...`
@@ -21,12 +21,12 @@ generate:
 	go generate ./...
 	go fmt ./pkg/manager-message-registry/registries
 
-test: 
+test:
 	go test -v ./...
 
 linux:
-	env GOOS=linux GOARCH=amd64 GOPRIVATE=stash.us.cray.com go build -o ${DEV_IMGNAME} ./cmd/nnf_ec.go
-	
+	env GOOS=linux GOARCH=amd64 GOPRIVATE=github.hpe.com go build -o ${DEV_IMGNAME} ./cmd/nnf_ec.go
+
 image:
 	docker build --rm --file Dockerfile --label $(DTR_IMGPATH):$(PROD_VERSION) --tag $(DTR_IMGPATH):$(PROD_VERSION) .
 

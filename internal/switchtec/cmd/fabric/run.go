@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 func run(device string, f func(*switchtec.Device) error) error {

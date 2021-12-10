@@ -18,7 +18,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	sw "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/routermux"
+	sw "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/routermux"
 )
 
 func isEmulationEnv() bool { return os.Getenv("EMU") == "true" }

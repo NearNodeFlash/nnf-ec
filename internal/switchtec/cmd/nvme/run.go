@@ -1,6 +1,6 @@
 package nvme
 
-import "stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+import "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 
 func run(device string, f func(dev *nvme.Device) error) error {
 	dev, err := nvme.Open(device)

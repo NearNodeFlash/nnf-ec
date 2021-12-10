@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
-	nvme2 "stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
-	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
+	nvme2 "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
+	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type StoragePool struct {

@@ -5,7 +5,7 @@
 # calls.
 #
 # This script should run after an openapi-generator call
-# 
+#
 # Author: Nate Roiger
 #
 # Copyright 2020 Hewlett Packard Enterprise Development LP
@@ -18,19 +18,19 @@ import argparse, os, sys
 # the storage platform auto-generation code.
 def find_custom_endpoints(args):
     packages = """
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/chassis"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/drives"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/event"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/filesystem"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/serviceroot"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/storagepool"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/storageservices"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/template"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/volume"
-"stash.us.cray.com/rabsw/nnf-ec/internal/rfsf/pkg/hamanager"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/chassis"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/drives"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/event"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/filesystem"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/serviceroot"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/storagepool"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/storageservices"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/template"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/volume"
+"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/hamanager"
 """.splitlines(False)[1:]
     packages = map(lambda s: os.path.basename(s.strip('"')), packages)
-    
+
     with open(os.path.join(args.dir, 'temp.go'), 'w') as dfp:
 
         with open(os.path.join(args.dir, args.src)) as fp:
@@ -74,12 +74,12 @@ if __name__ == '__main__':
     with open(os.path.join(args.dir, args.src)) as fp:
          for _, ln in enumerate(fp):
              if ln.startswith('func'):
-                 # Extract the function name from 
+                 # Extract the function name from
                  #   func (c *StoragePlatformApiController) RedfishV1CompositionServiceResourceBlocksResourceBlockIdSystemsComputerSystemIdStorageStorageIdVolumesPost(w http.ResponseWriter, r *http.Request) {
                  name = ln.split(' ')[3].rstrip('(w')
                  print(f'Found SP function {name}')
                  src_funcs.append(name)
-             
+
 
     # Copy from the default api service into the destination; ignoring the
     # definitions defined in the source service. This implements all the
@@ -90,15 +90,15 @@ if __name__ == '__main__':
         dfp.write(
 """/*
  * Redfish
- * 
+ *
  * This contains the default implementation of a Storage Platform Redfish service
- * 
+ *
  * Author: Auto-generated from sp_generator.py
  *
  * Copyright 2020 Hewlett Packard Enterprise Development LP
  *
  */
- 
+
  package routermux
 
  import (
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 	"strings"
 
 	"github.com/gorilla/mux"
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
  )
 
 // A StoragePlatformApiController binds http requests to an api service and writes the service results to the http response
@@ -123,7 +123,7 @@ func NewStoragePlatformApiController(s DefaultApiServicer) Router {
 """
  )
         with open(os.path.join(args.dir, args.default)) as sfp:
-        
+
             in_func = False
             for idx, ln in enumerate(sfp):
                 if in_func:
@@ -143,7 +143,7 @@ func NewStoragePlatformApiController(s DefaultApiServicer) Router {
                 elif ln.startswith('// Routes'):
                     in_func = True
                     dfp.write(ln)
-                
-                
+
+
 
 

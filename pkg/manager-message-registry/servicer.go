@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	. "stash.us.cray.com/rabsw/nnf-ec/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	. "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/common"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type DefaultApiService struct{}

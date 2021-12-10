@@ -3,9 +3,9 @@ package nnf
 import (
 	"fmt"
 
-	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
+	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type Endpoint struct {

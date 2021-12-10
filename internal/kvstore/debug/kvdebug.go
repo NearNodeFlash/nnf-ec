@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
 )
 
 func main() {

@@ -3,7 +3,7 @@ package cmd
 import (
 	"strconv"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // BindCmd defines the Bind CLI command and parameters

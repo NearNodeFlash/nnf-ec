@@ -34,11 +34,11 @@ ENV GOROOT="/go"
 ENV PATH="${PATH}:${GOROOT}/bin"  \
     LOG_LEVEL="INFO"              \
     GOPROXY="direct"              \
-    GOPRIVATE="stash.us.cray.com" \
+    GOPRIVATE="github.hpe.com" \
     GOSUMDB="on"                  \
     GO111MODULE="on"
 
-ENV PROJECT $GOPATH/src/stash.us.cray.com/rabsw/nnf-ec
+ENV PROJECT $GOPATH/src/github.hpe.com/hpe/hpc-rabsw-nnf-ec
 
 # Copy everything needed to create image
 WORKDIR $PROJECT

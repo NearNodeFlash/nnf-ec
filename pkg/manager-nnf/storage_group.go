@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
-	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
+	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
+	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type StorageGroup struct {

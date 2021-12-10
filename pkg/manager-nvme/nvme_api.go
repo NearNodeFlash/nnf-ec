@@ -1,7 +1,7 @@
 package nvme
 
 import (
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type NvmeController interface {
@@ -11,7 +11,7 @@ type NvmeController interface {
 type NvmeDeviceController interface {
 	Initialize() error
 	Close() error
-	
+
 	NewNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error)
 }
 
