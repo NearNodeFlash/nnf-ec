@@ -20,6 +20,12 @@ func TestStoragePools(t *testing.T) {
 	}
 
 	ss := nnf.NewDefaultStorageService()
+
+	cs := &sf.CapacityCapacitySource{}
+	if err := ss.StorageServiceIdCapacitySourceGet(ss.Id(), cs); err != nil {
+		t.Errorf("Failed to retrieve capacity source: %v", err)
+	}
+
 	pools := make([]*sf.StoragePoolV150StoragePool, 0)
 
 	for j := 0; j < 32; j++ {
