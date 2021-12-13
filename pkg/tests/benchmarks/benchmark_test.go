@@ -3,9 +3,9 @@ package benchmarks
 import (
 	"testing"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg"
-	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
+	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func BenchmarkStorage(b *testing.B) {

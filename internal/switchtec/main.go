@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/alecthomas/kong"
 
-	ctx "stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/cmd"
-	cfg "stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/cmd/config"
-	cmd "stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/cmd/fabric"
-	nvme "stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/cmd/nvme"
+	ctx "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/cmd"
+	cfg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/cmd/config"
+	cmd "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/cmd/fabric"
+	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/cmd/nvme"
 )
 
 var cli struct {

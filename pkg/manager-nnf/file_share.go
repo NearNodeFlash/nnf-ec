@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type FileShare struct {

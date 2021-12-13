@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	remote "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-remote"
+	remote "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-remote"
 )
 
 func main() {

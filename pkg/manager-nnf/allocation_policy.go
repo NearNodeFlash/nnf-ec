@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 
-	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
+	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
 )
 
 // AllocationPolicy -

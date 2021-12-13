@@ -6,14 +6,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	nnfec "stash.us.cray.com/rabsw/nnf-ec/pkg"
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	nnfec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
 
-	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
-	nnfserver "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
+	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
+	nnfserver "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 /*

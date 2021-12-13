@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 //go:generate ./generator/msgenerator ./registries/Base.1.10.0.json

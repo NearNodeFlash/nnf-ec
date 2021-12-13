@@ -22,8 +22,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 	eventTestBody = `{
 		"EventType": "StatusChange",
 		"EventID": "myEventId",
-		
+
 		"EventTimestamp": "2020-08-05T13:56:20-0600",
 		"Severity": "OK",
 		"Message": "This is a test message",

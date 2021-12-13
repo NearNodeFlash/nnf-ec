@@ -1,7 +1,7 @@
 package fabric
 
 import (
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
 )
 
 // Router contains all the Redfish / Swordfish API calls that are hosted by

@@ -7,17 +7,17 @@ import (
 	"strconv"
 	"strings"
 
-	. "stash.us.cray.com/rabsw/nnf-ec/pkg/api"
-	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
-	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
-	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry/registries"
+	. "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/api"
+	event "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
+	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
+	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry/registries"
 
 	log "github.com/sirupsen/logrus"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

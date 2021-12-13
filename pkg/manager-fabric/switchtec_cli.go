@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
 
-	"stash.us.cray.com/rabsw/nnf-ec/pkg/logging"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/logging"
 )
 
 type SwitchtecCliController struct{}

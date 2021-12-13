@@ -2,7 +2,7 @@
 #
 # This script will patch the files in the provided directory
 # to ensure they reference the Open API definitions
-# 
+#
 # Author: Nate Roiger
 #
 # Copyright 2020 Hewlett Packard Enterprise Development LP
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     for _, _, files in os.walk(args.dir):
         for file in files:
-            
+
             if args.file and file != args.file:
                 continue
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
                         if 'openapi' in ln:
                             in_import = False
                         if ln.strip() == ')':
-                            ln = '\topenapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"\n' + ln
+                            ln = '\topenapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"\n' + ln
                     lines.append(ln)
 
             with open(os.path.join(args.dir, file), 'w') as fp:

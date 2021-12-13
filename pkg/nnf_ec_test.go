@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var controllerOption = NewMockOptions()
@@ -450,7 +450,7 @@ func RouteCollections() []TestRoute {
 func TestWalkFabricEndpoints(t *testing.T) {
 
 	opts := ec.Options{Http: true, Port: 8080, Log: true, Verbose: true}
-	
+
 	MockController.Init(&opts)
 	defer MockController.Close()
 

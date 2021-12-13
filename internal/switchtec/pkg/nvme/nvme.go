@@ -12,7 +12,7 @@ import (
 	"github.com/HewlettPackard/structex"
 	"github.com/google/uuid"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // Device describes the NVMe Device and its attributes

@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/HewlettPackard/structex"
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 
-	"stash.us.cray.com/rabsw/nnf-ec/pkg/logging"
-	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/logging"
+	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
 )
 
 func NewCliNvmeController() NvmeController {

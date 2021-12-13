@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry"
 
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Event Manager:

@@ -15,13 +15,13 @@ import (
 	"flag"
 	"os"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	event "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
-	fabric "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-fabric"
-	msgreg "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-message-registry"
-	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
-	nvme "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nvme"
-	telemetry "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-telemetry"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	event "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
+	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
+	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry"
+	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
+	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
+	telemetry "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-telemetry"
 )
 
 const (

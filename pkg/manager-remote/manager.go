@@ -6,12 +6,12 @@ import (
 
 	"github.com/google/uuid"
 
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/common"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	nnf "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-nnf"
-	server "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-server"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
+	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
 )
 
 type ServerStorageService struct {

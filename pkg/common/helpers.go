@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
 )
 
 // Params -

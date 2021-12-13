@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	ec "stash.us.cray.com/rabsw/nnf-ec/pkg/ec"
-	sf "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var MessageRegistryManager = manager{}

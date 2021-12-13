@@ -1,6 +1,6 @@
 package nnf
 
-import "stash.us.cray.com/rabsw/nnf-ec/internal/kvstore"
+import "github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
 
 type PersistentStoreProvider interface {
 	GetStore() *kvstore.Store

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"stash.us.cray.com/rabsw/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type GetFeatureCmd struct {

@@ -2,7 +2,7 @@
 
 package messageregistry
 
-import events "stash.us.cray.com/rabsw/nnf-ec/pkg/manager-event"
+import events "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
 
 // arg0: The `Id` of the switch. This argument shall contain the value of the `Id` property of the switch.
 // arg1: The `Id` of the port. This argument shall contain the value of the `Id` property of the downstream port.

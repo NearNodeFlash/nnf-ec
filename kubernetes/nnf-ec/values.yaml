@@ -1,5 +1,3 @@
-# Please refer to https://stash.us.cray.com/projects/CLOUD/repos/cray-charts/browse/stable/cray-service/values.yaml?at=refs%2Fheads%2Fmaster
-# for more info on values you can set/override
 # Note that cray-service.containers[*].image and cray-service.initContainers[*].image map values are one of the only structures that
 # differ from the standard kubernetes container spec:
 # image:
@@ -34,18 +32,18 @@ cray-service:
       securityContext:
         privileged: true
       volumeMounts:
-      - mountPath: /dev
-        name: dev-dir
-      - mountPath: /mnt
-        name: mnt-dir
-        mountPropagation: Bidirectional
+        - mountPath: /dev
+          name: dev-dir
+        - mountPath: /mnt
+          name: mnt-dir
+          mountPropagation: Bidirectional
   volumes:
-  - name: dev-dir
-    hostPath:
-      path: /dev
-  - name: mnt-dir
-    hostPath:
-      path: /mnt
+    - name: dev-dir
+      hostPath:
+        path: /dev
+    - name: mnt-dir
+      hostPath:
+        path: /mnt
   nodeSelector:
     cray.dpm.dg.dpm-nnf-node: "true"
 

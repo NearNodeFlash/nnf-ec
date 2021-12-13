@@ -11,7 +11,8 @@ package routermux
 
 import (
 	"errors"
-	openapi "stash.us.cray.com/rabsw/nnf-ec/pkg/rfsf/pkg/models"
+
+	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // DefaultApiService is a service that implents the logic for the DefaultApiServicer
