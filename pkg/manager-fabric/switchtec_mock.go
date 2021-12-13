@@ -207,6 +207,7 @@ func (d *MockSwitchtecDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) 
 
 		// For test, record the first downstream port as being down. This replicates conditions for
 		// partially populated systems.
+
 		if p.config.getPortType() == sf.DOWNSTREAM_PORT_PV130PT && firstDownstreamPortDisabled == false {
 			firstDownstreamPortDisabled = true
 			stats[idx].LinkState = switchtec.PortLinkState_Disable

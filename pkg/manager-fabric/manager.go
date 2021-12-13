@@ -1319,20 +1319,24 @@ func FabricIdConnectionsConnectionIdGet(fabricId string, connectionId string, mo
 	// TODO: This should be by controllerId uint16 (not a string)
 	controllerId := strconv.Itoa(int(initiator.controllerId))
 	volumes, err := api.NvmeInterface.GetVolumes(controllerId)
-	if err != nil {
-		return err
-	}
-
-	model.VolumeInfo = make([]sf.ConnectionV100VolumeInfo, len(volumes))
-	for idx, volume := range volumes {
-		v := &model.VolumeInfo[idx]
-
-		v.Volume.OdataId = volume
-		v.AccessState = sf.OPTIMIZED_CV100AST
-		v.AccessCapabilities = []sf.ConnectionV100AccessCapability{
-			sf.READ_CV100AC,
-			sf.WRITE_CV100AC,
+	if err == nil {
+		model.VolumeInfo = make([]sf.ConnectionV100VolumeInfo, len(volumes))
+		for idx, volume := range volumes {
+			v := &model.VolumeInfo[idx]
+	
+			v.Volume.OdataId = volume
+			v.AccessState = sf.OPTIMIZED_CV100AST
+			v.AccessCapabilities = []sf.ConnectionV100AccessCapability{
+				sf.READ_CV100AC,
+				sf.WRITE_CV100AC,
+			}
 		}
+
+		model.Status.State = sf.ENABLED_RST
+		model.Status.Health = sf.OK_RH
+	} else {
+		model.Status.State = sf.UNAVAILABLE_OFFLINE_RST
+		model.Status.Health = sf.CRITICAL_RH
 	}
 
 	return nil
