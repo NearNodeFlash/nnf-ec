@@ -389,6 +389,9 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 }
 
 func (s *Storage) refreshCapacity() error {
+	if s.getStatus().State != sf.ENABLED_RST {
+		return nil
+	}
 
 	ctrl, err := s.device.IdentifyController(0)
 	if err != nil {
@@ -844,6 +847,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 func (s *Storage) LinkDroppedEventHandler() error {
 	s.state = sf.UNAVAILABLE_OFFLINE_RST
 	s.controllers = nil
+	s.capacityBytes = 0
 
 	return nil
 }
