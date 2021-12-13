@@ -185,7 +185,7 @@ func (d *MockSwitchtecDevice) GetSerialNumber() (string, error) {
 	return "MockSerialNumber", nil
 }
 
-var firstDownstreamPortDisabled bool
+var firstDownstreamPortDisabled bool // For test, record the first downstream port as being down.
 
 func (d *MockSwitchtecDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) {
 	stats := make([]switchtec.PortLinkStat, len(d.ports))
@@ -205,6 +205,8 @@ func (d *MockSwitchtecDevice) GetPortStatus() ([]switchtec.PortLinkStat, error) 
 			CurLinkRateGBps: switchtec.GetDataRateGBps(4) * float64(p.config.Width),
 		}
 
+		// For test, record the first downstream port as being down. This replicates conditions for
+		// partially populated systems.
 		if p.config.getPortType() == sf.DOWNSTREAM_PORT_PV130PT && firstDownstreamPortDisabled == false {
 			firstDownstreamPortDisabled = true
 			stats[idx].LinkState = switchtec.PortLinkState_Disable
