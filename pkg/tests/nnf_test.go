@@ -1,6 +1,7 @@
 package benchmarks
 
 import (
+	"strings"
 	"testing"
 
 	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
@@ -24,6 +25,24 @@ func TestStoragePools(t *testing.T) {
 	cs := &sf.CapacityCapacitySource{}
 	if err := ss.StorageServiceIdCapacitySourceGet(ss.Id(), cs); err != nil {
 		t.Errorf("Failed to retrieve capacity source: %v", err)
+	}
+
+	// Retrieve the list of endpoints in the same way nnf-sos queries the list of servers
+	// for status. This can bringout bugs where the server is down.
+	{
+		epc := &sf.EndpointCollectionEndpointCollection{}
+		if err := ss.StorageServiceIdEndpointsGet(ss.Id(), epc); err != nil {
+			t.Errorf("Failed to retrieve endpoints: %v", err)
+		}
+
+		for _, ref := range epc.Members {
+			epid := ref.OdataId[strings.LastIndex(ref.OdataId, "/")+1:]
+
+			ep := &sf.EndpointV150Endpoint{}
+			if err := ss.StorageServiceIdEndpointIdGet(ss.Id(), epid, ep); err != nil {
+				t.Errorf("Failed to retrieve endpoint id %s: %v", epid, err)
+			}
+		}
 	}
 
 	pools := make([]*sf.StoragePoolV150StoragePool, 0)
