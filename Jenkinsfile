@@ -12,5 +12,7 @@ dockerBuildPipeline {
         useLazyDocker = true
         autoJira = false
         createSDPManifest = false
+        enableSonar = false
+        enableCoverity = false
         product = "kj"
 }

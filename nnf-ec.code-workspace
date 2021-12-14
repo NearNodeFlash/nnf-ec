@@ -4,8 +4,5 @@
 			"path": "."
 		}
 	],
-	"settings": {
-		"go.inferGopath": true,
-		"python.pythonPath": "/usr/bin/python3",
-	}
+	"settings": {}
 }
