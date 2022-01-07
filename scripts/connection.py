@@ -7,8 +7,11 @@ def addServerArguments(parser):
 
 class Connection:
     def __init__(self, host, port, base):
+        self.host = host
+        self.port = port
         self.base = base
         self.path = f'http://{host}:{port}{base}'
+        self.paths = [base,]
 
     def get(self, odataid):
         return requests.get(self.path + odataid)
@@ -24,6 +27,15 @@ class Connection:
 
     def delete(self, odataid):
         return requests.delete(self.path + odataid)
+
+    def push_path(self, path):
+        self.path = f'http://{self.host}:{self.port}{path}'
+        self.paths.append(path)
+
+    def pop_path(self):
+        self.paths.pop()
+        path = self.paths[-1]
+        self.path = f'http://{self.host}:{self.port}{path}'
 
 def connect(args, base):
     return Connection(args.host, args.port, base)

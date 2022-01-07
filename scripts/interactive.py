@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import cmd, argparse, json
+import cmd, argparse, json, sys
 
 import connection
 
@@ -22,7 +22,7 @@ class Command(cmd.Cmd):
         return True
 
     def do_exit(self,arg):
-        return True
+        return sys.exit(0)
 
 class StoragePool(Command):
     intro = 'Create/Put/Get/List/Delete Storage Pools'
@@ -72,6 +72,7 @@ class StoragePool(Command):
             return
 
         self.handle_response(self.conn.put(f'/StoragePools/{id}', payload))
+
     def do_get(self, arg):
         'Get a Storage Pool by POOL ID'
         self.handle_response(self.conn.get(f'/StoragePools/{arg}'))
@@ -83,6 +84,33 @@ class StoragePool(Command):
     def do_delete(self, arg):
         'Delete a Storage Pool by POOL ID'
         self.handle_response(self.conn.delete(f'/StoragePools/{arg}'))
+
+    def do_storage(self, arg):
+        'List Storage for provided POOL ID'
+        if arg is None or arg == '':
+            print('*** POOL ID is required parameter')
+        
+        response = self.conn.get(f'/StoragePools/{arg}/CapacitySources/0/ProvidingVolumes')
+        if not response.ok:
+            print(f'Error: {response.status_code}')
+            return
+
+        self.conn.push_path('') # Use @odata.id directly
+        volumes = response.json()['Members']
+        for volume in volumes:
+            volumeId = volume['@odata.id']
+            volume = self.conn.get(volumeId)
+
+            storageId = volume.json()['Links']['OwningStorageResource']['@odata.id']
+            storage = self.conn.get(storageId)
+            
+
+            nqn = storage.json()['Identifiers'][0]['DurableName']
+            nsid = volume.json()['Identifiers'][0]['DurableName']
+
+            print(f'{nqn} {nsid}')
+
+        self.conn.pop_path()
 
 class ServerEndpoint(Command):
     intro = 'Get/List Server Endpoints'
