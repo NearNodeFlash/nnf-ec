@@ -9,7 +9,9 @@
 
 vendor/
 nnf_ec
+nnf-ec
 nnf_server
+nnf-server
 
 
 cmd/commands.log
