@@ -33,8 +33,9 @@ func (cmd *IdNsCmd) Run() error {
 	fmt.Printf("  %-8s: %-32s :\n", "NUSE", "Features")
 
 	// TODO: More details
+	fmt.Printf("   (features currently omitted)\n")
 
-	fmt.Printf("  %-8s: %-32s : 0x%s", "NGUID", "Namespace GUID\n", ns.GloballyUniqueIdentifier.String())
+	fmt.Printf("  %-8s: %-32s : 0x%s\n", "NGUID", "Namespace GUID", ns.GloballyUniqueIdentifier.String())
 	fmt.Printf("  %-8s: %-32s : %-2d\n", "NLBAS", "Number LBA Formats", ns.NumberOfLBAFormats)
 	for i := 0; i < int(ns.NumberOfLBAFormats); i++ {
 		f := &ns.LBAFormats[i]
