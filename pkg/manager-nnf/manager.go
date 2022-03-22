@@ -1263,6 +1263,9 @@ refreshState:
 
 	updateFunc := func() error {
 		opts := model.Oem
+		if opts == nil {
+			opts = server.FileSystemOptions{}
+		}
 		opts["mountpoint"] = sh.mountRoot
 
 		if err := sg.serverStorage.CreateFileSystem(fs.fsApi, opts); err != nil {
