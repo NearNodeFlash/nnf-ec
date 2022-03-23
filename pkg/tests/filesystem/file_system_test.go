@@ -102,8 +102,8 @@ type testFileSystem struct {
 	mountpoint string
 }
 
-func (t *testFileSystem) New(oem server.FileSystemOem) server.FileSystemApi {
-	return &testFileSystem{master: t, t: t.t, created: false, devices: nil, mountpoint: ""}
+func (t *testFileSystem) New(oem server.FileSystemOem) (server.FileSystemApi, error) {
+	return &testFileSystem{master: t, t: t.t, created: false, devices: nil, mountpoint: ""}, nil
 }
 
 func (*testFileSystem) IsType(oem server.FileSystemOem) bool { return oem.Type == "test" }

@@ -176,34 +176,41 @@ class FileSystem(Command):
     intro = 'Create/Put/Get/List/Delete File Systems'
     prompt = '(nnf)' + '(file system)'
 
-    def create_payload(self, type, name, pool):
-        return {
-            'Links': { 'StoragePool': {'@odata.id': f'{self.conn.base}/StoragePools/{pool}'}},
-            'Oem': { 'Type': type, 'Name': name}
+    def create_payload(self, type, name, pool, options):
+
+        payload = {
+            'Links': { 'StoragePool': { '@odata.id': f'{self.conn.base}/StoragePools/{pool}' } },
+            'Oem': { 'Type': type, 'Name': name }
         }
 
+        for option in options:
+            key, value = option.split("=")
+            payload['Oem'][key] = value
+
+        return payload
+
     def do_create(self,arg):
-        'Create a File System of [TYPE] [NAME] [STORAGE POOL ID]'
+        'Create a File System of [TYPE] [NAME] [STORAGE POOL ID] [OPTION=VALUE, ...]'
 
         try:
-            type, name, pool, *_ = arg.split()
+            type, name, pool, *options = arg.split()
         except ValueError:
             print('Expected three arguments [TYPE] [NAME] [STORAGE POOL ID]')
             return
 
-        payload = self.create_payload(type, name, pool)
+        payload = self.create_payload(type, name, pool, options)
         self.handle_response(self.conn.post(f'/FileSystems', payload))
     
     def do_put(self, arg):
-        'Create a File System by [FILE SYSTEM ID] [TYPE] [NAME] [STORAGE POOL ID]'
+        'Create a File System by [FILE SYSTEM ID] [TYPE] [NAME] [STORAGE POOL ID] [OPTION=VALUE, ...]'
 
         try:
-            id, type, name, pool, *_ = arg.split()
+            id, type, name, pool, *options = arg.split()
         except ValueError:
             print('Expected four arguments [FILE SYSTEM ID] [TYPE] [NAME] [STORAGE POOL ID]')
             return
 
-        payload = self.create_payload(type, name, pool)
+        payload = self.create_payload(type, name, pool, options)
         self.handle_response(self.conn.put(f'/FileSystems/{id}', payload))
 
     def do_get(self,arg):

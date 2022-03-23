@@ -397,10 +397,13 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 
 	oem := server.FileSystemOem{}
 	if err := openapi.UnmarshalOem(model.Oem, &oem); err != nil {
-		return ec.NewErrBadRequest()
+		return ec.NewErrBadRequest().WithError(err)
 	}
 
-	api := server.FileSystemController.NewFileSystem(oem)
+	api, err := server.FileSystemController.NewFileSystem(oem)
+	if err != nil {
+		return ec.NewErrBadRequest().WithError(err)
+	}
 	if api == nil {
 		return ec.NewErrBadRequest()
 	}
