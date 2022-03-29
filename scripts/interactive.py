@@ -137,12 +137,12 @@ class StorageGroup(Command):
         }
 
     def do_create(self,arg):
-        'Create a Storage Group from [STOARGE POOL ID] [SERVER ENDPOINT ID]'
+        'Create a Storage Group from [STORAGE POOL ID] [SERVER ENDPOINT ID]'
         
         try:
             pool, server = arg.split()[:2]
         except ValueError:
-            print('Expected two arguments [STOARGE POOL ID] [SERVER ENDPOINT ID]')
+            print('Expected two arguments [STORAGE POOL ID] [SERVER ENDPOINT ID]')
             return
 
         payload = self.create_payload(pool, server)

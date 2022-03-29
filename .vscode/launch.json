@@ -36,6 +36,17 @@
             "args": ["--mock"],
         },
         {
+            "name": "Http, craystack",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}/cmd/nnf_ec.go",
+            "args": ["--mock"],
+            "env": {
+                "NNF_SUPPLIED_DEVICES": "/dev/vdb",
+            }
+        },
+        {
             "name": "Server",
             "type": "go",
             "request": "launch",
