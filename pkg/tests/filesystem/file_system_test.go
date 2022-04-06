@@ -13,7 +13,7 @@ import (
 
 func TestFileSystem(t *testing.T) {
 
-	c := ec.NewController(ec.NewMockOptions())
+	c := ec.NewController(ec.NewMockOptions(false))
 	defer c.Close()
 
 	if err := c.Init(nil); err != nil {

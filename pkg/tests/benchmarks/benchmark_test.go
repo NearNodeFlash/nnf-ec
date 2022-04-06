@@ -13,7 +13,7 @@ func BenchmarkStorage(b *testing.B) {
 		b.Skip("Unsupport NS count")
 	}
 
-	c := ec.NewController(ec.NewMockOptions())
+	c := ec.NewController(ec.NewMockOptions(true))
 	defer c.Close()
 
 	if err := c.Init(nil); err != nil {

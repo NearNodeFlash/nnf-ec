@@ -61,7 +61,7 @@ var _ = Describe("Reboot Recovery Testing", func() {
 			// everything, including the persistent database. If any data is in the DB, it
 			// will be recovered
 			BeforeEach(func() {
-				c = nnfec.NewController(nnfec.NewMockOptions())
+				c = nnfec.NewController(nnfec.NewMockOptions(true))
 				Expect(c.Init(ec.NewDefaultOptions())).NotTo(HaveOccurred())
 
 				ss = nnf.NewDefaultStorageService()

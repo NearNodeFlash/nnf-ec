@@ -13,7 +13,7 @@ import (
 	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
 )
 
-var controllerOption = NewMockOptions()
+var controllerOption = NewMockOptions(false)
 var (
 	MockController = NewController(controllerOption)
 )
