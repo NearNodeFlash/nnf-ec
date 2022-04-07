@@ -37,6 +37,7 @@ var cli struct {
 	GetFeature     nvme.GetFeatureCmd     `kong:"cmd,help='Get feature.'"`
 	SetFeature     nvme.SetFeatureCmd     `kong:"cmd,help='Set feature.'"`
 	BuildMiFeature nvme.BuildMiFeatureCmd `kong:"cmd,help='Build MI Metadata feature file with interactive terminal'"`
+	Discover       nvme.DiscoverCmd       `kong:"cmd,help='Discover NVMe devices by Serial Number, Model Number, or NQN.'"`
 
 	Config cfg.ConfigCmd `kong:"cmd,help='Configure device.'"`
 }

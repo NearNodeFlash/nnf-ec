@@ -35,6 +35,8 @@ type Options struct {
 	mock        bool // Enable mock interfaces for Switches, NVMe, and NNF
 	cli         bool // Enable CLI commands instead of binary
 	persistence bool // Enable persistent object storage; used during crash/reboot recovery
+
+	direct string // Enable direct management of NVMe devices matching this regexp pattern
 }
 
 func newDefaultOptions() *Options {
@@ -51,6 +53,7 @@ func BindFlags(fs *flag.FlagSet) *Options {
 	fs.BoolVar(&opts.mock, "mock", opts.mock, "Enable mock (simulated) environment.")
 	fs.BoolVar(&opts.cli, "cli", opts.cli, "Enable CLI interfaces with devices, instead of raw binary.")
 	fs.BoolVar(&opts.persistence, "persistence", opts.persistence, "Enable persistent object storage (used during crash/reboot recovery)")
+	fs.StringVar(&opts.direct, "direct", opts.direct, "Enable direct management of NVMe block devices matching this regexp pattern. Implies Mock.")
 
 	nvme.BindFlags(fs)
 
@@ -72,15 +75,20 @@ func NewController(opts *Options) *ec.Controller {
 		nvmeCtrl = nvme.NewCliNvmeController()
 	}
 
-	if opts.mock {
+	if len(opts.direct) != 0 {
+		switchCtrl = fabric.NewMockSwitchtecController()
+		nvmeCtrl = nvme.NewDirectDeviceNvmeController(opts.direct)
+	} else if opts.mock {
 		switchCtrl = fabric.NewMockSwitchtecController()
 		nvmeCtrl = nvme.NewMockNvmeController(opts.persistence)
+
 		if _, ok := os.LookupEnv("NNF_SUPPLIED_DEVICES"); ok {
 			// Keep the real NnfController.
 			log.Infof("NNF_SUPPLIED_DEVICES: %s", os.Getenv("NNF_SUPPLIED_DEVICES"))
 		} else {
 			nnfCtrl = nnf.NewMockNnfController(opts.persistence)
 		}
+
 	}
 
 	return &ec.Controller{
