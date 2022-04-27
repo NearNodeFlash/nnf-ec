@@ -47,7 +47,7 @@ const (
 )
 
 const (
-	defaultStoragePoolId = "0"
+	DefaultStoragePoolId = "0"
 )
 
 var mgr = Manager{id: ResourceBlockId}
@@ -962,14 +962,14 @@ func (mgr *Manager) StorageIdStoragePoolsGet(storageId string, model *sf.Storage
 
 	model.MembersodataCount = 1
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
-	model.Members[0] = s.OdataIdRef("/StoragePools/" + defaultStoragePoolId)
+	model.Members[0] = s.OdataIdRef("/StoragePools/" + DefaultStoragePoolId)
 
 	return nil
 }
 
 // StorageIdStoragePoolsStoragePoolIdGet -
 func (mgr *Manager) StorageIdStoragePoolsStoragePoolIdGet(storageId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
-	if storagePoolId != defaultStoragePoolId {
+	if storagePoolId != DefaultStoragePoolId {
 		return ec.NewErrNotFound().WithCause(fmt.Sprintf("storage pool %s not found", storagePoolId))
 	}
 
@@ -981,6 +981,8 @@ func (mgr *Manager) StorageIdStoragePoolsStoragePoolIdGet(storageId, storagePool
 	if err := s.refreshCapacity(); err != nil {
 		return ec.NewErrInternalServerError().WithError(err).WithCause(fmt.Sprintf("storage %s read capacity failed", storageId))
 	}
+
+	model.CapacityBytes = int64(s.capacityBytes)
 
 	// TODO: This should reflect the total namespaces allocated over the drive
 	model.Capacity = sf.CapacityV100Capacity{
