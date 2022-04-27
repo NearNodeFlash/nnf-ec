@@ -55,6 +55,7 @@ var cli struct {
 	VirtMgmt       nvme.VirtualMgmtCmd    `kong:"cmd,help='Virtualization command supported by primary NVMe controlers.'"`
 	GetFeature     nvme.GetFeatureCmd     `kong:"cmd,help='Get feature.'"`
 	SetFeature     nvme.SetFeatureCmd     `kong:"cmd,help='Set feature.'"`
+	GetSmartLog    nvme.GetSmartLogCmd    `kong:"cmd,help='Retrieve SMART log for the given device.'"`
 	BuildMiFeature nvme.BuildMiFeatureCmd `kong:"cmd,help='Build MI Metadata feature file with interactive terminal'"`
 	Discover       nvme.DiscoverCmd       `kong:"cmd,help='Discover NVMe devices by Serial Number, Model Number, or NQN.'"`
 

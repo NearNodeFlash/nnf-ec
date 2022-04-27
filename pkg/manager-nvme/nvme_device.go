@@ -244,3 +244,13 @@ func (d *nvmeDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) (
 
 	return buf, nil
 }
+
+func (d *nvmeDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
+
+	log, err := d.dev.GetSmartLog()
+	if err != nil {
+		return 0, err
+	}
+
+	return log.PercentageUsed, nil
+}

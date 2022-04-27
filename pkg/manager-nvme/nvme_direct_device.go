@@ -135,3 +135,7 @@ func (d *nvmeDirectDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentif
 func (*nvmeDirectDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error {
 	panic("unimplemented")
 }
+
+func (d *nvmeDirectDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
+	return d.cliDevice.GetWearLevelAsPercentageUsed()
+}

@@ -432,6 +432,10 @@ func (d *mockDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) (
 	return ns.metadata, nil
 }
 
+func (*mockDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
+	return 0, nil
+}
+
 func (d *mockDevice) findNamespace(namespaceId nvme.NamespaceIdentifier) *mockNamespace {
 
 	for idx, ns := range d.namespaces {

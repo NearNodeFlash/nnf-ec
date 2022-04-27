@@ -985,6 +985,10 @@ func (mgr *Manager) StorageIdControllersControllerIdGet(storageId, controllerId 
 		return ec.NewErrNotFound().WithError(err).WithCause(fmt.Sprintf("Storage Controller fabric endpoint not found: Storage: %s Controller: %s", storageId, controllerId))
 	}
 
+	percentageUsage, err := s.device.GetWearLevelAsPercentageUsed()
+	if err != nil {
+		return ec.NewErrInternalServerError().WithError(err).WithCause(fmt.Sprintf("Storage Controller failed to retrieve SMART data: Storage: %s", storageId))
+	}
 	model.Id = c.id
 
 	model.SerialNumber = s.serialNumber
@@ -1015,7 +1019,8 @@ func (mgr *Manager) StorageIdControllersControllerIdGet(storageId, controllerId 
 	*/
 
 	model.NVMeControllerProperties = sf.StorageControllerV100NvMeControllerProperties{
-		ControllerType: sf.IO_SCV100NVMCT, // OR ADMIN IF PF
+		ControllerType:           sf.IO_SCV100NVMCT, // OR ADMIN IF PF
+		NVMeSMARTPercentageUsage: percentageUsage,
 	}
 
 	return nil

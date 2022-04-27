@@ -59,6 +59,8 @@ type NvmeDeviceApi interface {
 
 	SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error
 	GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error)
+
+	GetWearLevelAsPercentageUsed() (uint8, error)
 }
 
 // SecondaryControllersInitFunc -

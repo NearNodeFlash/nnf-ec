@@ -240,6 +240,19 @@ func (*cliDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]b
 	return nil, nil
 }
 
+func (d *cliDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
+	rsp, err := d.run(fmt.Sprintf("smart-log %s --output-format=binary", d.dev()))
+	if err != nil {
+		return 0, err
+	}
+
+	log := new(nvme.SmartLog)
+
+	err = structex.DecodeByteBuffer(bytes.NewBuffer([]byte(rsp)), log)
+
+	return log.PercentageUsed, err
+}
+
 func (d *cliDevice) run(cmd string) (string, error) {
 
 	rsp, err := logging.Cli.Trace(cmd, func(cmd string) ([]byte, error) {
