@@ -36,6 +36,8 @@ type NvmeDeviceController interface {
 
 // NvmeDeviceApi -
 type NvmeDeviceApi interface {
+	IsDirectDevice() bool
+
 	IdentifyController(controllerId uint16) (*nvme.IdCtrl, error)
 	IdentifyNamespace(namespaceId nvme.NamespaceIdentifier) (*nvme.IdNs, error)
 

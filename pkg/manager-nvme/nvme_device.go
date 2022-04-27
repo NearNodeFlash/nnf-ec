@@ -72,6 +72,9 @@ func newNvmeDevice(fabricId, switchId, portId string) (NvmeDeviceApi, error) {
 	return &nvmeDevice{dev: dev, pdfid: pdfid}, nil
 }
 
+// IsDirectDevice -
+func (d *nvmeDevice) IsDirectDevice() bool { return false }
+
 // IdentifyController -
 func (d *nvmeDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error) {
 	return d.dev.IdentifyController()

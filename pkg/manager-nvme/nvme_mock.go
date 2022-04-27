@@ -188,6 +188,9 @@ func (d *mockDevice) generateControllerAttributes(ctrl *nvme.IdCtrl) error {
 	return nil
 }
 
+// IsDirectDevice -
+func (d *mockDevice) IsDirectDevice() bool { return false }
+
 // IdentifyController -
 func (d *mockDevice) IdentifyController(controllerId uint16) (*nvme.IdCtrl, error) {
 	ctrl := new(nvme.IdCtrl)

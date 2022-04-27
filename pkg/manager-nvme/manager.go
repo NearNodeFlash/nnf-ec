@@ -576,9 +576,25 @@ func (v *Volume) DetachController(controllerId uint16) error {
 }
 
 func (v *Volume) attach(controllerIds []uint16) error {
+	// These are really controller indicies that are passed into the nvme-manager; we've always
+	// just assumed that they map 1-1 to the secondary devices because that is how the Samsung
+	// drives behave. For Kioxia Dual Port drives (not production), the secondary controller IDs
+	// start at 3, with controller IDs one and two representing the dual port physical functions.
+	//
+	// For Direct Devices, the Rabbit is controlling the drive through the physical functions; we
+	// still use the secondary controller values for all other ports, but we need to remap the
+	// first index to the physical function.
+	//
 	if v.storage.IsKioxiaDualPortConfiguration() {
 		for i := range controllerIds {
 			controllerIds[i] = controllerIds[i] + 2 // 2 physical functions consume the lower IDs
+		}
+	} else if v.storage.device.IsDirectDevice() {
+		for i := range controllerIds {
+			if controllerIds[i] == 1 {
+				controllerIds[i] = v.storage.physicalFunctionControllerId
+				break
+			}
 		}
 	}
 
@@ -599,9 +615,18 @@ func (v *Volume) attach(controllerIds []uint16) error {
 }
 
 func (v *Volume) detach(controllerIds []uint16) error {
+	// See the note on "attach" above
+
 	if v.storage.IsKioxiaDualPortConfiguration() {
 		for i := range controllerIds {
 			controllerIds[i] = controllerIds[i] + 2 // 2 physical functions consume the lower IDs
+		}
+	} else if v.storage.device.IsDirectDevice() {
+		for i := range controllerIds {
+			if controllerIds[i] == 1 {
+				controllerIds[i] = v.storage.physicalFunctionControllerId
+				break
+			}
 		}
 	}
 
@@ -766,7 +791,23 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 		}
 	}
 
-	if !s.virtManagementEnabled {
+	if s.device.IsDirectDevice() {
+		s.controllers = []StorageController{
+			// Physical Function
+			{
+				id:             "0",
+				controllerId:   s.physicalFunctionControllerId,
+				functionNumber: s.physicalFunctionControllerId,
+			},
+			// The fabric manager expects the Rabbit to be at index 1 in the virtualized topology
+			{
+				id:             "1",
+				controllerId:   s.physicalFunctionControllerId,
+				functionNumber: s.physicalFunctionControllerId,
+			},
+		}
+
+	} else if !s.virtManagementEnabled {
 		s.controllers = make([]StorageController, 1 /* PF */ +s.config.Functions)
 		for idx := range s.controllers {
 			s.controllers[idx] = StorageController{
@@ -794,8 +835,8 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 		// Initialize the PF
 		s.controllers[0] = StorageController{
 			id:             "0",
-			controllerId:   0,
-			functionNumber: 0,
+			controllerId:   s.physicalFunctionControllerId,
+			functionNumber: s.physicalFunctionControllerId,
 		}
 
 		for idx, sc := range ls.Entries[:count] {
