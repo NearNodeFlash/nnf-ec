@@ -408,6 +408,7 @@ func (s *Storage) findController(controllerId string) *StorageController {
 func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 	if len(s.controllers) == 0 {
 		stat.State = sf.UNAVAILABLE_OFFLINE_RST
+		stat.Health = sf.CRITICAL_RH
 	} else {
 		stat.Health = sf.OK_RH
 		stat.State = s.state
