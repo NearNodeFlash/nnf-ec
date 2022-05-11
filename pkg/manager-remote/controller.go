@@ -22,9 +22,9 @@ package remote
 import (
 	"flag"
 
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
-	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
-	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
+	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
 )
 
 type Options struct{}

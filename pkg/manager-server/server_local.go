@@ -30,9 +30,9 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/logging"
+	"github.com/nearnodeflash/nnf-ec/pkg/logging"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type DefaultServerControllerProvider struct{}

@@ -34,7 +34,7 @@ package nvme
 import (
 	"net/http"
 
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Api - defines an interface for Near-Node Flash related methods

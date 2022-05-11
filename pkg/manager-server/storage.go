@@ -24,8 +24,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Storage represents a unique collection of Server Storage Volumes

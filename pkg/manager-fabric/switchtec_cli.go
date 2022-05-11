@@ -27,9 +27,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/logging"
+	"github.com/nearnodeflash/nnf-ec/pkg/logging"
 )
 
 type SwitchtecCliController struct{}

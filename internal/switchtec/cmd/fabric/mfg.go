@@ -22,7 +22,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // GetSerialCmd -

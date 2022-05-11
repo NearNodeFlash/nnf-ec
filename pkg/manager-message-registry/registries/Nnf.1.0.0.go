@@ -21,7 +21,7 @@
 
 package messageregistry
 
-import events "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
+import events "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
 
 // arg0: The fabric identifier. This argument shall contain the fabric resource identifier.
 func FabricReadyNnf(arg0 string) events.Event {

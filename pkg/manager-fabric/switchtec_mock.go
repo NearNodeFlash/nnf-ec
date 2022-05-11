@@ -26,8 +26,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type MockSwitchtecController struct {

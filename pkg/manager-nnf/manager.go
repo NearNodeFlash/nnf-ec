@@ -28,15 +28,15 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
-	event "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
-	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
-	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry/registries"
-	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
-	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
-	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	event "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
+	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
+	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry/registries"
+	nvme "github.com/nearnodeflash/nnf-ec/pkg/manager-nvme"
+	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var storageService = StorageService{}

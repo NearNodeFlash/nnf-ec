@@ -22,9 +22,9 @@ package nnf
 import (
 	"fmt"
 
-	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
+	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
 
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type Endpoint struct {

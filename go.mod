@@ -1,4 +1,4 @@
-module github.hpe.com/hpe/hpc-rabsw-nnf-ec
+module github.com/nearnodeflash/nnf-ec
 
 go 1.16
 

@@ -27,9 +27,9 @@ import (
 	"testing"
 	"time"
 
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
-	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var controllerOption = NewMockOptions(false)

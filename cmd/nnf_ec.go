@@ -22,8 +22,8 @@ package main
 import (
 	"flag"
 
-	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	nnf "github.com/nearnodeflash/nnf-ec/pkg"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
 )
 
 func main() {

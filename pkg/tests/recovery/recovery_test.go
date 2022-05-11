@@ -25,14 +25,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	nnfec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	nnfec "github.com/nearnodeflash/nnf-ec/pkg"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
 
-	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
-	nnfserver "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
+	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
+	nnfserver "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
 
-	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 /*

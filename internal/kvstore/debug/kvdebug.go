@@ -23,7 +23,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
+	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
 )
 
 func main() {

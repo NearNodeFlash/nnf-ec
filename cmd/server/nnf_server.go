@@ -22,7 +22,7 @@ package main
 import (
 	"fmt"
 
-	remote "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-remote"
+	remote "github.com/nearnodeflash/nnf-ec/pkg/manager-remote"
 )
 
 func main() {

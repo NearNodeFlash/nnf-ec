@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+#
+# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import argparse, json, os, time, math
 
@@ -19,7 +37,7 @@ class Definitions(Command):
     def do_list(self, arg):
         'List Metric Definitions'
         self.handle_response(self.conn.get('/MetricDefinitions'))
-    
+
     def do_get(self, arg):
         'Get Metric Definition'
         self.handle_response(self.conn.get(f'/MetricDefinitions/{arg}'))
@@ -101,7 +119,7 @@ class Monitor(Command):
                     returnProps += props
                 else:
                     returnProps.append(newProp)
-                
+
             return returnProps
 
         def parseTimestamp(timestamp):
@@ -113,10 +131,10 @@ class Monitor(Command):
         for prop in props:
             for property in enumerateWildcard(prop, wildcards):
                 metrics[property] = {}
-        
+
         for value in report['MetricValues']:
             metrics[value['MetricProperty']] = {
-                'Previous': int(value['MetricValue']), 
+                'Previous': int(value['MetricValue']),
                 'Timestamp': parseTimestamp(value['Timestamp']),
                 'Throughput': 0}
 
@@ -125,7 +143,7 @@ class Monitor(Command):
         print(f'Starting Bandwidth Monitor with {interval}s intervals...CTRL+C to exit')
         while True:
             time.sleep(interval)
-            
+
             response = self.conn.get(f'/MetricReports/{id}')
             if not response.ok:
                 print(f'Failed to retrive metric {id}: Status Code: {response.status_code}')
@@ -179,7 +197,7 @@ class Monitor(Command):
             def display_port_metric(switchId, portId):
                 rx, tx = getPortMetrics(switchId, portId)
                 print(f'{portId:<2} {rx:>12} {tx:>12}')
-                
+
             def display_switch_metrics(switchId):
                 title = f'Switch {switchId}'
                 print(f'{title:=^28}')
@@ -188,7 +206,7 @@ class Monitor(Command):
                 print("Port    RxBytes      TxBytes")
                 for portId in range(19):
                     display_port_metric(switchId, portId)
-                
+
             if refresh:
                 os.system('cls' if os.name == 'nt' else 'clear')
                 for switchId in [0,1]:
@@ -196,7 +214,7 @@ class Monitor(Command):
 
 class Main(Command):
     intro = 'Get/List/Edit/Monitor Metric Definitions and Data'
-    prompt = '(nnf)' 
+    prompt = '(nnf)'
 
     def preloop(self):
         response = self.conn.get('')
@@ -214,11 +232,11 @@ class Main(Command):
     def do_report(self,arg):
         'Metric Reports'
         Reports(self.conn).cmdloop()
-    
+
     def do_monitor(self,arg):
         'Monitor Tools'
         Monitor(self.conn).cmdloop()
-    
+
 
 
 if __name__ == '__main__':

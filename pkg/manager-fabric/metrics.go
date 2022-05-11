@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"time"
 
-	telemetry "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-telemetry"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	telemetry "github.com/nearnodeflash/nnf-ec/pkg/manager-telemetry"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func initializeMetrics() error {

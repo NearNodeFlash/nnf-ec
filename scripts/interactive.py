@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+#
+# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import cmd, argparse, json, sys
 
@@ -32,7 +50,7 @@ class StoragePool(Command):
         if size is None or size == "":
             size = '1GB'
             print(f'No size specified - defaulting to {size}')
-            
+
         try:
             size = ByteSizeStringToIntegerBytes(size)
             payload = {
@@ -43,14 +61,14 @@ class StoragePool(Command):
         except ValueError:
             print('*** SIZE argument should be integer')
             return None
-            
+
 
     def do_create(self, arg):
         'Create a Storage Pool of specific [SIZE = 1GB]'
         payload = self.create_payload(arg)
         if payload is None:
             return
-        
+
         self.handle_response(self.conn.post('/StoragePools', payload))
 
     def do_put(self, arg):
@@ -89,7 +107,7 @@ class StoragePool(Command):
         'List Storage for provided POOL ID'
         if arg is None or arg == '':
             print('*** POOL ID is required parameter')
-        
+
         response = self.conn.get(f'/StoragePools/{arg}/CapacitySources/0/ProvidingVolumes')
         if not response.ok:
             print(f'Error: {response.status_code}')
@@ -103,7 +121,7 @@ class StoragePool(Command):
 
             storageId = volume.json()['Links']['OwningStorageResource']['@odata.id']
             storage = self.conn.get(storageId)
-            
+
 
             nqn = storage.json()['Identifiers'][0]['DurableName']
             nsid = volume.json()['Identifiers'][0]['DurableName']
@@ -138,7 +156,7 @@ class StorageGroup(Command):
 
     def do_create(self,arg):
         'Create a Storage Group from [STORAGE POOL ID] [SERVER ENDPOINT ID]'
-        
+
         try:
             pool, server = arg.split()[:2]
         except ValueError:
@@ -156,10 +174,10 @@ class StorageGroup(Command):
         except ValueError:
             print('Expected three arguments [STORAGE GROUP ID] [STORAGE POOL ID] [SERVER ENDPOINT ID]')
             return
-        
+
         payload = self.create_payload(pool, server)
         self.handle_response(self.conn.put(f'/StorageGroups/{id}', payload))
-        
+
     def do_get(self,arg):
         'Get a Storage Group by [STORAGE GROUP ID]'
         self.handle_response(self.conn.get(f'/StorageGroups/{arg}'))
@@ -200,7 +218,7 @@ class FileSystem(Command):
 
         payload = self.create_payload(type, name, pool, options)
         self.handle_response(self.conn.post(f'/FileSystems', payload))
-    
+
     def do_put(self, arg):
         'Create a File System by [FILE SYSTEM ID] [TYPE] [NAME] [STORAGE POOL ID] [OPTION=VALUE, ...]'
 
@@ -230,7 +248,7 @@ class FileSystem(Command):
         if arg == None or arg == "":
             print('Expected one argument [FILE SYSTEM ID]')
             return
-            
+
         FileShare(self.conn, arg).cmdloop()
 
 class FileShare(Command):
@@ -335,6 +353,6 @@ if __name__ == '__main__':
     connection.addServerArguments(parser)
     conn = connection.connect(parser.parse_args(), '/redfish/v1/StorageServices/NNF')
 
-    
+
     Main(conn).cmdloop()
-    
+

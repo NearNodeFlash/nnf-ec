@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"net/http"
 
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 
-	. "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/common"
+	. "github.com/nearnodeflash/nnf-ec/pkg/common"
 )
 
 const (

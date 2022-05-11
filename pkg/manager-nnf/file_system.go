@@ -24,10 +24,10 @@ import (
 	"fmt"
 	"strconv"
 
-	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
+	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
 )
 
 type FileSystem struct {

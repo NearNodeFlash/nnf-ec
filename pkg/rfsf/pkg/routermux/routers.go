@@ -18,7 +18,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/logger"
+	"github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/logger"
 )
 
 // A Route defines the parameters for an api endpoint

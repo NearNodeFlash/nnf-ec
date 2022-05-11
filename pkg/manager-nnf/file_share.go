@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type FileShare struct {

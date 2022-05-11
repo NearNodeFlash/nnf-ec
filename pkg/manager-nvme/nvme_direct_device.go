@@ -22,8 +22,8 @@ package nvme
 import (
 	"fmt"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/api"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/nearnodeflash/nnf-ec/pkg/api"
 )
 
 type DirectNvmeController struct {

@@ -26,17 +26,17 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/api"
-	event "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
-	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
-	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry/registries"
+	. "github.com/nearnodeflash/nnf-ec/pkg/api"
+	event "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
+	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
+	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry/registries"
 
 	log "github.com/sirupsen/logrus"
 
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (
