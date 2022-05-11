@@ -12,7 +12,7 @@ package routermux
 import (
 	"net/http"
 
-	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // DefaultApiRouter defines the required methods for binding the api requests to a responses for the DefaultApi

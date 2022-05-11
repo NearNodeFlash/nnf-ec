@@ -27,8 +27,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // ConfigCmd can configure a fabric per a pre-defined configuration file.

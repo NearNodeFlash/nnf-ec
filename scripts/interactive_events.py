@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+#
+# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import argparse, json, os, time, math
 
@@ -18,7 +36,7 @@ class SubscriptionHandler(http.server.BaseHTTPRequestHandler):
 
         for event in data['Events']:
             Main.print_event(event, '--human-readable')
-        
+
 
 class Main(Command):
     intro = 'Get/List/Subscribe to Events'
@@ -31,7 +49,7 @@ class Main(Command):
 
     def do_sub(self, arg):
         'Subscribe to Event Stream'
-        
+
         port = 8090
         payload = {
             'Context': 'Python Event Monitor',
@@ -58,7 +76,7 @@ class Main(Command):
     def do_list(self, arg):
         'List Events'
         self.handle_response(self.conn.get('/Events'))
-    
+
     def do_get(self, arg):
         'Get Event [-H] [-all]'
         args = arg.split(' ')
@@ -81,7 +99,7 @@ class Main(Command):
                 print(f'!!! Failed to retrieve event {id} !!!')
                 return
             self.print_event(event.json(), args)
-            
+
     @staticmethod
     def print_event(e, args):
         if "-H" in args or "--human-readable" in args:

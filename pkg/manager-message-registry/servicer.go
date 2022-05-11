@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"net/http"
 
-	. "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/common"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	. "github.com/nearnodeflash/nnf-ec/pkg/common"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type DefaultApiService struct{}

@@ -15,7 +15,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // A DefaultApiController binds http requests to an api service and writes the service results to the http response

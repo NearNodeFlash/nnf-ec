@@ -22,7 +22,7 @@ package nvme
 import (
 	"fmt"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // VirtualMgmtCmd describes the Virtualization Management command supported by primary controllers

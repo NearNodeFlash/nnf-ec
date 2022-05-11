@@ -23,12 +23,12 @@ import (
 	"strings"
 	"testing"
 
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg"
-	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
-	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
+	ec "github.com/nearnodeflash/nnf-ec/pkg"
+	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
+	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
 
-	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func TestStoragePools(t *testing.T) {

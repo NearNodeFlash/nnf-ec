@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"unsafe"
 
-	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
+	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 type SwitchtecNvmeController struct{}

@@ -31,7 +31,7 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
 )
 
 // Params -

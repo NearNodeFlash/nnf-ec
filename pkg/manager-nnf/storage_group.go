@@ -23,11 +23,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
-	server "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-server"
+	nvme "github.com/nearnodeflash/nnf-ec/pkg/manager-nvme"
+	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/kvstore"
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type StorageGroup struct {

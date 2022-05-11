@@ -1,4 +1,22 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
+#
+# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import argparse, os, collections
 
@@ -14,7 +32,7 @@ if __name__ == '__main__':
 
     print(f'finding yaml definitions for {args.yaml}')
     with open(args.yaml) as fp:
-        
+
         in_get = False
         endpoint, line = None, None
         index = 0
@@ -43,17 +61,17 @@ if __name__ == '__main__':
     models = []
     for _, _, files in os.walk(args.dir):
         for file in files:
-            def _format(s): 
-                   
+            def _format(s):
+
                 if 'v1' not in s:
                     return ''
 
                 # Model name is something like 'model_service_root_v1_9_0_service_root.go'
                 schema = s[len('model_'):-len('.go')]
-                
+
                 # everything to the left of 'v1' is the mode name 'service_root'
                 name = schema[0:schema.index('v1')-1]
-                
+
                 # extract the versions
                 version = '_'.join(schema.replace(name, '').split()[0:3]).strip('_')
 
@@ -74,7 +92,7 @@ if __name__ == '__main__':
 
             print(f'{value["index"]: <3} {key: <80}: line: {value["line"]}  endpoint: {value["endpoint"]}')
 
-            
 
-    
-        
+
+
+

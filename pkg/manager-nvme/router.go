@@ -20,7 +20,7 @@
 package nvme
 
 import (
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
 )
 
 // Router contains all the Redfish / Swordfish API calls that are hosted by

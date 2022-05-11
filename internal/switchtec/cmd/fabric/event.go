@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 type EventListCmd struct {

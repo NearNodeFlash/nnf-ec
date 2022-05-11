@@ -25,7 +25,7 @@ import (
 	"net/http"
 	"time"
 
-	sf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type Subscription interface {

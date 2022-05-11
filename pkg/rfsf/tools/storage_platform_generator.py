@@ -1,5 +1,23 @@
 #!/usr/local/bin/python3
 #
+# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
 # This script will patch the provided directory with
 # specific implementation of the Storage Platform function
 # calls.
@@ -7,9 +25,6 @@
 # This script should run after an openapi-generator call
 #
 # Author: Nate Roiger
-#
-# Copyright 2020 Hewlett Packard Enterprise Development LP
-#
 
 import argparse, os, sys
 
@@ -18,16 +33,16 @@ import argparse, os, sys
 # the storage platform auto-generation code.
 def find_custom_endpoints(args):
     packages = """
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/chassis"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/drives"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/event"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/filesystem"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/serviceroot"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/storagepool"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/storageservices"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/template"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/volume"
-"github.hpe.com/hpe/hpc-rabsw-nnf-ec/internal/rfsf/pkg/hamanager"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/chassis"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/drives"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/event"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/filesystem"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/serviceroot"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/storagepool"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/storageservices"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/template"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/volume"
+"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/hamanager"
 """.splitlines(False)[1:]
     packages = map(lambda s: os.path.basename(s.strip('"')), packages)
 
@@ -107,7 +122,7 @@ if __name__ == '__main__':
 	"strings"
 
 	"github.com/gorilla/mux"
-	openapi "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
  )
 
 // A StoragePlatformApiController binds http requests to an api service and writes the service results to the http response

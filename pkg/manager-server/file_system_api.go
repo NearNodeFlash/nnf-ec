@@ -26,7 +26,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/logging"
+	"github.com/nearnodeflash/nnf-ec/pkg/logging"
 )
 
 type FileSystemControllerApi interface {

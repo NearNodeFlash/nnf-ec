@@ -33,14 +33,14 @@ import (
 	"flag"
 	"os"
 
+	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	event "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
+	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
+	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry"
+	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
+	nvme "github.com/nearnodeflash/nnf-ec/pkg/manager-nvme"
+	telemetry "github.com/nearnodeflash/nnf-ec/pkg/manager-telemetry"
 	log "github.com/sirupsen/logrus"
-	ec "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/ec"
-	event "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-event"
-	fabric "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-fabric"
-	msgreg "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-message-registry"
-	nnf "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nnf"
-	nvme "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-nvme"
-	telemetry "github.hpe.com/hpe/hpc-rabsw-nnf-ec/pkg/manager-telemetry"
 )
 
 const (
