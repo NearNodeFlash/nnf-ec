@@ -9,8 +9,8 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/mattn/go-isatty v0.0.14
-	github.com/onsi/ginkgo v1.16.5-0.20211001031228-98001bf0ed33
-	github.com/onsi/gomega v1.15.0
+	github.com/onsi/ginkgo/v2 v2.1.4
+	github.com/onsi/gomega v1.19.0
 	github.com/pkg/term v1.1.0
 	github.com/rs/cors v1.8.0
 	github.com/senseyeio/duration v0.0.0-20180430131211-7c2a214ada46
@@ -18,6 +18,6 @@ require (
 	github.com/sigurn/utils v0.0.0-20190728110027-e1fefb11a144 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	go.chromium.org/luci v0.0.0-20210915061045-7722a2154c29
-	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
+	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
 	gopkg.in/yaml.v2 v2.4.0
 )
