@@ -48,7 +48,7 @@ COPY static-analysis/docker_lint_entry.sh static-analysis/docker_lint_entry.sh
 ENTRYPOINT ["sh", "static-analysis/docker_lint_entry.sh"]
 
 # The final application release product container
-FROM arti.dev.cray.com/baseos-docker-master-local/centos:latest
+FROM redhat/ubi8-minimal
 
 WORKDIR /
 COPY --from=builder /workspace/nnf-ec .
