@@ -1,4 +1,4 @@
-module github.com/nearnodeflash/nnf-ec
+module github.com/NearNodeFlash/nnf-ec
 
 go 1.16
 
@@ -9,6 +9,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/mattn/go-isatty v0.0.14
+	github.com/nearnodeflash/nnf-ec v0.0.0-20220516125425-910bb605eecd
 	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/pkg/term v1.1.0
