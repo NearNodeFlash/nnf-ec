@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"net/http"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 
-	. "github.com/nearnodeflash/nnf-ec/pkg/common"
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	. "github.com/NearNodeFlash/nnf-ec/pkg/common"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 )
 
 type DefaultApiService struct {

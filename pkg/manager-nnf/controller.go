@@ -20,7 +20,7 @@
 package nnf
 
 import (
-	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
 )
 
 type NnfControllerInterface interface {

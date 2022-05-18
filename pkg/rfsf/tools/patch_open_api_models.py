@@ -94,7 +94,7 @@ if __name__ == '__main__':
                         if 'openapi' in ln:
                             in_import = False
                         if ln.strip() == ')':
-                            ln = '\topenapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"\n' + ln
+                            ln = '\topenapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"\n' + ln
                     lines.append(ln)
 
             with open(os.path.join(args.dir, file), 'w') as fp:

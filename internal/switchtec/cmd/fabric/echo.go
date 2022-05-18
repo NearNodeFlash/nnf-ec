@@ -20,7 +20,7 @@
 package cmd
 
 import (
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // EchoCmd defines the Echo CLI command and parameters

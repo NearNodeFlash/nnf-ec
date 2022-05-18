@@ -22,7 +22,7 @@ package nvme
 import (
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // DetachNsCmd detaches the given namespace from the given controller;

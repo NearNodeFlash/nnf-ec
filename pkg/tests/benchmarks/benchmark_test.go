@@ -22,9 +22,9 @@ package benchmarks
 import (
 	"testing"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg"
-	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg"
+	nnf "github.com/NearNodeFlash/nnf-ec/pkg/manager-nnf"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func BenchmarkStorage(b *testing.B) {

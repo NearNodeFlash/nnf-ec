@@ -22,10 +22,10 @@ package main
 import (
 	"github.com/alecthomas/kong"
 
-	ctx "github.com/nearnodeflash/nnf-ec/internal/switchtec/cmd"
-	cfg "github.com/nearnodeflash/nnf-ec/internal/switchtec/cmd/config"
-	cmd "github.com/nearnodeflash/nnf-ec/internal/switchtec/cmd/fabric"
-	nvme "github.com/nearnodeflash/nnf-ec/internal/switchtec/cmd/nvme"
+	ctx "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd"
+	cfg "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd/config"
+	cmd "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd/fabric"
+	nvme "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd/nvme"
 )
 
 var cli struct {

@@ -21,7 +21,7 @@
 
 package messageregistry
 
-import events "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
+import events "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
 
 // arg0: The name of the property. This argument shall contain the name of the property.
 func PropertyNotWritableBase(arg0 string) events.Event {

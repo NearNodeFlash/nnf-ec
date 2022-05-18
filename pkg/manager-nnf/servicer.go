@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"net/http"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 
-	. "github.com/nearnodeflash/nnf-ec/pkg/common"
+	. "github.com/NearNodeFlash/nnf-ec/pkg/common"
 )
 
 const (

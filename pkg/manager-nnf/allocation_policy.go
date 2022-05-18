@@ -25,9 +25,9 @@ import (
 
 	"github.com/google/uuid"
 
-	nvme "github.com/nearnodeflash/nnf-ec/pkg/manager-nvme"
+	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
 
-	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
+	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
 )
 
 // AllocationPolicy -

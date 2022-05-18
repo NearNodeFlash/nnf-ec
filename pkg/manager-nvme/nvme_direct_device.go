@@ -22,8 +22,8 @@ package nvme
 import (
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
-	"github.com/nearnodeflash/nnf-ec/pkg/api"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/NearNodeFlash/nnf-ec/pkg/api"
 )
 
 type DirectNvmeController struct {

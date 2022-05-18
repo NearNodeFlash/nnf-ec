@@ -33,16 +33,16 @@ import argparse, os, sys
 # the storage platform auto-generation code.
 def find_custom_endpoints(args):
     packages = """
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/chassis"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/drives"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/event"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/filesystem"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/serviceroot"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/storagepool"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/storageservices"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/template"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/volume"
-"github.com/nearnodeflash/nnf-ec/internal/rfsf/pkg/hamanager"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/chassis"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/drives"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/event"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/filesystem"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/serviceroot"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/storagepool"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/storageservices"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/template"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/volume"
+"github.com/NearNodeFlash/nnf-ec/internal/rfsf/pkg/hamanager"
 """.splitlines(False)[1:]
     packages = map(lambda s: os.path.basename(s.strip('"')), packages)
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 	"strings"
 
 	"github.com/gorilla/mux"
-	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
  )
 
 // A StoragePlatformApiController binds http requests to an api service and writes the service results to the http response

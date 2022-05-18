@@ -22,7 +22,7 @@ package nvme
 import (
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // VirtualMgmtCmd describes the Virtualization Management command supported by primary controllers

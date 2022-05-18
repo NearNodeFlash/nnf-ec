@@ -25,7 +25,7 @@ import (
 	"os"
 	"strings"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func main() {
@@ -57,7 +57,7 @@ func main() {
 	fmt.Fprintf(file, "\n")
 	fmt.Fprintf(file, "package messageregistry\n")
 	fmt.Fprintf(file, "\n")
-	fmt.Fprintf(file, "import events \"github.com/nearnodeflash/nnf-ec/pkg/manager-event\"\n")
+	fmt.Fprintf(file, "import events \"github.com/NearNodeFlash/nnf-ec/pkg/manager-event\"\n")
 	fmt.Fprintf(file, "\n")
 
 	methodSuffix := fmt.Sprintf("%s", model.RegistryPrefix)

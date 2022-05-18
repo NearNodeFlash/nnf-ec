@@ -25,12 +25,12 @@ import (
 
 	"github.com/google/uuid"
 
-	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
-	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	nnf "github.com/NearNodeFlash/nnf-ec/pkg/manager-nnf"
+	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
 )
 
 type ServerStorageService struct {

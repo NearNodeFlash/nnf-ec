@@ -13,7 +13,7 @@
 package openapi
 
 import (
-	models "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	models "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

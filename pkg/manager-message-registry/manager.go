@@ -23,8 +23,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var MessageRegistryManager = manager{}

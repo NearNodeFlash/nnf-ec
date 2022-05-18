@@ -22,7 +22,7 @@ package cmd
 import (
 	"strconv"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // BindCmd defines the Bind CLI command and parameters

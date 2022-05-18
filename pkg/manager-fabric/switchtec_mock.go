@@ -26,8 +26,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type MockSwitchtecController struct {

@@ -26,15 +26,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/nearnodeflash/nnf-ec/pkg/api"
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	event "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
-	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry/registries"
+	"github.com/NearNodeFlash/nnf-ec/pkg/api"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	event "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
+	msgreg "github.com/NearNodeFlash/nnf-ec/pkg/manager-message-registry/registries"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 
-	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

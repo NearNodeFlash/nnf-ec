@@ -27,9 +27,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 
-	"github.com/nearnodeflash/nnf-ec/pkg/logging"
+	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
 )
 
 type SwitchtecCliController struct{}

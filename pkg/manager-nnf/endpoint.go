@@ -22,9 +22,9 @@ package nnf
 import (
 	"fmt"
 
-	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type Endpoint struct {

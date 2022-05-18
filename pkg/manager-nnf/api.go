@@ -22,7 +22,7 @@ package nnf
 import (
 	"net/http"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // API defines the programming interface for the Redfish / Swordfish routes. Each method is

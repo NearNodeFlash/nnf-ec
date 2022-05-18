@@ -28,15 +28,15 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	event "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
-	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
-	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry/registries"
-	nvme "github.com/nearnodeflash/nnf-ec/pkg/manager-nvme"
-	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
-	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	event "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
+	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
+	msgreg "github.com/NearNodeFlash/nnf-ec/pkg/manager-message-registry/registries"
+	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
+	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
+	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var storageService = StorageService{}
