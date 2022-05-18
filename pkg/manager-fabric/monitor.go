@@ -24,7 +24,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // The Fabric Monitor is responsible for ensuring that the fabriic and related sub-resource

@@ -19,7 +19,7 @@
 
 package nvme
 
-import "github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+import "github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 
 func run(device string, f func(dev *nvme.Device) error) error {
 	dev, err := nvme.Open(device)

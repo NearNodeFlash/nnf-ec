@@ -27,9 +27,9 @@ import (
 	"testing"
 	"time"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 var controllerOption = NewMockOptions(false)

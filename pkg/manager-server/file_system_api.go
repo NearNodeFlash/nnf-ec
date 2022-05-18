@@ -26,7 +26,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/nearnodeflash/nnf-ec/pkg/logging"
+	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
 )
 
 type FileSystemControllerApi interface {

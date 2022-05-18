@@ -23,7 +23,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
+	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
 )
 
 func main() {

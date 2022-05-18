@@ -22,9 +22,9 @@ package remote
 import (
 	"flag"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	nnf "github.com/nearnodeflash/nnf-ec/pkg/manager-nnf"
-	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	nnf "github.com/NearNodeFlash/nnf-ec/pkg/manager-nnf"
+	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
 )
 
 type Options struct{}

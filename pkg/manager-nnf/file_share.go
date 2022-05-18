@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type FileShare struct {

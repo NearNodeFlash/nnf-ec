@@ -24,8 +24,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // NVME Mock Persistence - Handles the various persistent aspects of an NVMe device, specifically namespaces

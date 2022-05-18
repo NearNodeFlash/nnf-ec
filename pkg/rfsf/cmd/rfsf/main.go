@@ -18,7 +18,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	sw "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/routermux"
+	sw "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/routermux"
 )
 
 func isEmulationEnv() bool { return os.Getenv("EMU") == "true" }

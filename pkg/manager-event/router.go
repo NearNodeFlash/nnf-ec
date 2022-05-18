@@ -20,7 +20,7 @@
 package event
 
 import (
-	"github.com/nearnodeflash/nnf-ec/pkg/ec"
+	"github.com/NearNodeFlash/nnf-ec/pkg/ec"
 )
 
 // Router contains all the Redfish / Swordfish API calls for the Event Service

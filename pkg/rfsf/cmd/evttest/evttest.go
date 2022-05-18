@@ -22,8 +22,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/common"
-	openapi "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
+	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

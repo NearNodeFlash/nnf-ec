@@ -22,11 +22,11 @@ package nnf
 import (
 	"errors"
 
-	events "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
-	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry/registries"
+	events "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
+	msgreg "github.com/NearNodeFlash/nnf-ec/pkg/manager-message-registry/registries"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Automatic Error Reporting Service Wraps the provided Storage Service API with automatic

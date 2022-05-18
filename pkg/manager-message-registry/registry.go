@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 //go:generate ./generator/msgenerator ./registries/Base.1.10.0.json

@@ -23,11 +23,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	nvme "github.com/nearnodeflash/nnf-ec/pkg/manager-nvme"
-	server "github.com/nearnodeflash/nnf-ec/pkg/manager-server"
+	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
+	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
 
-	"github.com/nearnodeflash/nnf-ec/internal/kvstore"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type StorageGroup struct {

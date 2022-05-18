@@ -26,17 +26,17 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/nearnodeflash/nnf-ec/pkg/api"
-	event "github.com/nearnodeflash/nnf-ec/pkg/manager-event"
-	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
-	msgreg "github.com/nearnodeflash/nnf-ec/pkg/manager-message-registry/registries"
+	. "github.com/NearNodeFlash/nnf-ec/pkg/api"
+	event "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
+	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
+	msgreg "github.com/NearNodeFlash/nnf-ec/pkg/manager-message-registry/registries"
 
 	log "github.com/sirupsen/logrus"
 
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

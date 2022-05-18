@@ -20,7 +20,7 @@
 package fabric
 
 import (
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 )
 
 // Router contains all the Redfish / Swordfish API calls that are hosted by

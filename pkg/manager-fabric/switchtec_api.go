@@ -20,7 +20,7 @@
 package fabric
 
 import (
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 type SwitchtecControllerInterface interface {

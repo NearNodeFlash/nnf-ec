@@ -22,7 +22,7 @@ package nvme
 import (
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 )
 
 // ListNsCmd For the specified controller handle, show the namespace list

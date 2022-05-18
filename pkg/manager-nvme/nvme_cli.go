@@ -29,10 +29,10 @@ import (
 	"strings"
 
 	"github.com/HewlettPackard/structex"
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/nvme"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 
-	"github.com/nearnodeflash/nnf-ec/pkg/logging"
-	fabric "github.com/nearnodeflash/nnf-ec/pkg/manager-fabric"
+	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
+	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
 )
 
 func NewCliNvmeController() NvmeController {

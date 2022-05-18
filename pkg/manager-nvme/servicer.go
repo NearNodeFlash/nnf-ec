@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"net/http"
 
-	. "github.com/nearnodeflash/nnf-ec/pkg/common"
+	. "github.com/NearNodeFlash/nnf-ec/pkg/common"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // DefaultApiService -

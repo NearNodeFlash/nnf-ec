@@ -27,7 +27,7 @@ import (
 
 	"github.com/HewlettPackard/structex"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // SwitchOps implements the Ops interface for switchtec passthrough

@@ -27,7 +27,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 //go:embed config_default.yaml

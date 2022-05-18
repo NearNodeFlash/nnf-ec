@@ -20,7 +20,7 @@
 package nnf
 
 import (
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 )
 
 type DefaultApiRouter struct {

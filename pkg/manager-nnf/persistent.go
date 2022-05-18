@@ -19,7 +19,7 @@
 
 package nnf
 
-import "github.com/nearnodeflash/nnf-ec/internal/kvstore"
+import "github.com/NearNodeFlash/nnf-ec/internal/kvstore"
 
 // Persistent Controller API provides an interface for creating, updating, and deleting persistent objects.
 type PersistentControllerApi interface {

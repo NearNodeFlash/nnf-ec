@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"regexp"
 
-	sf "github.com/nearnodeflash/nnf-ec/pkg/rfsf/pkg/models"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 const (

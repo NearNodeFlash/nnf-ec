@@ -22,7 +22,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/nearnodeflash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
 // LinkStatCmd defines the Link Stat CLI command and parameters

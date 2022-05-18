@@ -22,8 +22,8 @@ package main
 import (
 	"flag"
 
-	nnf "github.com/nearnodeflash/nnf-ec/pkg"
-	ec "github.com/nearnodeflash/nnf-ec/pkg/ec"
+	nnf "github.com/NearNodeFlash/nnf-ec/pkg"
+	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 )
 
 func main() {
