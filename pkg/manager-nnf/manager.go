@@ -958,7 +958,7 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 
 	updateFunc := func() error {
 		for _, pv := range sp.providingVolumes {
-			if err := nvme.AttachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{sg.endpoint.controllerId}); err != nil {
+			if err := nvme.AttachController(pv.storage.FindVolume(pv.volumeId), sg.endpoint.controllerId); err != nil {
 				return err
 			}
 		}
@@ -1052,7 +1052,7 @@ func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, st
 
 		// Detach the endpoint from the NVMe namespaces
 		for _, pv := range sp.providingVolumes {
-			if err := nvme.DetachControllers(pv.storage.FindVolume(pv.volumeId), []uint16{sg.endpoint.controllerId}); err != nil {
+			if err := nvme.DetachController(pv.storage.FindVolume(pv.volumeId), sg.endpoint.controllerId); err != nil {
 				return ec.NewErrInternalServerError().WithResourceType(StorageGroupOdataType).WithError(err).WithCause(fmt.Sprintf("Storage group '%s' failed to detach controller '%d'", storageGroupId, sg.endpoint.controllerId))
 			}
 		}
