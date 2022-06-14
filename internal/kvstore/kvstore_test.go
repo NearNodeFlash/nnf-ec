@@ -81,8 +81,8 @@ func (r *testReply) Entry(t uint32, data []byte) error {
 	return nil
 }
 
-func (*testReply) Done() error {
-	return nil
+func (*testReply) Done() (bool, error) {
+	return false, nil
 }
 
 func TestStore(t *testing.T) {
@@ -111,12 +111,12 @@ func TestStore(t *testing.T) {
 			}
 		}
 
-		ledger.Close()
+		ledger.Close(false)
 	}
 
 	// Open an existing key
 	{
-		ledger, err := store.OpenKey(store.MakeKey(&registry, testId), false)
+		ledger, err := store.OpenKey(store.MakeKey(&registry, testId))
 		if err != nil {
 			t.Errorf("Failed to open existing ledger key %s: Error: %s", testId, err)
 		}
@@ -128,7 +128,7 @@ func TestStore(t *testing.T) {
 			}
 		}
 
-		ledger.Close()
+		ledger.Close(false)
 	}
 
 	// Run the ledger replay

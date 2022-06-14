@@ -64,7 +64,7 @@ func (rh *debugReplayHandler) Entry(t uint32, data []byte) error {
 	return nil
 }
 
-func (rh *debugReplayHandler) Done() error {
+func (rh *debugReplayHandler) Done() (bool, error) {
 	fmt.Printf("|-Replay Done %s\n", rh.id)
-	return nil
+	return false, nil
 }
