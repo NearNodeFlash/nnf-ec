@@ -40,7 +40,7 @@ case $1 in
         fi
 
         SYSTEM=$2
-        
+
         declare -a SWITCHES=("switchtec0" "switchtec1")
         for SWITCH in ${SWITCHES[@]};
         do
@@ -55,10 +55,10 @@ case $1 in
             switchtec log-dump /dev/$SWITCH assert_sys_stack.log -t SYS_STACK && \
             switchtec log-dump /dev/$SWITCH assert_thrds.log -t THRDS
 EOF
-            
+
             echo "$SWITCH Zipping Logs..."
             ssh root@$SYSTEM "zip $SWITCH.zip *.map *.log"
-        
+
             echo "$SWITCH Retrieving Zip..."
             scp root@$SYSTEM:~/$SWITCH.zip ./
         done
