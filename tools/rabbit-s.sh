@@ -26,7 +26,10 @@ Commands:
   enable-logging    turn on pax logging via screen sessions
   clear-logs        clear current pax logs
   get-logs          retrieve pax logs into current folder
-  lnkstat           retrieve link state (EXPERIMENTAL)
+  fabdbg-on         turn on verbose fabric debug
+  fabdbg-off        turn off verbose fabric debug
+  quit-sessions     terminate any active screen sessions
+  lnkstat           retrieve link state
 
 Arguments:
   -p                password for SYSTEM
@@ -72,13 +75,14 @@ case $CMD in
 
             echo "Enabling Logging on $PAX"
             $SSHPASS ssh root@$SYSTEM <<-EOF
+            [ "$(screen -ls | grep $PAX)" == "" ] &&
             screen -dmS $DEVICE 230400 &&
             screen -S $PAX -X colon "logfile $PAX.log^M" &&
             screen -S $PAX -X colon "logfile flush 1^M" &&
             screen -S $PAX -X colon "log on^M"
 EOF
         done
-        ;;
+        ;;        
     clear-logs)
         for SESSION in "${SESSIONS[@]}"
         do
@@ -87,6 +91,30 @@ EOF
         ;;
     get-logs)
         $SSHPASS scp root@$SYSTEM:~/*.log ./ 
+        ;;
+    fabdbg-on)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -s info\n" &&
+            screen -S $SESSION -X stuff "fabdbg -s fio\n"
+EOF
+        done
+        ;;
+    fabdbg-off)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -c info\n" &&
+            screen -S $SESSION -X stuff "fabdbg -c fio\n"
+EOF
+        done
+        ;; 
+    quit-sessions)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM "screen -S $SESSION -X quit"
+        done
         ;;
     lnkstat)
         for SESSION in "${SESSIONS[@]}"
