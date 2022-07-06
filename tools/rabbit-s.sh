@@ -73,9 +73,9 @@ case $CMD in
             echo "Enabling Logging on $PAX"
             $SSHPASS ssh root@$SYSTEM <<-EOF
             screen -dmS $DEVICE 230400 &&
-            screen -S $PAX -X colon \"logfile $PAX.log^M\" &&
-            screen -S $PAX -X colon \"logfile flush 1^M\" &&
-            screen -S $PAX -X colon \"log on^M\"
+            screen -S $PAX -X colon "logfile $PAX.log^M" &&
+            screen -S $PAX -X colon "logfile flush 1^M" &&
+            screen -S $PAX -X colon "log on^M"
 EOF
         done
         ;;
@@ -92,6 +92,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X colon "wrap off^M" &&
             screen -S $SESSION -X stuff "lnkstat\\n" &&
             sleep 1 &&
             screen -S $SESSION -X hardcopy &&
