@@ -29,6 +29,8 @@ import (
 	"github.com/mattn/go-isatty"
 
 	"github.com/HewlettPackard/structex"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Device describing the switchtec device
@@ -117,40 +119,30 @@ func (dev *Device) RunCommand(cmd Command, payload interface{}, response interfa
 	dev.Lock()
 	defer dev.Unlock()
 
+	log.Debugf("Device %s Submit Command '%s' Payload: %v", dev.name, cmd.String(), payloadBuf.Bytes())
 	if err := dev.ops.submitCommand(dev, cmd, payloadBuf.Bytes()); err != nil {
+		log.Warnf("Device %s Command Failed: Error: %s", dev.name, err)
 		return err
 	}
 
 	responseBuf := structex.NewBuffer(response)
 
 	if err := dev.ops.readResponse(dev, responseBuf.Bytes()); err != nil {
+		log.Warnf("Device %s Response Failed: Error: %s", dev.name, err)
 		return err
 	}
 
+	
 	if response == nil {
+		log.Debugf("Device %s Command '%s' Response: nil", dev.name, cmd.String())
 		return nil
 	}
+
+	log.Debugf("Device %s Command '%s' Response: %v", dev.name, cmd.String(), responseBuf.Bytes())
 
 	err := structex.Decode(responseBuf, response)
 
 	return err
-}
-
-// RunCommandRawBytes function will run the command on the device
-func (dev *Device) RunCommandRawBytes(cmd Command, payload []byte, response []byte) error {
-
-	dev.Lock()
-	defer dev.Unlock()
-
-	if err := dev.ops.submitCommand(dev, cmd, payload); err != nil {
-		return err
-	}
-
-	if err := dev.ops.readResponse(dev, response); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (dev *Device) ID() int32 {

@@ -22,6 +22,8 @@ package main
 import (
 	"github.com/alecthomas/kong"
 
+	log "github.com/sirupsen/logrus"
+
 	ctx "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd"
 	cfg "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd/config"
 	cmd "github.com/NearNodeFlash/nnf-ec/internal/switchtec/cmd/fabric"
@@ -74,6 +76,8 @@ func main() {
 		DebugLevel: ctx.DebugLevel(debugLevel),
 		LogLevel:   ctx.LogLevel(ctx.Disabled),
 	})
+
+	log.SetLevel(log.DebugLevel)
 
 	err := c.Run()
 	c.FatalIfErrorf(err)

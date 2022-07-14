@@ -639,6 +639,7 @@ func Initialize(ctrl NvmeController) error {
 	log.Debugf("    Num Resources: %d", conf.Storage.Controller.Resources)
 	log.Debugf("  Device List: %+v", conf.Storage.Devices)
 
+	/*
 	level, err := log.ParseLevel(conf.DebugLevel)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse debug level: %s", conf.DebugLevel)
@@ -646,6 +647,7 @@ func Initialize(ctrl NvmeController) error {
 	}
 
 	log.SetLevel(level)
+	*/
 
 	mgr.storage = make([]Storage, len(conf.Storage.Devices))
 	for storageIdx, storageDevice := range conf.Storage.Devices {

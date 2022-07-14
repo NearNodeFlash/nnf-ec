@@ -399,6 +399,7 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 	log.Debugf("  Remote Config    : %+v", conf.RemoteConfig)
 	log.Debugf("  Allocation Config: %+v", conf.AllocationConfig)
 
+	/*
 	level, err := log.ParseLevel(conf.DebugLevel)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse debug level: %s", conf.DebugLevel)
@@ -406,6 +407,7 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 	}
 
 	log.SetLevel(level)
+	*/
 
 	s.endpoints = make([]Endpoint, len(conf.RemoteConfig.Servers))
 	for endpointIdx := range s.endpoints {

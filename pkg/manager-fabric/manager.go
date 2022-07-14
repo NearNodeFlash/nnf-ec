@@ -855,6 +855,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 		log.Debugf("    Downstream Ports: %d", switchConf.DownstreamPortCount)
 	}
 
+	/*
 	level, err := log.ParseLevel(conf.DebugLevel)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse debug level: %s", conf.DebugLevel)
@@ -862,6 +863,7 @@ func Initialize(ctrl SwitchtecControllerInterface) error {
 	}
 
 	log.SetLevel(level)
+	*/
 
 	m.switches = make([]Switch, len(conf.Switches))
 	var fabricPortId = 0
