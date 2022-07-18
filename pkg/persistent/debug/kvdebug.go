@@ -23,7 +23,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 )
 
 func main() {
@@ -32,12 +32,12 @@ func main() {
 	flag.Parse()
 
 	fmt.Printf("Debug KVStore Tool. Path: '%s'\n", path)
-	store, err := kvstore.Open(path, true)
+	store, err := persistent.Open(path, true)
 	if err != nil {
 		panic(err)
 	}
 
-	store.Register([]kvstore.Registry{&debugRegistry{}})
+	store.Register([]persistent.Registry{&debugRegistry{}})
 
 	if err := store.Replay(); err != nil {
 		panic(err)
@@ -47,7 +47,7 @@ func main() {
 type debugRegistry struct{}
 
 func (*debugRegistry) Prefix() string                            { return "" }
-func (*debugRegistry) NewReplay(id string) kvstore.ReplayHandler { return &debugReplayHandler{id: id} }
+func (*debugRegistry) NewReplay(id string) persistent.ReplayHandler { return &debugReplayHandler{id: id} }
 
 type debugReplayHandler struct {
 	id string
