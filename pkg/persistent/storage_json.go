@@ -17,16 +17,15 @@
  * limitations under the License.
  */
 
-package main
+package persistent
 
 import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 )
 
-func NewJsonFilePersistentStorageProvider(filename string) persistent.PersistentStorageProvider {
+func NewJsonFilePersistentStorageProvider(filename string) PersistentStorageProvider {
 	return &jsonFilePersisentStorageProvider{filename: filename}
 }
 
@@ -34,7 +33,7 @@ type jsonFilePersisentStorageProvider struct {
 	filename string
 }
 
-func (p *jsonFilePersisentStorageProvider) NewPersistentStorageInterface(name string, readOnly bool) (persistent.PersistentStorageApi, error) {
+func (p *jsonFilePersisentStorageProvider) NewPersistentStorageInterface(name string, readOnly bool) (PersistentStorageApi, error) {
 	content, err := ioutil.ReadFile(p.filename)
 	if err != nil {
 		return nil, err
@@ -52,11 +51,11 @@ type jsonPersistentStorageInterface struct {
 	data map[string]string
 }
 
-func (psi *jsonPersistentStorageInterface) View(fn func(persistent.PersistentStorageTransactionApi) error) error {
-	return fn(persistent.NewBase64PersistentStorageTransaction(psi.data))
+func (psi *jsonPersistentStorageInterface) View(fn func(PersistentStorageTransactionApi) error) error {
+	return fn(NewBase64PersistentStorageTransaction(psi.data))
 }
 
-func (*jsonPersistentStorageInterface) Update(func(txn persistent.PersistentStorageTransactionApi) error) error {
+func (*jsonPersistentStorageInterface) Update(func(PersistentStorageTransactionApi) error) error {
 	panic("unimplemented")
 }
 

@@ -34,7 +34,7 @@ func main() {
 	flag.Parse()
 
 	if len(json) != 0 {
-		persistent.StorageProvider = NewJsonFilePersistentStorageProvider(json)
+		persistent.StorageProvider = persistent.NewJsonFilePersistentStorageProvider(json)
 	}
 
 	fmt.Printf("Debug KVStore Tool. Path: '%s'\n", path)
