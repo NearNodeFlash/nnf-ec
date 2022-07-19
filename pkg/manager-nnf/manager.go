@@ -28,18 +28,21 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 	event "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
 	msgreg "github.com/NearNodeFlash/nnf-ec/pkg/manager-message-registry/registries"
 	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
 	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
+	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
-var storageService = StorageService{}
+var storageService = StorageService{
+	id:    DefaultStorageServiceId,
+	state: sf.DISABLED_RST,
+}
 
 func NewDefaultStorageService() StorageServiceApi {
 	return NewAerService(&storageService) // Wrap the default storage service with Advanced Error Reporting capabilities
