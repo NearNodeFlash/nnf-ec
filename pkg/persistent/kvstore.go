@@ -256,9 +256,9 @@ type Ledger struct {
 func (l *Ledger) Log(t uint32, v []byte) error {
 
 	tlv := newTlv(t, v)
+	l.bytes = append(l.bytes, tlv.bytes()...)
 
 	err := l.s.storage.Update(func(txn PersistentStorageTransactionApi) error {
-		l.bytes = append(l.bytes, tlv.bytes()...)
 		return txn.Set(l.key, l.bytes)
 	})
 
