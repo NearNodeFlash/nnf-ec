@@ -28,8 +28,14 @@ import (
 
 func main() {
 	var path string
+	var json string
 	flag.StringVar(&path, "path", "nnf.db", "the kvstore database to display")
+	flag.StringVar(&json, "json", "", "json file to parse")
 	flag.Parse()
+
+	if len(json) != 0 {
+		persistent.StorageProvider = NewJsonFilePersistentStorageProvider(json)
+	}
 
 	fmt.Printf("Debug KVStore Tool. Path: '%s'\n", path)
 	store, err := persistent.Open(path, true)
@@ -46,8 +52,10 @@ func main() {
 
 type debugRegistry struct{}
 
-func (*debugRegistry) Prefix() string                            { return "" }
-func (*debugRegistry) NewReplay(id string) persistent.ReplayHandler { return &debugReplayHandler{id: id} }
+func (*debugRegistry) Prefix() string { return "" }
+func (*debugRegistry) NewReplay(id string) persistent.ReplayHandler {
+	return &debugReplayHandler{id: id}
+}
 
 type debugReplayHandler struct {
 	id string
