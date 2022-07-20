@@ -124,7 +124,7 @@ func (s *StorageService) findFileSystem(fileSystemId string) *FileSystem {
 // Create a storage pool object with the provided variables and add it to the storage service's list of storage
 // pools. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
 // that the ID does not already exist.
-func (s *StorageService) createStoragePool(id, name, description string, policy AllocationPolicy) *StoragePool {
+func (s *StorageService) createStoragePool(id, name, description string, uid uuid.UUID, policy AllocationPolicy) *StoragePool {
 
 	// If no ID is supplied, find a free Storage Pool Id
 	if len(id) == 0 {
@@ -141,11 +141,15 @@ func (s *StorageService) createStoragePool(id, name, description string, policy 
 		id = strconv.Itoa(poolId)
 	}
 
+	if uid.Variant() == uuid.Invalid {
+		uid = s.allocateStoragePoolUid()
+	}
+
 	s.pools = append(s.pools, StoragePool{
 		id:             id,
 		name:           name,
 		description:    description,
-		uid:            s.allocateStoragePoolUid(),
+		uid:            uid,
 		policy:         policy,
 		storageService: s,
 	})
@@ -255,7 +259,7 @@ func (s *StorageService) allocateStoragePoolUid() uuid.UUID {
 // Create a file system object with the provided variables and add it to the storage service's list of file
 // systems. If an ID is not provided, an unused one will be used. If an ID is provided, the caller must check
 // that the ID does not already exist.
-func (s *StorageService) createFileSystem(id string, sp *StoragePool, fsApi server.FileSystemApi) *FileSystem {
+func (s *StorageService) createFileSystem(id string, sp *StoragePool, fsApi server.FileSystemApi, fsOem server.FileSystemOem) *FileSystem {
 
 	if len(id) == 0 {
 		// Find a free File System Id
@@ -277,6 +281,7 @@ func (s *StorageService) createFileSystem(id string, sp *StoragePool, fsApi serv
 	s.fileSystems = append(s.fileSystems, FileSystem{
 		id:             id,
 		fsApi:          fsApi,
+		fsOem:          fsOem,
 		storagePoolId:  sp.id,
 		storageService: s,
 	})
@@ -667,7 +672,7 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 		return ec.NewErrNotAcceptable().WithResourceType(StorageServiceOdataType).WithError(err).WithCause("Insufficient capacity available")
 	}
 
-	p := s.createStoragePool(model.Id, model.Name, model.Description, policy)
+	p := s.createStoragePool(model.Id, model.Name, model.Description, uuid.UUID{}, policy)
 
 	updateFunc := func() (err error) {
 		p.providingVolumes, err = policy.Allocate(p.uid)
@@ -1173,7 +1178,7 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 		return ec.NewErrNotAcceptable().WithResourceType(FileSystemOdataType).WithEvent(msgreg.PropertyValueNotInListBase(oem.Type, "Type"))
 	}
 
-	fs := s.createFileSystem(model.Id, sp, fsApi)
+	fs := s.createFileSystem(model.Id, sp, fsApi, oem)
 
 	if err := s.persistentController.CreatePersistentObject(fs, func() error { return nil }, fileSystemCreateStartLogEntryType, fileSystemCreateCompleteLogEntryType); err != nil {
 		log.WithError(err).Errorf("Failed to create file system %s", fs.id)
@@ -1221,6 +1226,8 @@ func (*StorageService) StorageServiceIdFileSystemIdGet(storageServiceId, fileSys
 	model.CapacityBytes = int64(sp.allocatedVolume.capacityBytes)
 	model.StoragePool = sf.OdataV4IdRef{OdataId: sp.OdataId()}
 	model.ExportedShares = fs.OdataIdRef("/ExportedFileShares")
+
+	model.Oem = openapi.MarshalOem(fs.fsOem)
 
 	return nil
 }
@@ -1320,7 +1327,7 @@ refreshState:
 
 	sh := fs.createFileShare(model.Id, sg, model.FileSharePath)
 
-	updateFunc := func() error {
+	createFunc := func() error {
 		opts := model.Oem
 		if opts == nil {
 			opts = server.FileSystemOptions{}
@@ -1340,7 +1347,7 @@ refreshState:
 		return nil
 	}
 
-	if err := s.persistentController.CreatePersistentObject(sh, updateFunc, fileShareCreateStartLogEntryType, fileShareCreateCompleteLogEntryType); err != nil {
+	if err := s.persistentController.CreatePersistentObject(sh, createFunc, fileShareCreateStartLogEntryType, fileShareCreateCompleteLogEntryType); err != nil {
 		return ec.NewErrInternalServerError().WithError(err).WithCause(fmt.Sprintf("File share '%s' failed to create", sh.id))
 	}
 

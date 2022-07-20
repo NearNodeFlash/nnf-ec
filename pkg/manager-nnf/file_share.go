@@ -71,8 +71,8 @@ const (
 
 type fileSharePersistentMetadata struct {
 	FileSystemId   string  `json:"FileSystemId"`
-	StorageGroupId *string `json:"StorageGroupId,omitempty"`
-	MountRoot      *string `json:"MountRoot,omitempty"`
+	StorageGroupId string `json:"StorageGroupId"`
+	MountRoot      string `json:"MountRoot"`
 }
 
 type fileSharePersistentCreateCompleteLogEntry struct {
@@ -95,8 +95,8 @@ func (sh *FileShare) GetProvider() PersistentStoreProvider {
 func (sh *FileShare) GenerateMetadata() ([]byte, error) {
 	return json.Marshal(fileSharePersistentMetadata{
 		FileSystemId:   sh.fileSystemId,
-		StorageGroupId: &sh.storageGroupId,
-		MountRoot:      &sh.mountRoot,
+		StorageGroupId: sh.storageGroupId,
+		MountRoot:      sh.mountRoot,
 	})
 }
 
@@ -165,24 +165,23 @@ func (rh *fileShareRecoveryReplayHandler) Metadata(data []byte) error {
 	}
 
 	fileSystem := rh.storageService.findFileSystem(metadata.FileSystemId)
+	storageGroup := rh.storageService.findStorageGroup(metadata.StorageGroupId)
 
-	fileSystem.shares = append(fileSystem.shares, FileShare{
-		id:             rh.fileShareId,
-		fileSystemId:   metadata.FileSystemId,
-		mountRoot:      *metadata.MountRoot,
-		storageGroupId: *metadata.StorageGroupId,
-		storageService: rh.storageService,
-	})
-
-	rh.fileSystem = fileSystem
+	fileSystem.createFileShare(rh.fileShareId, storageGroup, metadata.MountRoot)
 
 	return nil
 }
 
 func (rh *fileShareRecoveryReplayHandler) Entry(t uint32, data []byte) error {
+	rh.lastLogEntryType = t
 	return nil
 }
 
 func (rh *fileShareRecoveryReplayHandler) Done() (bool, error) {
+	if rh.lastLogEntryType == fileShareDeleteCompleteLogEntryType {
+		rh.fileSystem.deleteFileShare(rh.fileSystem.findFileShare(rh.fileShareId))
+		return true, nil
+	}
+
 	return false, nil
 }

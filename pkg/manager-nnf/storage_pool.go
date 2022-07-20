@@ -117,6 +117,10 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, 
 		if storage != nil {
 			volume, err := storage.FindVolumeByNamespaceId(volume.NamespaceId)
 			if err != nil {
+				if ignoreErrors {
+					continue
+				}
+				
 				return err
 			}
 
@@ -262,6 +266,7 @@ func (rh *storagePoolRecoveryReplayHandler) Metadata(data []byte) error {
 		return err
 	}
 
+	rh.storageService.createStoragePool(rh.storagePool.id, metadata.Name, metadata.Description, uuid.MustParse(metadata.Uid), nil)
 	rh.storagePool = StoragePool{
 		id:          rh.storagePool.id,
 		name:        metadata.Name,
