@@ -26,8 +26,7 @@ import (
 
 	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
-
-	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 )
 
 type FileSystem struct {
@@ -162,13 +161,13 @@ type fileSystemRecoveryRegistry struct {
 	storageService *StorageService
 }
 
-func NewFileSystemRecoveryRegistry(s *StorageService) kvstore.Registry {
+func NewFileSystemRecoveryRegistry(s *StorageService) persistent.Registry {
 	return &fileSystemRecoveryRegistry{storageService: s}
 }
 
 func (*fileSystemRecoveryRegistry) Prefix() string { return fileSystemRegistryPrefix }
 
-func (r *fileSystemRecoveryRegistry) NewReplay(id string) kvstore.ReplayHandler {
+func (r *fileSystemRecoveryRegistry) NewReplay(id string) persistent.ReplayHandler {
 	return &fileSystemRecoveryReplyHandler{
 		fileSystemId:   id,
 		storageService: r.storageService,

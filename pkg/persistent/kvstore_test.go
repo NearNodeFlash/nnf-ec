@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package kvstore
+package persistent
 
 import (
 	"fmt"

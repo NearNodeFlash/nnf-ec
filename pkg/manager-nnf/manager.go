@@ -28,18 +28,21 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
 	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 	event "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
 	msgreg "github.com/NearNodeFlash/nnf-ec/pkg/manager-message-registry/registries"
 	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
 	server "github.com/NearNodeFlash/nnf-ec/pkg/manager-server"
+	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
-var storageService = StorageService{}
+var storageService = StorageService{
+	id:    DefaultStorageServiceId,
+	state: sf.DISABLED_RST,
+}
 
 func NewDefaultStorageService() StorageServiceApi {
 	return NewAerService(&storageService) // Wrap the default storage service with Advanced Error Reporting capabilities
@@ -51,7 +54,7 @@ type StorageService struct {
 	health sf.ResourceHealth
 
 	config                   *ConfigFile
-	store                    *kvstore.Store
+	store                    *persistent.Store
 	serverControllerProvider server.ServerControllerProvider
 	persistentController     PersistentControllerApi
 
@@ -74,7 +77,7 @@ func (s *StorageService) OdataIdRef(ref string) sf.OdataV4IdRef {
 	return sf.OdataV4IdRef{OdataId: fmt.Sprintf("%s%s", s.OdataId(), ref)}
 }
 
-func (s *StorageService) GetStore() *kvstore.Store {
+func (s *StorageService) GetStore() *persistent.Store {
 	return s.store
 }
 
@@ -424,12 +427,12 @@ func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 
 	// Create the key-value storage database
 	{
-		s.store, err = kvstore.Open("nnf.db", false)
+		s.store, err = persistent.Open("nnf.db", false)
 		if err != nil {
 			return err
 		}
 
-		s.store.Register([]kvstore.Registry{
+		s.store.Register([]persistent.Registry{
 			NewStoragePoolRecoveryRegistry(s),
 			NewStorageGroupRecoveryRegistry(s),
 			NewFileSystemRecoveryRegistry(s),

@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/NearNodeFlash/nnf-ec/internal/kvstore"
+	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
@@ -134,13 +134,13 @@ type fileShareRecoveryRegistry struct {
 	storageService *StorageService
 }
 
-func NewFileShareRecoveryRegistry(s *StorageService) kvstore.Registry {
+func NewFileShareRecoveryRegistry(s *StorageService) persistent.Registry {
 	return &fileShareRecoveryRegistry{storageService: s}
 }
 
 func (r *fileShareRecoveryRegistry) Prefix() string { return fileShareRegistryPrefix }
 
-func (r *fileShareRecoveryRegistry) NewReplay(id string) kvstore.ReplayHandler {
+func (r *fileShareRecoveryRegistry) NewReplay(id string) persistent.ReplayHandler {
 	ids := strings.SplitN(id, ":", 2)
 
 	return &fileShareRecoveryReplayHandler{
