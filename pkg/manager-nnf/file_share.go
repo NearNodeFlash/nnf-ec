@@ -70,7 +70,7 @@ const (
 )
 
 type fileSharePersistentMetadata struct {
-	FileSystemId   string  `json:"FileSystemId"`
+	FileSystemId   string `json:"FileSystemId"`
 	StorageGroupId string `json:"StorageGroupId"`
 	MountRoot      string `json:"MountRoot"`
 }
@@ -154,6 +154,7 @@ type fileShareRecoveryReplayHandler struct {
 	fileShareId      string
 	fileSystemId     string
 	lastLogEntryType uint32
+	fileShare        *FileShare
 	fileSystem       *FileSystem
 	storageService   *StorageService
 }
@@ -164,22 +165,29 @@ func (rh *fileShareRecoveryReplayHandler) Metadata(data []byte) error {
 		return err
 	}
 
-	fileSystem := rh.storageService.findFileSystem(metadata.FileSystemId)
+	rh.fileSystem = rh.storageService.findFileSystem(metadata.FileSystemId)
 	storageGroup := rh.storageService.findStorageGroup(metadata.StorageGroupId)
 
-	fileSystem.createFileShare(rh.fileShareId, storageGroup, metadata.MountRoot)
+	rh.fileShare = rh.fileSystem.createFileShare(rh.fileShareId, storageGroup, metadata.MountRoot)
 
 	return nil
 }
 
 func (rh *fileShareRecoveryReplayHandler) Entry(t uint32, data []byte) error {
 	rh.lastLogEntryType = t
+
 	return nil
 }
 
 func (rh *fileShareRecoveryReplayHandler) Done() (bool, error) {
-	if rh.lastLogEntryType == fileShareDeleteCompleteLogEntryType {
-		rh.fileSystem.deleteFileShare(rh.fileSystem.findFileShare(rh.fileShareId))
+	switch rh.lastLogEntryType {
+	case fileShareCreateStartLogEntryType:
+		// In this case there may be some residual file system operations on the node that need to be rolled back
+
+		// TODO Something like storageGroup.serverStorage.RollbackFileSystem(rh.fileSystem.fsApi)
+
+	case fileShareDeleteCompleteLogEntryType:
+		rh.fileSystem.deleteFileShare(rh.fileShare)
 		return true, nil
 	}
 
