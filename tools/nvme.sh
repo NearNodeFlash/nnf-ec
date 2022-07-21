@@ -1,6 +1,6 @@
 #!/bin/bash
-#
-# Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -19,32 +19,20 @@
 
 usage() {
     cat <<EOF
-Example NVMe Namespace commands running against switchtec managed devices.
-Usage: $0 COMMAND
+Run various NVMe Namespace commands
+Usage: $0 COMMAND [ARGS...]
 
 Commands:
-    create-ns           create two namespaces on all drives
-    attach-ns           attach two namespaces to the controller
-    delete-ns           delete two namespaces on all drives
+    create                               create an nvme namespace on each drive
+    attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
+    delete [NAMESPACE-ID]                delete an nvme namespace on each drive
 EOF
 }
 
-if [ $# -lt 1 ]; then
-    usage
-    exit 1
-fi
-
 SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
-for SWITCH in ${SWITCHES[@]}
-do
-    if [ ! -f $SWITCH ]; then
-        echo "Switch $SWITCH does not exists. Are you running from the Rabbit? Is the switch up?"
-        exit 1
-    fi
-done
 
 case $1 in
-    create-ns)
+    create)
         SIZE=97670000
         for SWITCH in ${SWITCHES[@]};
         do
@@ -53,32 +41,31 @@ case $1 in
             do
                 echo "Creating Namespaces on ${PDFIDS[$INDEX]}"
                 switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SIZE --ncap=$SIZE --block-size=4096
-                switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SIZE --ncap=$SIZE --block-size=4096
             done
         done
         ;;
-    attach-ns)
-        SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
+    attach)
+        NAMESPACE=${2:-"1"}
+        CONTROLLER=${3:-"3"}
         for SWITCH in ${SWITCHES[@]};
         do
             PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}') )
             for INDEX in "${!PDFIDS[@]}";
             do
-                echo "Attaching Namespaces on ${PDFIDS[$INDEX]}"
-                switchtec-nvme attach-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=1 --controllers=1
-                switchtec-nvme attach-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=2 --controllers=1
+                echo "Attaching Namespace $NAMESPACE on ${PDFIDS[$INDEX]} to Controller $CONTROLLER"
+                switchtec-nvme attach-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE --controllers=$CONTROLLER
             done
         done
         ;;
-    delete-ns)
+    delete)
+        NAMESPACE=${2:-"1"}
         for SWITCH in ${SWITCHES[@]};
         do
             PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}') )
             for INDEX in "${!PDFIDS[@]}";
             do
-                echo "Deleting Namespaces on ${PDFIDS[$INDEX]}"
-                switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=1
-                switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=2
+                echo "Deleting Namespaces $NAMESPACE on ${PDFIDS[$INDEX]}"
+                switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE
             done
         done
         ;;

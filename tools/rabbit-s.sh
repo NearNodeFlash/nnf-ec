@@ -74,7 +74,7 @@ case $CMD in
             PAX=$(echo $DEVICE | cut -w -f1)
 
             echo "Enabling Logging on $PAX"
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh -T root@$SYSTEM <<-EOF
             [ "$(screen -ls | grep $PAX)" == "" ] &&
             screen -dmS $DEVICE 230400 &&
             screen -S $PAX -X colon "logfile $PAX.log^M" &&
@@ -109,11 +109,27 @@ EOF
             screen -S $SESSION -X stuff "fabdbg -c fio\n"
 EOF
         done
-        ;; 
+        ;;
+    additional-logs)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "log -p on\nlog -m 0x54 -s3 -p on\nlog -m 0x82 -s3 -p on\nlog -m 0x84 -s3 -p on\n"
+EOF
+        done
+        ;;
+    additional-logs-off)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "log -p off\nlog -m 0x54 -s3 -p off\nlog -m 0x82 -s3 -p off\nlog -m 0x84 -s3 -p off\n"
+EOF
+        done
+        ;;
     quit-sessions)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM "screen -S $SESSION -X quit"
+            $SSHPASS ssh -T root@$SYSTEM "screen -S $SESSION -X quit"
         done
         ;;
     lnkstat)
