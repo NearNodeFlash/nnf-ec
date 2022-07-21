@@ -18,20 +18,35 @@
 # limitations under the License.
 
 usage() {
-   cat <<-EOF
-Perform bind or unbind operation for NNF hardware.
-Usage: $0 COMMAND
+    cat <<EOF
+Run bind or unbind operations
+Usage: $0 [-p] COMMAND
 
 Commands:
-  bind          bind the drives to the rabbit
-  unbind        unbind the drives from the rabbit
+    bind            bind all drives to the rabbit
+    unbind          unbind all drives from the rabbit
+
+Options:
+    -p              Bind physical function (EXPERIMENTAL)
 EOF
 }
 
-if [ $# -lt 1 ]; then
-    usage
-    exit 1
-fi
+
+FUNCTION=1
+while getopts "ph" OPTION
+do
+    case "${OPTION}" in
+        'p')
+            echo "WARNING: Binding of Physical Function is not advised"
+            FUNCTION=0
+            ;;
+        'h')
+            usage
+            exit 0
+            ;;
+    esac
+done
+shift $((OPTIND - 1))
 
 SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
 
@@ -40,7 +55,7 @@ case $1 in
         for SWITCH in ${SWITCHES[@]};
         do
             HOST_SW_INDEX=$(switchtec fabric gfms-dump $SWITCH | head -n1 | grep "PAX ID" | awk '{print $3}')
-            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 1 " -A1 | grep PDFID | awk '{print $2}') )
+            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function $FUNCTION " -A1 | grep PDFID | awk '{print $2}') )
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Performing Bind Operation $SWITCH $HOST_SW_INDEX $INDEX ${PDFIDS[$INDEX]}"
@@ -52,7 +67,7 @@ case $1 in
         for SWITCH in ${SWITCHES[@]};
         do
             HOST_SW_INDEX=$(switchtec fabric gfms-dump $SWITCH | head -n1 | grep "PAX ID" | awk '{print $3}')
-            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 1 " -A1 | grep PDFID | awk '{print $2}') )
+            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function $FUNCTION " -A1 | grep PDFID | awk '{print $2}') )
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Performing Unbind Operation $SWITCH $HOST_SW_INDEX $INDEX ${PDFIDS[$INDEX]}"
