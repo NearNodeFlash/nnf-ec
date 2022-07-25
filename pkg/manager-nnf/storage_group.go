@@ -180,14 +180,7 @@ func (rh *storageGroupRecoveryReplyHandler) Metadata(data []byte) error {
 	storagePool := rh.storageService.findStoragePool(metadata.StoragePoolId)
 	endpoint := rh.storageService.findEndpoint(metadata.EndpointId)
 
-	rh.storageService.groups = append(rh.storageService.groups,
-		StorageGroup{
-			id:             rh.id,
-			endpoint:       endpoint,
-			serverStorage:  endpoint.serverCtrl.NewStorage(storagePool.uid, nil /*TODO*/),
-			storagePoolId:  metadata.StoragePoolId,
-			storageService: rh.storageService,
-		})
+	rh.storageService.createStorageGroup(rh.id, storagePool, endpoint)
 
 	return nil
 }
