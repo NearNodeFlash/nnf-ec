@@ -126,7 +126,7 @@ type fileSystemPersistentMetadata struct {
 	FileSystemType string `json:"FileSystemType"`
 	FileSystemName string `json:"FileSystemName"`
 
-	server.FileSystemOem
+	server.FileSystemOem `json:",inline"`
 }
 
 func (fs *FileSystem) GetKey() string                       { return fileSystemRegistryPrefix + fs.id }
