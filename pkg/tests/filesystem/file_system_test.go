@@ -178,7 +178,7 @@ func (fs *testFileSystem) Mount(mountpoint string) error {
 	return nil
 }
 
-func (fs *testFileSystem) Unmount() error {
+func (fs *testFileSystem) Unmount(mountpoint string) error {
 	fs.t.Logf("Test File System: Unmount")
 
 	if fs.mountpoint == "" {
@@ -186,5 +186,6 @@ func (fs *testFileSystem) Unmount() error {
 	}
 
 	fs.mountpoint = ""
+
 	return nil
 }
