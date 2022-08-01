@@ -33,6 +33,7 @@ DRIVES=()
 
 drives() {
     local NAMESPACE=$1
+    DRIVES=()
     for DRIVE in $(ls /dev/nvme* | grep -E "nvme[[:digit:]]+n[[:digit:]]+$");
     do
         if [ "$(nvme id-ctrl ${DRIVE} | grep KIOXIA)" != "" ];
@@ -43,13 +44,20 @@ drives() {
             then
                 echo "    Found Namespace ${NAMESPACE}"
             
-                DRIVES+="${DRIVE} "
+                DRIVES+=(${DRIVE})
             fi
         fi
     done
 
-    echo "DRIVES: ${DRIVES[@]}"
+    echo "${#DRIVES[@]} DRIVES: ${DRIVES[@]}"
 }
+
+join() {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
+
 
 NAME=${2:-"rabbit"}
 NAMESPACE=${3:-"1"}
@@ -67,7 +75,7 @@ case $1 in
         done
 
         echo "Creating Volume Group '${NAME}'"
-        vgcreate ${NAME} ${DRIVES[@]}
+        vgcreate ${NAME} $(join " " ${DRIVES[@]})
 
         echo "Creating Logical Volume '${NAME}'"
         lvcreate -Zn --extents 100%VG --stripes ${#DRIVES[@]} --stripesize 32KiB --name ${NAME} ${NAME}
