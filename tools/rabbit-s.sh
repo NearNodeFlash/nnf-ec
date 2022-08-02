@@ -82,7 +82,7 @@ case $CMD in
             screen -S $PAX -X colon "log on^M"
 EOF
         done
-        ;;        
+        ;;
     clear-logs)
         for SESSION in "${SESSIONS[@]}"
         do
@@ -90,7 +90,7 @@ EOF
         done
         ;;
     get-logs)
-        $SSHPASS scp root@$SYSTEM:~/*.log ./ 
+        $SSHPASS scp root@$SYSTEM:~/*.log ./
         ;;
     fabdbg-on)
         for SESSION in "${SESSIONS[@]}"

@@ -24,6 +24,7 @@ Usage: $0 COMMAND [ARGUMENTS]
 
 Commands:
     switchtec-logs [SYSTEM]        capture switchtec logs from a remote system
+    clear-nvm [SYSTEM]             clear non-volalite logs (requires switchtec-user tool patch)
 EOF
 }
 
@@ -42,10 +43,10 @@ case $1 in
         SYSTEM=$2
 
         declare -a SWITCHES=("switchtec0" "switchtec1")
-        for SWITCH in ${SWITCHES[@]};
+        for SWITCH in "${SWITCHES[@]}";
         do
             echo "$SWITCH Capturing Logs..."
-            ssh root@$SYSTEM <<-EOF
+            ssh root@"$SYSTEM" <<-EOF
             switchtec log-dump /dev/$SWITCH assert_nvhdr.map -t NVHDR && \
             switchtec log-dump /dev/$SWITCH assert_flash.log -t FLASH && \
             switchtec log-dump /dev/$SWITCH assert_ram.log -t RAM && \
@@ -57,10 +58,27 @@ case $1 in
 EOF
 
             echo "$SWITCH Zipping Logs..."
-            ssh root@$SYSTEM "zip $SWITCH.zip *.map *.log"
+            ssh root@"$SYSTEM" "zip $SWITCH.zip *.map *.log"
 
             echo "$SWITCH Retrieving Zip..."
-            scp root@$SYSTEM:~/$SWITCH.zip ./
+            scp root@"$SYSTEM":~/"$SWITCH".zip ./
+        done
+        ;;
+    clear-nvm)
+        if [ $# -lt 2 ]; then
+            usage
+            exit 1
+        fi
+
+        SYSTEM=$2
+
+        declare -a SWITCHES=("switchtec0" "switchtec1")
+        for SWITCH in "${SWITCHES[@]}";
+        do
+            echo "$SWITCH Cleaning NVM Logs..."
+            ssh root@"$SYSTEM" <<EOF
+            switchtec log-dump -t INVNV /dev/$SWITCH
+EOF
         done
         ;;
     *)
