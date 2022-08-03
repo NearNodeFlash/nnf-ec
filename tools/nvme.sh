@@ -26,6 +26,7 @@ Commands:
     create                               create an nvme namespace on each drive
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
+    list                                 display all nvme namespaces on each drive
 EOF
 }
 
@@ -66,6 +67,17 @@ case $1 in
             do
                 echo "Deleting Namespaces $NAMESPACE on ${PDFIDS[$INDEX]}"
                 switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE
+            done
+        done
+        ;;
+    list)
+        for SWITCH in "${SWITCHES[@]}";
+        do
+            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
+            for INDEX in "${!PDFIDS[@]}";
+            do
+                echo "Namespaces on ${PDFIDS[$INDEX]}"
+                switchtec-nvme list-ns ${PDFIDS[$INDEX]}@$SWITCH --all
             done
         done
         ;;
