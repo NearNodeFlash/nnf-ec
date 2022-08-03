@@ -34,9 +34,9 @@ SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
 case $1 in
     create)
         SIZE=97670000
-        for SWITCH in ${SWITCHES[@]};
+        for SWITCH in "${SWITCHES[@]}";
         do
-            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}') )
+            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Creating Namespaces on ${PDFIDS[$INDEX]}"
@@ -47,9 +47,9 @@ case $1 in
     attach)
         NAMESPACE=${2:-"1"}
         CONTROLLER=${3:-"3"}
-        for SWITCH in ${SWITCHES[@]};
+        for SWITCH in "${SWITCHES[@]}";
         do
-            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}') )
+            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Attaching Namespace $NAMESPACE on ${PDFIDS[$INDEX]} to Controller $CONTROLLER"
@@ -59,9 +59,9 @@ case $1 in
         ;;
     delete)
         NAMESPACE=${2:-"1"}
-        for SWITCH in ${SWITCHES[@]};
+        for SWITCH in "${SWITCHES[@]}";
         do
-            PDFIDS=( $(switchtec fabric gfms-dump $SWITCH | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}') )
+            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Deleting Namespaces $NAMESPACE on ${PDFIDS[$INDEX]}"
