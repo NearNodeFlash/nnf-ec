@@ -23,7 +23,7 @@ Run various NVMe Namespace commands
 Usage: $0 COMMAND [ARGS...]
 
 Commands:
-    create                               create an nvme namespace on each drive
+    create [SIZE-IN-BYTES]               create an nvme namespace on each drive of the specified size. (0 implies max capacity)
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
     list                                 display all nvme namespaces on each drive
@@ -34,14 +34,19 @@ SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
 
 case $1 in
     create)
-        SIZE=97670000
+        SIZE=${2:-0}
         for SWITCH in "${SWITCHES[@]}";
         do
             mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
             for INDEX in "${!PDFIDS[@]}";
             do
-                echo "Creating Namespaces on ${PDFIDS[$INDEX]}"
-                switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SIZE --ncap=$SIZE --block-size=4096
+                if [ "$SIZE" == "0" ]; then
+                    SIZE=$(switchtec-nvme id-ctrl ${PDFIDS[$INDEX]}@$SWITCH | grep tnvmcap | awk '{print $3}')
+                fi
+
+                declare -i SECTORS=$SIZE/4096
+                echo "Creating Namespaces on ${PDFIDS[$INDEX]} with size ${SIZE}"
+                switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SECTORS --ncap=$SECTORS --block-size=4096
             done
         done
         ;;
