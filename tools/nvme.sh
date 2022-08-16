@@ -20,17 +20,46 @@
 usage() {
     cat <<EOF
 Run various NVMe Namespace commands
-Usage: $0 COMMAND [ARGS...]
+Usage: $0 [-h] [-t] COMMAND [ARGS...]
 
 Commands:
     create [SIZE-IN-BYTES]               create an nvme namespace on each drive of the specified size. (0 implies max capacity)
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
     list                                 display all nvme namespaces on each drive
+
+Arguments:
+  -h                display this help
+  -t                time each command
+
+Example:
+  nvme.sh -t delete 1
 EOF
 }
 
+shopt -s expand_aliases
+export TIMEFORMAT='%3lR'
 SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
+alias TIME=""
+
+while getopts "th:" OPTION
+do
+    case "${OPTION}" in
+        't')
+            alias TIME=time
+            ;;
+        'h',*)
+            usage
+            exit 0
+            ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
 
 case $1 in
     create)
@@ -46,7 +75,7 @@ case $1 in
 
                 declare -i SECTORS=$SIZE/4096
                 echo "Creating Namespaces on ${PDFIDS[$INDEX]} with size ${SIZE}"
-                switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SECTORS --ncap=$SECTORS --block-size=4096
+                TIME switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SECTORS --ncap=$SECTORS --block-size=4096
             done
         done
         ;;
@@ -59,7 +88,7 @@ case $1 in
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Attaching Namespace $NAMESPACE on ${PDFIDS[$INDEX]} to Controller $CONTROLLER"
-                switchtec-nvme attach-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE --controllers=$CONTROLLER
+                TIME switchtec-nvme attach-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE --controllers=$CONTROLLER
             done
         done
         ;;
@@ -71,7 +100,7 @@ case $1 in
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Deleting Namespaces $NAMESPACE on ${PDFIDS[$INDEX]}"
-                switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE
+                TIME switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE
             done
         done
         ;;
@@ -82,7 +111,7 @@ case $1 in
             for INDEX in "${!PDFIDS[@]}";
             do
                 echo "Namespaces on ${PDFIDS[$INDEX]}"
-                switchtec-nvme list-ns ${PDFIDS[$INDEX]}@$SWITCH --all
+                TIME switchtec-nvme list-ns ${PDFIDS[$INDEX]}@$SWITCH --all
             done
         done
         ;;
