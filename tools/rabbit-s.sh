@@ -96,8 +96,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "fabdbg -s info\n" &&
-            screen -S $SESSION -X stuff "fabdbg -s fio\n"
+            screen -S $SESSION -X stuff "fabdbg -s info\nfabdbg -s gfms\nfabdbg -s fio\nfabdbg -c rule\n"
 EOF
         done
         ;;
@@ -105,8 +104,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "fabdbg -c info\n" &&
-            screen -S $SESSION -X stuff "fabdbg -c fio\n"
+            screen -S $SESSION -X stuff "fabdbg -c info\nfabdbg -c gfms\nfabdbg -c fio\nfabdbg -c rule\n"
 EOF
         done
         ;;
@@ -114,7 +112,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "log -p on\nlog -m 0x54 -s3 -p on\nlog -m 0x82 -s3 -p on\nlog -m 0x84 -s3 -p on\n"
+            screen -S $SESSION -X stuff "log -t on\nlog -m 0x82 -s3\nlog -m 0x84 -s3\nlog -m 0x82 -s3 -p on\nlog -m 0x84 -s3 -p on\n"
 EOF
         done
         ;;
