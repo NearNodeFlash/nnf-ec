@@ -17,9 +17,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+shopt -s expand_aliases
+
 usage() {
     cat <<EOF
-Run various NVMe Namespace commands
+Run various NVMe Namespace commands over the NVMe switch fabric using
+switchtec-nvme utility.
+
 Usage: $0 [-h] [-t] COMMAND [ARGS...]
 
 Commands:
@@ -27,6 +31,9 @@ Commands:
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
     list                                 display all nvme namespaces on each drive
+
+    cmd [COMMAND] [ARG [ARG]...]         execute COMMAND on each drive in the fabric.
+                                         i.e. $0 id-ctrl
 
 Arguments:
   -h                display this help
@@ -37,16 +44,33 @@ Example:
 EOF
 }
 
-shopt -s expand_aliases
-export TIMEFORMAT='%3lR'
-SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
-alias TIME=""
+# execute <fn<path>> <args...>
+execute() {
+    local FUNCTION=$1 ARGS=( "${@:2}" )
 
+    if [ "$(type -t $FUNCTION)" != "function" ]; then
+        echo "$1 is not a function."
+        exit 1
+    fi
+
+    SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
+    for SWITCH in "${SWITCHES[@]}";
+    do
+        mapfile -t PDFIDS < <(switchtec fabric gfms-dump "${SWITCH}" | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
+        for INDEX in "${!PDFIDS[@]}";
+        do
+            "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}"
+        done
+    done
+}
+
+alias TIME=""
 while getopts "th:" OPTION
 do
     case "${OPTION}" in
         't')
             alias TIME=time
+            export TIMEFORMAT='%3lR'
             ;;
         'h',*)
             usage
@@ -63,57 +87,51 @@ fi
 
 case $1 in
     create)
-        SIZE=${2:-0}
-        for SWITCH in "${SWITCHES[@]}";
-        do
-            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
-            for INDEX in "${!PDFIDS[@]}";
-            do
-                if [ "$SIZE" == "0" ]; then
-                    SIZE=$(switchtec-nvme id-ctrl ${PDFIDS[$INDEX]}@$SWITCH | grep tnvmcap | awk '{print $3}')
-                fi
+        function create_ns() {
+            local DRIVE=$1 SIZE=$2
 
-                declare -i SECTORS=$SIZE/4096
-                echo "Creating Namespaces on ${PDFIDS[$INDEX]} with size ${SIZE}"
-                TIME switchtec-nvme create-ns ${PDFIDS[$INDEX]}@$SWITCH --nsze=$SECTORS --ncap=$SECTORS --block-size=4096
-            done
-        done
+            if [ "$SIZE" == "0" ]; then
+                echo "Reading Capacity on $DRIVE"
+                SIZE=$(switchtec-nvme id-ctrl "$DRIVE" | grep tnvmcap | awk '{print $3}')
+            fi
+
+            declare -i SECTORS=$SIZE/4096
+            echo "Creating Namespaces on $DRIVE with size ${SIZE}"
+            TIME switchtec-nvme create-ns "$DRIVE" --nsze="$SECTORS" --ncap="$SECTORS" --block-size=4096 --nmic=1
+        }
+        execute create_ns "${2:-0}"
         ;;
     attach)
-        NAMESPACE=${2:-"1"}
-        CONTROLLER=${3:-"3"}
-        for SWITCH in "${SWITCHES[@]}";
-        do
-            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
-            for INDEX in "${!PDFIDS[@]}";
-            do
-                echo "Attaching Namespace $NAMESPACE on ${PDFIDS[$INDEX]} to Controller $CONTROLLER"
-                TIME switchtec-nvme attach-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE --controllers=$CONTROLLER
-            done
-        done
+        function attach_ns() {
+            local DRIVE=$1 NAMESPACE=$2 CONTROLLER=$3
+            echo "Attaching Namespace $NAMESPACE on $DRIVE to Controller $CONTROLLER"
+            #TIME switchtec-nvme attach-ns "$DRIVE" --namespace-id="$NAMESPACE" --controllers="$CONTROLLER"
+        }
+        execute attach_ns "${2:-1}" "${3:-3}"
         ;;
     delete)
-        NAMESPACE=${2:-"1"}
-        for SWITCH in "${SWITCHES[@]}";
-        do
-            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
-            for INDEX in "${!PDFIDS[@]}";
-            do
-                echo "Deleting Namespaces $NAMESPACE on ${PDFIDS[$INDEX]}"
-                TIME switchtec-nvme delete-ns ${PDFIDS[$INDEX]}@$SWITCH --namespace-id=$NAMESPACE
-            done
-        done
+        function delete_ns() {
+            local DRIVE=$1 NAMESPACE=$2
+            echo "Deleting Namespaces $NAMESPACE on $DRIVE"
+            #TIME switchtec-nvme delete-ns "$DRIVE" --namespace-id="$NAMESPACE"
+        }
+        execute delete_ns "${2:-1}"
         ;;
     list)
-        for SWITCH in "${SWITCHES[@]}";
-        do
-            mapfile -t PDFIDS < <(switchtec fabric gfms-dump ${SWITCH} | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
-            for INDEX in "${!PDFIDS[@]}";
-            do
-                echo "Namespaces on ${PDFIDS[$INDEX]}"
-                TIME switchtec-nvme list-ns ${PDFIDS[$INDEX]}@$SWITCH --all
-            done
-        done
+        function list_ns() {
+            local DRIVE=$1
+            echo "Namespaces on $DRIVE"
+            TIME switchtec-nvme list-ns "$DRIVE" --all
+        }
+        execute list_ns
+        ;;
+    cmd)
+        function cmd() {
+            local DRIVE=$1 CMD=$2 ARGS=( "${@:3}" )
+            echo "Execute on $DRIVE $CMD" "${ARGS[@]}"
+            TIME switchtec-nvme "$CMD" "$DRIVE" "${ARGS[@]}"
+        }
+        execute cmd "${@:2}"
         ;;
     *)
         usage
