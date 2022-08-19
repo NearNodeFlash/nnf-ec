@@ -105,7 +105,7 @@ case $1 in
         function attach_ns() {
             local DRIVE=$1 NAMESPACE=$2 CONTROLLER=$3
             echo "Attaching Namespace $NAMESPACE on $DRIVE to Controller $CONTROLLER"
-            #TIME switchtec-nvme attach-ns "$DRIVE" --namespace-id="$NAMESPACE" --controllers="$CONTROLLER"
+            TIME switchtec-nvme attach-ns "$DRIVE" --namespace-id="$NAMESPACE" --controllers="$CONTROLLER"
         }
         execute attach_ns "${2:-1}" "${3:-3}"
         ;;
@@ -113,7 +113,7 @@ case $1 in
         function delete_ns() {
             local DRIVE=$1 NAMESPACE=$2
             echo "Deleting Namespaces $NAMESPACE on $DRIVE"
-            #TIME switchtec-nvme delete-ns "$DRIVE" --namespace-id="$NAMESPACE"
+            TIME switchtec-nvme delete-ns "$DRIVE" --namespace-id="$NAMESPACE"
         }
         execute delete_ns "${2:-1}"
         ;;
