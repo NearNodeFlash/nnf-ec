@@ -76,7 +76,8 @@ type fileSharePersistentMetadata struct {
 }
 
 type fileSharePersistentCreateCompleteLogEntry struct {
-	FileSharePath string `json:"FileSharePath"`
+	FileSharePath string            `json:"FileSharePath"`
+	Data          map[string]string `json:"Data"`
 }
 
 type fileSharePersistentUpdateCompleteLogEntry struct {
@@ -102,9 +103,14 @@ func (sh *FileShare) GenerateMetadata() ([]byte, error) {
 
 func (sh *FileShare) GenerateStateData(state uint32) ([]byte, error) {
 	switch state {
+
 	case fileShareCreateCompleteLogEntryType:
+		fs := sh.storageService.findFileSystem(sh.fileSystemId)
+		data := fs.fsApi.GenerateRecoveryData()
+
 		entry := fileSharePersistentCreateCompleteLogEntry{
 			FileSharePath: sh.mountRoot,
+			Data:          data,
 		}
 
 		return json.Marshal(entry)
@@ -178,6 +184,15 @@ func (rh *fileShareRecoveryReplayHandler) Entry(t uint32, data []byte) error {
 	rh.lastLogEntryType = t
 
 	switch t {
+	case fileShareCreateCompleteLogEntryType:
+		entry := fileSharePersistentCreateCompleteLogEntry{}
+		if err := json.Unmarshal(data, &entry); err != nil {
+			return err
+		}
+
+		rh.fileShare.mountRoot = entry.FileSharePath
+		rh.fileSystem.fsApi.LoadRecoveryData(entry.Data)
+
 	case fileShareUpdateCompleteLogEntryType:
 		entry := fileSharePersistentUpdateCompleteLogEntry{}
 		if err := json.Unmarshal(data, &entry); err != nil {
