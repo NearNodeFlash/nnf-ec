@@ -171,7 +171,7 @@ func (fs *testFileSystem) Mount(mountpoint string) error {
 		fs.t.Fatal("Mount requires non empty mountpoint")
 	}
 	if fs.mountpoint != "" {
-		fs.t.Errorf("Teste File System: Mountpoint already present: Mountpoint: %s", fs.mountpoint)
+		fs.t.Errorf("Test File System: Mountpoint already present: Mountpoint: %s", fs.mountpoint)
 	}
 
 	fs.mountpoint = mountpoint
@@ -188,4 +188,12 @@ func (fs *testFileSystem) Unmount(mountpoint string) error {
 	fs.mountpoint = ""
 
 	return nil
+}
+
+func (f *testFileSystem) GenerateRecoveryData() map[string]string {
+	return map[string]string{}
+}
+
+func (f *testFileSystem) LoadRecoveryData(map[string]string) {
+
 }
