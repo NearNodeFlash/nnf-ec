@@ -197,3 +197,7 @@ func (f *testFileSystem) GenerateRecoveryData() map[string]string {
 func (f *testFileSystem) LoadRecoveryData(map[string]string) {
 
 }
+
+func (f *testFileSystem) LoadDeviceList([]string) {
+
+}

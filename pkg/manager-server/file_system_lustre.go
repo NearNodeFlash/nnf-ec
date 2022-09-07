@@ -171,10 +171,13 @@ func (f *FileSystemLustre) Mount(mountpoint string) error {
 		}
 	}
 
-	var devName string = f.devices[0]
+	var devName string 
 	if f.backFs == BackFsZfs {
 		devName = f.zfsVolName()
+	} else {
+		devName = f.devices[0]
 	}
+	
 	err := runCmd(f, fmt.Sprintf("mount -t lustre %s %s", devName, mountpoint))
 	if err != nil {
 		return err

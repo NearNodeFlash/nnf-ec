@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"k8s.io/mount-utils"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
@@ -84,6 +85,7 @@ type FileSystemApi interface {
 
 	GenerateRecoveryData() map[string]string
 	LoadRecoveryData(data map[string]string)
+	LoadDeviceList(devices []string)
 }
 
 // FileSystem - Represents an abstract file system, with individual operations
@@ -91,6 +93,15 @@ type FileSystemApi interface {
 type FileSystem struct {
 	name    string
 	devices []string
+}
+
+func (f *FileSystem) LoadDeviceList(devices []string) {
+	f.devices = devices
+}
+
+func (f *FileSystem) IsMounted(mountpoint string) (bool, error) {
+	mounter := mount.New("")
+	return mounter.IsMountPoint(mountpoint)
 }
 
 type FileSystemError struct {
