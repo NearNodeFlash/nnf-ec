@@ -65,7 +65,7 @@ func (f *FileSystemXfs) Mount(mountpoint string) error {
 		return err
 	}
 
-	mounted, err := f.IsMounted(mountpoint)
+	mounted, err := f.IsMountPoint(mountpoint)
 	if err != nil {
 		return err
 	}
@@ -77,8 +77,4 @@ func (f *FileSystemXfs) Mount(mountpoint string) error {
 	}
 
 	return nil
-}
-
-func (f *FileSystemXfs) Unmount(mountpoint string) error {
-	return f.FileSystemLvm.Unmount(mountpoint)
 }

@@ -22,10 +22,11 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 
-	"k8s.io/mount-utils"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/mount-utils"
 
 	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
 )
@@ -99,9 +100,31 @@ func (f *FileSystem) LoadDeviceList(devices []string) {
 	f.devices = devices
 }
 
-func (f *FileSystem) IsMounted(mountpoint string) (bool, error) {
+func (f *FileSystem) IsMountPoint(mountpoint string) (bool, error) {
 	mounter := mount.New("")
 	return mounter.IsMountPoint(mountpoint)
+}
+
+func (f *FileSystem) Unmount(mountpoint string) error {
+	if mountpoint == "" {
+		return nil
+	}
+
+	mounter := mount.New("")
+	mounted, err := mounter.IsMountPoint(mountpoint)
+	if err != nil {
+		return err
+	}
+
+	if mounted {
+		if err := mounter.Unmount(mountpoint); err != nil {
+			return err
+		}
+	}
+
+	_ = os.Remove(mountpoint) // Attempt to remove the directory but don't fuss about it if not
+
+	return nil
 }
 
 type FileSystemError struct {

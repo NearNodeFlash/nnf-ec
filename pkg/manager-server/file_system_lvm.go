@@ -191,32 +191,13 @@ func (f *FileSystemLvm) Mount(mountpoint string) error {
 		return err
 	}
 
-	mounted, err := f.IsMounted(mountpoint)
+	mounted, err := f.IsMountPoint(mountpoint)
 	if err != nil {
 		return err
 	}
 	
 	if !mounted {
 		if _, err := f.run(fmt.Sprintf("mount --bind %s %s", f.devPath(), mountpoint)); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (f *FileSystemLvm) Unmount(mountpoint string) error {
-	if mountpoint == "" {
-		return nil
-	}
-
-	mounted, err := f.IsMounted(mountpoint)
-	if err != nil {
-		return err
-	}
-
-	if mounted {
-		if _, err := f.run(fmt.Sprintf("umount %s", mountpoint)); err != nil {
 			return err
 		}
 	}
