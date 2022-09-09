@@ -18,6 +18,7 @@ require (
 	github.com/sigurn/utils v0.0.0-20190728110027-e1fefb11a144 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	go.chromium.org/luci v0.0.0-20210915061045-7722a2154c29
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
 	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/mount-utils v0.25.0
 )

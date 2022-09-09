@@ -174,6 +174,8 @@ func (rh *fileShareRecoveryReplayHandler) Metadata(data []byte) error {
 
 	rh.fileSystem = rh.storageService.findFileSystem(metadata.FileSystemId)
 	storageGroup := rh.storageService.findStorageGroup(metadata.StorageGroupId)
+	
+	rh.fileSystem.fsApi.LoadDeviceList(storageGroup.serverStorage.Devices())
 
 	rh.fileShare = rh.fileSystem.createFileShare(rh.fileShareId, storageGroup, metadata.MountRoot)
 
@@ -211,6 +213,17 @@ func (rh *fileShareRecoveryReplayHandler) Done() (bool, error) {
 		// In this case there may be some residual file system operations on the node that need to be rolled back
 
 		// TODO Something like storageGroup.serverStorage.RollbackFileSystem(rh.fileSystem.fsApi)
+
+	case fileShareCreateCompleteLogEntryType, fileShareUpdateCompleteLogEntryType:
+		// Mount / Unmount the file share if necessary
+		sg := rh.storageService.findStorageGroup(rh.fileShare.storageGroupId)
+
+		mountRoot := rh.fileShare.mountRoot
+		if len(mountRoot) != 0 {
+			if err := sg.serverStorage.MountFileSystem(rh.fileSystem.fsApi, mountRoot); err != nil {
+				return false, err
+			}
+		}
 
 	case fileShareUpdateStartLogEntryType:
 		// In this case the state of the mount root is unknown - we need to check if the desired mount
