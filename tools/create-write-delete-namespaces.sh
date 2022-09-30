@@ -47,7 +47,7 @@ case "$SIZE" in
         ./lvm.sh create
 
         # Write a little something to the logical volume to give the drives some work to do on delete-ns operation
-        fio --direct=1 --rw=randwrite --bs=32M --ioengine=libaio --iodepth=128 --numjobs=4 --runtime=30s --time_based --group_reporting --name=rabbit --eta-newline=1 --filename=/dev/rabbit/rabbit
+        fio --direct=1 --rw=randwrite --bs=32M --ioengine=libaio --iodepth=128 --numjobs=4 --runtime=5m --time_based --group_reporting --name=rabbit --eta-newline=1 --filename=/dev/rabbit/rabbit
 
         if [ $DELAY_TO_COOL_CPU != 0 ]
         then
@@ -56,6 +56,17 @@ case "$SIZE" in
         fi
         # Delete the logical volume to tidy up
         ./lvm.sh delete
+
+    	# Format the namespace to speed up deletion
+	    ./nvme.sh cmd format -f -n 1
+
+        # Wait for the format to finish
+        areWeDone=$(nvme list | grep KIO | awk '{if ($6 > 0) { print "wait" } else { print "done" }}')
+        while [ "$areWeDone" != "done" ]; do
+            sleep 1
+            printf "Formatting, space left %f\n" "$(nvme list | grep KIO | awk '{print $6}')"
+            areWeDone=$(nvme list | grep KIO | awk '{if ($6 > 0) { print "wait" } else { print "done" }}')
+        done
 
         # Show the nvme namespaces for the record
         nvme list | grep KIO
