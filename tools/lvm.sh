@@ -43,7 +43,7 @@ drives() {
             if [ "${NAMESPACEID::-1}" == "$NAMESPACE" ];
             then
                 echo "    Found Namespace ${NAMESPACE}"
-            
+
                 DRIVES+=(${DRIVE})
             fi
         fi
