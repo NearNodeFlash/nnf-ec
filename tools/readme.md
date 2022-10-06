@@ -381,5 +381,5 @@ delete-ns: Success, deleted nsid:1
 ## Example script to walk the cycle
 
 ```bash
-create-write-delete-namespaces.sh*
+create-write-delete-namespaces.sh
 ```

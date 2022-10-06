@@ -41,11 +41,11 @@ Arguments:
 
 Examples:
   ./nvme.sh -t delete 1
-  ./nvme.sh cmd id-ctrl | grep -E "^fr "      # firmware level
-  ./nvme.sh cmd id-ctrl | grep -E "^mn "      # model name
-  ./nvme.sh cmd format -f -n <namespace id>   # format specified namespace
+  ./nvme.sh cmd id-ctrl | grep -E "^fr "                                # firmware level
+  ./nvme.sh cmd id-ctrl | grep -E "^mn "                                # model name
+  ./nvme.sh cmd format --force --ses=0 --namespace-id=<namespace id>    # format specified namespace
 
-  ./nvme.sh cmd virt-mgmt --cntlid=3 --act=9  # enable CM7 virtual functions
+  ./nvme.sh cmd virt-mgmt --cntlid=3 --act=9                            # enable CM7 virtual functions
 EOF
 }
 

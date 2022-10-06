@@ -58,7 +58,7 @@ case "$SIZE" in
         ./lvm.sh delete
 
     	# Format the namespace to speed up deletion
-	    ./nvme.sh cmd format -f -n 1
+	    ./nvme.sh cmd format --force --namspace-id=1
 
         # Wait for the format to finish
         areWeDone=$(nvme list | grep KIO | awk '{if ($6 > 0) { print "wait" } else { print "done" }}')
