@@ -18,16 +18,21 @@ func Test(t *testing.T) {
 	type Oem struct {
 		Bool   bool
 		String string
+		Slice  []string
 		Struct OemNested
 	}
 
 	oem := Oem{
 		Bool:   true,
 		String: "string",
+		Slice:  make([]string, 2),
 		Struct: OemNested{
 			Int: 42,
 		},
 	}
+
+	oem.Slice[0] = "test0"
+	oem.Slice[1] = "test1"
 
 	root := Root{}
 	root.Oem = MarshalOem(oem)
@@ -54,23 +59,10 @@ func Test(t *testing.T) {
 		oem.Struct.Int != oem.Struct.Int {
 		t.Errorf("Failed marshal/unmarshal of OEM data")
 	}
-}
 
-func TestEmpty(t *testing.T) {
-
-	type Oem struct {
-		Value string
-		Empty string
-	}
-
-	data := map[string]interface{}{"Value": "value"}
-
-	oem := Oem{}
-	if err := UnmarshalOem(data, &oem); err != nil {
-		t.Error(err)
-	}
-
-	if oem.Value != "value" {
-		t.Errorf("Failed to unmarshal OEM data")
+	for i, v := range oem.Slice {
+		if v != oem2.Slice[i] {
+			t.Errorf("Slice index %d mismatch: Expected: '%s' Actual: '%s'", i, v, oem2.Slice[i])
+		}
 	}
 }
