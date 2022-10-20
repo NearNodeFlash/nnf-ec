@@ -186,7 +186,7 @@ func (*FileSystem) run(cmd string) ([]byte, error) {
 	})
 }
 
-type FileSystemOemMkfsMountCmd struct {
+type FileSystemOemMkfsMount struct {
 	// The mkfs commandline, minus the "mkfs" command itself.
 	Mkfs string `json:"Mkfs,omitempty"`
 
@@ -194,7 +194,7 @@ type FileSystemOemMkfsMountCmd struct {
 	Mount []string `json:"Mount,omitempty"`
 }
 
-type FileSystemOemLvmCmd struct {
+type FileSystemOemLvm struct {
 	// The pvcreate commandline, minus the "pvcreate" command.
 	PvCreate string `json:"PvCreate,omitempty"`
 
@@ -205,7 +205,7 @@ type FileSystemOemLvmCmd struct {
 	LvCreate string `json:"LvCreate,omitempty"`
 }
 
-type FileSystemOemZfsCmd struct {
+type FileSystemOemZfs struct {
 	// The zpool create commandline, minus the "zpool create" command.
 	ZpoolCreate string `json:"ZpoolCreate,omitempty"`
 
@@ -231,9 +231,9 @@ type FileSystemOem struct {
 	Lustre FileSystemOemLustre `json:"Lustre,omitempty"`
 	Gfs2   FileSystemOemGfs2   `json:"Gfs2,omitempty"`
 
-	LvmCmd       FileSystemOemLvmCmd       `json:"LvmCmd,omitempty"`
-	MkfsMountCmd FileSystemOemMkfsMountCmd `json:"MkfsMountCmd,omitempty"`
-	ZfsCmd       FileSystemOemZfsCmd       `json:"ZfsCmd,omitempty"`
+	LvmCmd    FileSystemOemLvm       `json:"Lvm,omitempty"`
+	MkfsMount FileSystemOemMkfsMount `json:"MkfsMount,omitempty"`
+	ZfsCmd    FileSystemOemZfs       `json:"Zfs,omitempty"`
 }
 
 // File System Registry - Maintains a list of eligible file systems registered in the system.

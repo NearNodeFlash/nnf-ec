@@ -58,18 +58,18 @@ type FileSystemLustre struct {
 	// Satisfy FileSystemApi interface.
 	FileSystem
 
-	Oem           FileSystemOemLustre
-	MkfsMountArgs FileSystemOemMkfsMountCmd
-	ZfsArgs       FileSystemOemZfsCmd
+	Oem       FileSystemOemLustre
+	MkfsMount FileSystemOemMkfsMount
+	ZfsArgs   FileSystemOemZfs
 }
 
 func (*FileSystemLustre) New(oem FileSystemOem) (FileSystemApi, error) {
 	return &FileSystemLustre{
 		FileSystem: FileSystem{name: oem.Name},
 		// TargetType and BackFs are already verified by IsType() below.
-		Oem:           oem.Lustre,
-		MkfsMountArgs: oem.MkfsMountCmd,
-		ZfsArgs:       oem.ZfsCmd,
+		Oem:       oem.Lustre,
+		MkfsMount: oem.MkfsMount,
+		ZfsArgs:   oem.ZfsCmd,
 	}, nil
 }
 
@@ -108,6 +108,9 @@ func (f *FileSystemLustre) Create(devices []string, options FileSystemOptions) e
 		"$INDEX":       fmt.Sprintf("%d", f.Oem.Index),
 		"$FS_NAME":     f.name,
 	})
+	if err := varHandler.ListToVars("$DEVICE_LIST", "$DEVICE"); err != nil {
+		return fmt.Errorf("invalid internal device list: %w", err)
+	}
 
 	zpoolArgs := varHandler.ReplaceAll(f.ZfsArgs.ZpoolCreate)
 	zpoolCreate := fmt.Sprintf("zpool create %s", zpoolArgs)
@@ -116,7 +119,7 @@ func (f *FileSystemLustre) Create(devices []string, options FileSystemOptions) e
 		return err
 	}
 
-	mkfsArgs := varHandler.ReplaceAll(f.MkfsMountArgs.Mkfs)
+	mkfsArgs := varHandler.ReplaceAll(f.MkfsMount.Mkfs)
 	mkfsCmd := fmt.Sprintf("mkfs.lustre --backfstype=%s %s", f.Oem.BackFs, mkfsArgs)
 	_, err = f.run(mkfsCmd)
 	if err != nil {
@@ -168,7 +171,7 @@ func (f *FileSystemLustre) Mount(mountpoint string) error {
 		devName = f.devices[0]
 	}
 
-	return f.mount(devName, mountpoint, "lustre", f.MkfsMountArgs.Mount)
+	return f.mount(devName, mountpoint, "lustre", f.MkfsMount.Mount)
 }
 
 func (f *FileSystemLustre) GenerateRecoveryData() map[string]string {

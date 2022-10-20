@@ -29,8 +29,8 @@ import (
 type FileSystemGfs2 struct {
 	FileSystemLvm
 
-	Oem           FileSystemOemGfs2
-	MkfsMountArgs FileSystemOemMkfsMountCmd
+	Oem       FileSystemOemGfs2
+	MkfsMount FileSystemOemMkfsMount
 }
 
 func init() {
@@ -75,8 +75,8 @@ func (*FileSystemGfs2) New(oem FileSystemOem) (FileSystemApi, error) {
 			CmdArgs:    oem.LvmCmd,
 			shared:     true,
 		},
-		Oem:           oem.Gfs2,
-		MkfsMountArgs: oem.MkfsMountCmd,
+		Oem:       oem.Gfs2,
+		MkfsMount: oem.MkfsMount,
 	}, nil
 }
 
@@ -98,7 +98,7 @@ func (f *FileSystemGfs2) Create(devices []string, opts FileSystemOptions) error 
 		"$LOCK_SPACE":   f.Name(),
 		"$PROTOCOL":     "lock_dlm",
 	})
-	mkfsArgs := varHandler.ReplaceAll(f.MkfsMountArgs.Mkfs)
+	mkfsArgs := varHandler.ReplaceAll(f.MkfsMount.Mkfs)
 
 	if _, err := f.run(fmt.Sprintf("mkfs.gfs2 -O %s", mkfsArgs)); err != nil {
 		return err
@@ -108,5 +108,5 @@ func (f *FileSystemGfs2) Create(devices []string, opts FileSystemOptions) error 
 }
 
 func (f *FileSystemGfs2) Mount(mountpoint string) error {
-	return f.mount(f.devPath(), mountpoint, "", f.MkfsMountArgs.Mount)
+	return f.mount(f.devPath(), mountpoint, "", f.MkfsMount.Mount)
 }

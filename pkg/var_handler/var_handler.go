@@ -19,7 +19,10 @@
 
 package var_handler
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type VarHandler struct {
 	VarMap map[string]string
@@ -29,6 +32,20 @@ func NewVarHandler(vars map[string]string) *VarHandler {
 	v := &VarHandler{}
 	v.VarMap = vars
 	return v
+}
+
+// ListToVars splits the value of one of its variables, and creates a new
+// indexed variable for each of the items in the split.
+func (v *VarHandler) ListToVars(listVarName, newVarPrefix string) error {
+	theList, ok := v.VarMap[listVarName]
+	if !ok {
+		return fmt.Errorf("Unable to find the variable named %s", listVarName)
+	}
+
+	for i, val := range strings.Split(theList, " ") {
+		v.VarMap[fmt.Sprintf("%s%d", newVarPrefix, i+1)] = val
+	}
+	return nil
 }
 
 func (v *VarHandler) ReplaceAll(s string) string {

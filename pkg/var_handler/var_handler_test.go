@@ -57,4 +57,17 @@ func TestVarHandler(t *testing.T) {
 	if out3 != want3 {
 		t.Errorf("Did not get desired result.  Got (%s)", out3)
 	}
+
+	// Add a list to turn into variables.
+	v.VarMap["$DEVICE_LIST"] = "/dev/nvme0n1 /dev/nvme1n1 /dev/nvme0n2 /dev/nvme1n2"
+	if err := v.ListToVars("$DEVICE_LIST", "$DEVICE"); err != nil {
+		t.Errorf("Did not split list: %v", err)
+	} else {
+		in4 := "zpool mirror $DEVICE1 $DEVICE2 mirror $DEVICE3 $DEVICE4"
+		want4 := "zpool mirror /dev/nvme0n1 /dev/nvme1n1 mirror /dev/nvme0n2 /dev/nvme1n2"
+		out4 := v.ReplaceAll(in4)
+		if out4 != want4 {
+			t.Errorf("Did not get desired result. Got (%s)", out4)
+		}
+	}
 }

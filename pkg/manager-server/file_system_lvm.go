@@ -39,7 +39,7 @@ type FileSystemLvm struct {
 	lvName  string
 	vgName  string
 	shared  bool
-	CmdArgs FileSystemOemLvmCmd
+	CmdArgs FileSystemOemLvm
 }
 
 func init() {
@@ -110,6 +110,9 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		"$LV_NAME":     f.lvName,
 		"$VG_NAME":     f.vgName,
 	})
+	if err := varHandler.ListToVars("$DEVICE_LIST", "$DEVICE"); err != nil {
+		return fmt.Errorf("invalid internal device list: %w", err)
+	}
 
 	// Create the physical volumes.
 	for _, device := range devices {

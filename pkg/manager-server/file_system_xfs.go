@@ -29,7 +29,7 @@ import (
 type FileSystemXfs struct {
 	FileSystemLvm
 
-	MkfsMountArgs FileSystemOemMkfsMountCmd
+	MkfsMount FileSystemOemMkfsMount
 }
 
 func init() {
@@ -42,7 +42,7 @@ func (*FileSystemXfs) New(oem FileSystemOem) (FileSystemApi, error) {
 			FileSystem: FileSystem{name: oem.Name},
 			CmdArgs:    oem.LvmCmd,
 		},
-		MkfsMountArgs: oem.MkfsMountCmd,
+		MkfsMount: oem.MkfsMount,
 	}, nil
 }
 
@@ -60,7 +60,7 @@ func (f *FileSystemXfs) Create(devices []string, opts FileSystemOptions) error {
 	varHandler := var_handler.NewVarHandler(map[string]string{
 		"$DEVICE": f.FileSystemLvm.devPath(),
 	})
-	mkfsArgs := varHandler.ReplaceAll(f.MkfsMountArgs.Mkfs)
+	mkfsArgs := varHandler.ReplaceAll(f.MkfsMount.Mkfs)
 
 	if _, err := f.run(fmt.Sprintf("mkfs.xfs %s", mkfsArgs)); err != nil {
 		return err
@@ -70,5 +70,5 @@ func (f *FileSystemXfs) Create(devices []string, opts FileSystemOptions) error {
 }
 
 func (f *FileSystemXfs) Mount(mountpoint string) error {
-	return f.mount(f.devPath(), mountpoint, "", f.MkfsMountArgs.Mount)
+	return f.mount(f.devPath(), mountpoint, "", f.MkfsMount.Mount)
 }
