@@ -19,8 +19,9 @@
 
 usage() {
     cat << EOF
-Shows the hexadecimal dump of the whole PCI configuration space for the provide switchtec device identifer. The output
-can be saved to a file and then parsed using 'lspci -F <file>'.
+Shows the hexadecimal dump of the whole PCI configuration space for the
+provided switchtec device identifer. The output can be saved to a fil
+and then parsed using 'lspci -F <file>'.
 
 Usage: $0 SWITCH PDFID [COUNT=64]
 
@@ -45,21 +46,35 @@ PDFID=$2
 
 COUNT=${3:-64}
 
+# Read the PCIe Config Space Registers
+# The output is the equivalent of `printf "%06X - %#08X\n" $ADDRESS $VALUE`
 IFS=$'\n' read -ra LINES -d $'\0' <<< "$(switchtec fabric ep-csr-read "${SWITCH}" --pdfid="${PDFID}" --addr=0 --bytes=4 --count="${COUNT}" --print=hex)"
 
+# In trying to mimic the `lspci -xx` output which will print the device summary,
+# followed by the hexadecimal dump of the standard part of the configuration space.
+# For example: lspci -s 05:00.0 -xx
+#  05:00.0 Non-Volatile memory controller: KIOXIA Corporation Device 0014 (rev 01)
+#  00: 0f 1e 14 00 04 00 10 00 01 02 08 01 00 00 80 00
+#  [...]
+#  30: 00 00 00 00 70 00 00 00 00 00 00 00 00 00 00 00
+
+# The leading device summary must be present, even if it does not match the data
 echo -n "00:00.0 UNKNOWN NVME DEVICE"
 
-for INDEX in "${!LINES[@]}"
-do
-    
+for INDEX in "${!LINES[@]}"; do
+
+    # Print the byte offset prefix ever 16 bytes
     if [ $((INDEX%4)) == 0 ]; then
         printf "\n"
         printf "%02x: " $((INDEX*4))
     fi
 
+    # Parse the line, grabbing the 32-bit data portion
     DATA=$(echo "${LINES[$INDEX]}" | cut -d " " -f 3)
+
+    # Print individual bytes (little-endian)
     echo -n "${DATA:8:2} ${DATA:6:2} ${DATA:4:2} ${DATA:2:2} "
 
 done
 
-echo ""
+echo "" # Ending newline
