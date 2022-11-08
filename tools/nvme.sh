@@ -30,7 +30,8 @@ Commands:
     create [SIZE-IN-BYTES]               create an nvme namespace on each drive of the specified size. (0 implies max capacity)
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
-    list                                 display all nvme namespaces on each drive
+    list                                 list the nvme namespaces on each drive
+    list-pfid                            list the physical function ID of each drive
 
     cmd [COMMAND] [ARG [ARG]...]         execute COMMAND on each drive in the fabric.
                                          i.e. $0 id-ctrl
@@ -40,12 +41,21 @@ Arguments:
   -t                time each command
 
 Examples:
-  ./nvme.sh -t delete 1
-  ./nvme.sh cmd id-ctrl | grep -E "^fr "                                # firmware level
-  ./nvme.sh cmd id-ctrl | grep -E "^mn "                                # model name
-  ./nvme.sh cmd format --force --ses=0 --namespace-id=<namespace id>    # format specified namespace
+  ./nvme.sh -t delete 1                                                 # delete namespace 1
 
-  ./nvme.sh cmd virt-mgmt --cntlid=3 --act=9                            # enable CM7 virtual functions
+  ./nvme.sh cmd id-ctrl | grep -E "^fr "                                # display firmware level
+  ./nvme.sh cmd id-ctrl | grep -E "^mn "                                # display model name
+  ./nvme.sh cmd id-ctrl | grep -e "Execute" -e "^fr " -e "^sn "         # display the switch address, firmware version, and serial number
+
+  ./nvme.sh cmd format --force --ses=0 --namespace-id=<namespace id>    # format specified namespace
+  ./nvme.sh cmd list-ctrl --namespace-id=<ns-id>                        # list the controller attached to namespace "ns-id"
+
+  ./nvme.sh cmd virt-mgmt --cntlid=3 --act=9                            # enable virtual functions for Rabbit
+
+Drive Firmware upgrade:
+  ./nvme.sh cmd fw-download --fw=<filename>.ftd                         # download firmware
+  ./nvme.sh cmd fw-activate --action=3                                  # activate latest firmware download
+
 EOF
 }
 
@@ -130,6 +140,14 @@ case $1 in
         }
         execute list_ns
         ;;
+    list-pfid)
+        function list_pfid() {
+            local DRIVE=$1
+            echo "$DRIVE"
+        }
+        execute list_pfid
+        ;;
+
     cmd)
         function cmd() {
             local DRIVE=$1 CMD=$2 ARGS=( "${@:3}" )
