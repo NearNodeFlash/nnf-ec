@@ -31,7 +31,7 @@ Commands:
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
     list                                 list the nvme namespaces on each drive
-    list-pfid                            list the physical function ID of each drive
+    list-pdfid                           list the physical device fabric ID (PDFID) of each drive
 
     cmd [COMMAND] [ARG [ARG]...]         execute COMMAND on each drive in the fabric.
                                          i.e. $0 id-ctrl
@@ -45,7 +45,7 @@ Examples:
 
   ./nvme.sh cmd id-ctrl | grep -E "^fr "                                # display firmware level
   ./nvme.sh cmd id-ctrl | grep -E "^mn "                                # display model name
-  ./nvme.sh cmd id-ctrl | grep -e "Execute" -e "^fr " -e "^sn "         # display the switch address, firmware version, and serial number
+  ./nvme.sh cmd id-ctrl | grep -e "Execute" -e "^fr " -e "^sn "         # display the drive's PDFID, firmware version, and serial number
 
   ./nvme.sh cmd format --force --ses=0 --namespace-id=<namespace id>    # format specified namespace
   ./nvme.sh cmd list-ctrl --namespace-id=<ns-id>                        # list the controller attached to namespace "ns-id"
@@ -140,7 +140,7 @@ case $1 in
         }
         execute list_ns
         ;;
-    list-pfid)
+    list-pdfid)
         function list_pfid() {
             local DRIVE=$1
             echo "$DRIVE"
