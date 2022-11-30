@@ -49,6 +49,7 @@ var cli struct {
 	IdNsCtrls      nvme.IdNamespaceCtrls  `kong:"cmd,help='Identify Controller attached to Namespace.'"`
 	CreateNs       nvme.CreateNsCmd       `kong:"cmd,help='Create namespace.'"`
 	DeleteNs       nvme.DeleteNsCmd       `kong:"cmd,help='Delete namespace.'"`
+	FormatNs       nvme.FormatNsCmd       `kong:"cmd,help='Format namespace.'"`
 	AttachNs       nvme.AttachNsCmd       `kong:"cmd,help='attaches a namespace to the given controller or comma-sep list of controllers.'"`
 	DetachNs       nvme.DetachNsCmd       `kong:"cmd,help='detaches a namespace from the given controller or comma-sep list of controllers.'"`
 	ListSecondary  nvme.ListSecondaryCmd  `kong:"cmd,help='Show secondary controller list associated with the primary controller of the given device.'"`
