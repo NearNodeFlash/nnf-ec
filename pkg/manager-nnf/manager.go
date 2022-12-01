@@ -367,12 +367,26 @@ func (s *StorageService) Id() string {
 	return s.id
 }
 
-//
+func (s *StorageService) cleanupVolumes() error {
+	// Build a list of all the known volumes/namespaces
+	var deviceNamespaces []nvme.PersistentVolumeInfo
+	for _, pool := range s.pools {
+		for _, volume := range pool.providingVolumes {
+			deviceNamespaces = append(deviceNamespaces, nvme.PersistentVolumeInfo{
+				SerialNumber: volume.storage.SerialNumber(),
+				NamespaceId:  volume.storage.FindVolume(volume.volumeId).GetNamespaceId(),
+			})
+		}
+	}
+
+	// Remove any unknown namespaces
+	return nvme.CleanupVolumes(deviceNamespaces)
+}
+
 // Initialize is responsible for initializing the NNF Storage Service; the
 // Storage Service must complete initialization without error prior any
 // access to the Storage Service. Failure to initialize will cause the
 // storage service to misbehave.
-//
 func (*StorageService) Initialize(ctrl NnfControllerInterface) error {
 
 	storageService = StorageService{
@@ -536,6 +550,13 @@ func (s *StorageService) EventHandler(e event.Event) error {
 
 		if err := s.store.Replay(); err != nil {
 			log.WithError(err).Errorf("Failed to replay storage database")
+			return err
+		}
+
+		// Remove any namespaces that are not part of a Storage Pool
+		log.Infof("Storage Service: Removing volumes/namespaces that are not allocated as part of a Storage Pool")
+		if err := s.cleanupVolumes(); err != nil {
+			log.WithError(err).Errorf("Failed to cleanup volumes")
 			return err
 		}
 	}
