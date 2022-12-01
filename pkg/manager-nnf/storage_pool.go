@@ -325,7 +325,7 @@ func (rh *storagePoolRecoveryReplayHandler) Done() (bool, error) {
 		// defer to the storage service to automatically clean up abandoned namespaces after all
 		// storage pools have been initialized.
 
-		// TODO: Delete any NVMe Namespaces that are abandoned
+		// TODO: delete storage pool
 
 	case storagePoolStorageCreateCompleteLogEntryType, storagePoolStorageDeleteStartLogEntryType:
 		// Case 1. Create Complete: In this case, we've fully created the storage pool and it should be

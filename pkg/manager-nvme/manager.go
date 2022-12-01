@@ -191,6 +191,35 @@ func findStoragePool(storageId, storagePoolId string) (*Storage, *interface{}) {
 	return nil, nil
 }
 
+// TODO: This is duplicating storage_pool.go::storagePoolPersistentVolumeInfo. Should we only define it here instead?
+type PersistentVolumeInfo struct {
+	SerialNumber string                   `json:"SerialNumber"`
+	NamespaceId  nvme.NamespaceIdentifier `json:"NamespaceId"`
+}
+
+func CleanupVolumes(volumesToKeep []PersistentVolumeInfo) error {
+	// For each storage device, build a list of namespaces to keep and then remove everything else
+	for _, storage := range mgr.storage {
+		if !storage.IsEnabled() {
+			continue
+		}
+
+		var namespacesToKeep []nvme.NamespaceIdentifier
+		for _, keepVolume := range volumesToKeep {
+			if keepVolume.SerialNumber == storage.serialNumber {
+				namespacesToKeep = append(namespacesToKeep, keepVolume.NamespaceId)
+			}
+		}
+
+		if err := storage.CleanupNamespaces(namespacesToKeep); err != nil {
+			// TODO return error here or just move to the next storage device?
+			return fmt.Errorf("Cleanup Volumes: Failed to remove abandoned namespaces on storage %s: %v", storage.id, err)
+		}
+	}
+
+	return nil
+}
+
 func (m *Manager) fmt(format string, a ...interface{}) string {
 	return fmt.Sprintf("/redfish/v1") + fmt.Sprintf(format, a...)
 }
@@ -390,12 +419,45 @@ func (s *Storage) initialize() error {
 }
 
 func (s *Storage) purge() error {
+	if s.device == nil {
+		return fmt.Errorf("Storage %s has no device", s.id)
+	}
+
 	namespaces, err := s.device.ListNamespaces(0)
 	if err != nil {
 		return err
 	}
 
 	for _, nsid := range namespaces {
+		if err := s.device.DeleteNamespace(nsid); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Storage) purgeExcept(namespaceIdsToKeep []nvme.NamespaceIdentifier) error {
+	if s.device == nil {
+		return fmt.Errorf("Storage %s has no device", s.id)
+	}
+
+	namespaces, err := s.device.ListNamespaces(0)
+	if err != nil {
+		return err
+	}
+
+namespace_loop:
+	for _, nsid := range namespaces {
+		// Skip over any namespaces that we want to keep
+		for _, ns := range namespaceIdsToKeep {
+			if nsid == ns {
+				log.Infof("Keeping namespace ID %d on storage %s", nsid, s.id)
+				continue namespace_loop
+			}
+		}
+
+		log.Infof("Removing namespace ID %d from storage %s", nsid, s.id)
 		if err := s.device.DeleteNamespace(nsid); err != nil {
 			return err
 		}
@@ -561,6 +623,10 @@ func (s *Storage) recoverVolumes() error {
 	}
 
 	return nil
+}
+
+func (s *Storage) CleanupNamespaces(namespacesToKeep []nvme.NamespaceIdentifier) error {
+	return s.purgeExcept(namespacesToKeep)
 }
 
 func (s *Storage) findVolume(volumeId string) *Volume {
