@@ -26,11 +26,6 @@ import (
 	"github.com/NearNodeFlash/nnf-ec/pkg/var_handler"
 )
 
-const (
-	UserID = "userID"
-	GroupID = "groupID"
-)
-
 // FileSystemXfs establishes an XFS file system on an underlying LVM logical volume.
 type FileSystemXfs struct {
 	FileSystemLvm
@@ -87,7 +82,12 @@ func (f *FileSystemXfs) Create(devices []string, opts FileSystemOptions) (err er
 		return err
 	}
 
-	defer func() { err = f.Unmount(mountpath) }()
+	defer func() {
+		unmountErr := f.Unmount(mountpath)
+		if err == nil {
+			err = unmountErr
+		}
+	}()
 
 	if err := os.Chown(mountpath, userID, groupID); err != nil {
 		return err

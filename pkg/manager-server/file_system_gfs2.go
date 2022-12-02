@@ -120,7 +120,12 @@ func (f *FileSystemGfs2) Create(devices []string, opts FileSystemOptions) (err e
 		return err
 	}
 
-	defer func() { err = f.Unmount(mountpath) }()
+	defer func() {
+		unmountErr := f.Unmount(mountpath)
+		if err == nil {
+			err = unmountErr
+		}
+	}()
 
 	if err := os.Chown(mountpath, userID, groupID); err != nil {
 		return err
