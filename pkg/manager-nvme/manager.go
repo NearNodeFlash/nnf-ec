@@ -26,6 +26,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/NearNodeFlash/nnf-ec/pkg/api"
 	event "github.com/NearNodeFlash/nnf-ec/pkg/manager-event"
@@ -257,22 +258,6 @@ func CreateVolume(s *Storage, capacityBytes uint64) (*Volume, error) {
 	return s.createVolume(capacityBytes)
 }
 
-func DeleteVolume(v *Volume) error {
-	return v.storage.deleteVolume(v.id)
-}
-
-func FormatVolumeAndWaitForComplete(v *Volume) error {
-	return v.storage.formatVolumeAndWaitForComplete(v.id)
-}
-
-func AttachController(v *Volume, controllerId uint16) error {
-	return v.attach(controllerId)
-}
-
-func DetachController(v *Volume, controllerId uint16) error {
-	return v.detach(controllerId)
-}
-
 func (s *Storage) UnallocatedBytes() uint64 { return s.unallocatedBytes }
 func (s *Storage) IsEnabled() bool          { return s.state == sf.ENABLED_RST }
 func (s *Storage) SerialNumber() string     { return s.serialNumber }
@@ -483,26 +468,6 @@ func (s *Storage) formatVolume(volumeID string) error {
 	return ec.NewErrNotFound()
 }
 
-func (s *Storage) formatVolumeAndWaitForComplete(volumeID string) error {
-	// Launch formats for all namespaces
-	if err := s.formatVolume(volumeID); err != nil {
-		return err
-	}
-
-	// Wait all formats to finish
-	for _, volume := range s.volumes {
-		if volume.id == volumeID {
-			if err := s.device.WaitFormatComplete(volume.namespaceId); err != nil {
-				return err
-			}
-
-			return nil
-		}
-	}
-
-	return ec.NewErrNotFound()
-}
-
 func (s *Storage) recoverVolumes() error {
 	namespaces, err := s.device.ListNamespaces(0)
 	if err != nil {
@@ -548,6 +513,12 @@ func (v *Volume) GetGloballyUniqueIdentifier() nvme.NamespaceGloballyUniqueIdent
 	return v.guid
 }
 
+func (v *Volume) Delete() error { return v.storage.deleteVolume(v.id) }
+func (v *Volume) Format() error { return v.storage.formatVolume(v.id) }
+
+func (v *Volume) AttachController(controllerId uint16) error { return v.attach(controllerId) }
+func (v *Volume) DetachController(controllerId uint16) error { return v.detach(controllerId) }
+
 func (v *Volume) SetFeature(data []byte) error {
 
 	// Set feature requires the volume is attached to receive the feature data. We attach
@@ -562,6 +533,36 @@ func (v *Volume) SetFeature(data []byte) error {
 	}
 
 	return v.detach(v.storage.physicalFunctionControllerId)
+}
+
+// Wait for Format Completion by polling on the namespace Utilization value to reach zero.
+func (v *Volume) WaitFormatComplete() error {
+
+	ns, err := v.storage.device.IdentifyNamespace(v.namespaceId)
+	if err != nil {
+		return err
+	}
+
+	for ns.Utilization != 0 {
+
+		const delay = 100 * time.Millisecond
+		
+		// Pause briefly for format to make progress
+		time.Sleep(delay)
+
+		lastUtilization := ns.Utilization
+
+		ns, err = v.storage.device.IdentifyNamespace(v.namespaceId)
+		if err != nil {
+			return err
+		}
+
+		if lastUtilization == ns.Utilization {
+			return fmt.Errorf("Device %s Format Stalled: Namespace: %d Delay: %s", v.storage.id, v.namespaceId, delay.String())
+		}
+	}
+
+	return nil
 }
 
 func (v *Volume) attach(controllerId uint16) error {

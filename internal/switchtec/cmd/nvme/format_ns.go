@@ -43,11 +43,7 @@ func (cmd *FormatNsCmd) Run() error {
 	if err = dev.FormatNamespace(cmd.NamespaceID); err != nil {
 		return err
 	}
-
-	if err = dev.WaitFormatComplete(cmd.NamespaceID); err != nil {
-		return err
-	}
-
+	
 	fmt.Printf("\nSuccess, formatting nsid: %d\n", cmd.NamespaceID)
 
 	return nil
