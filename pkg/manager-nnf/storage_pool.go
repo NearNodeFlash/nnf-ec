@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	nvme2 "github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
 	"github.com/NearNodeFlash/nnf-ec/pkg/persistent"
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
@@ -40,7 +41,7 @@ type StoragePool struct {
 	policy AllocationPolicy
 
 	allocatedVolume  AllocatedVolume
-	providingVolumes []ProvidingVolume
+	providingVolumes []nvme.ProvidingVolume
 
 	storageGroupIds []string
 	fileSystemId    string
@@ -53,14 +54,9 @@ type AllocatedVolume struct {
 	capacityBytes uint64
 }
 
-type ProvidingVolume struct {
-	storage  *nvme.Storage
-	volumeId string
-}
-
 func (p *StoragePool) GetCapacityBytes() (capacityBytes uint64) {
 	for _, pv := range p.providingVolumes {
-		capacityBytes += pv.storage.FindVolume(pv.volumeId).GetCapaityBytes()
+		capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapaityBytes()
 	}
 	return capacityBytes
 }
@@ -109,7 +105,7 @@ func (p *StoragePool) findStorageGroupByEndpoint(endpoint *Endpoint) *StorageGro
 	return nil
 }
 
-func (p *StoragePool) recoverVolumes(volumes []nvme.PersistentVolumeInfo, ignoreErrors bool) error {
+func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, ignoreErrors bool) error {
 
 	log.Infof("Storage Pool %s: Recover Volumes", p.id)
 
@@ -133,9 +129,9 @@ func (p *StoragePool) recoverVolumes(volumes []nvme.PersistentVolumeInfo, ignore
 			return err
 		}
 
-		p.providingVolumes = append(p.providingVolumes, ProvidingVolume{
-			storage:  storage,
-			volumeId: volume.Id(),
+		p.providingVolumes = append(p.providingVolumes, nvme.ProvidingVolume{
+			Storage:  storage,
+			VolumeId: volume.Id(),
 		})
 
 	}
@@ -153,13 +149,13 @@ func (p *StoragePool) deallocateVolumes() error {
 	// Format runs asynchronously on each namespace. Launch format for each namespace
 	// and wait all format operations to complete.
 	for _, pv := range p.providingVolumes {
-		if err := nvme.FormatVolumeAndWaitForComplete(pv.storage.FindVolume(pv.volumeId)); err != nil {
+		if err := nvme.FormatVolumeAndWaitForComplete(pv.Storage.FindVolume(pv.VolumeId)); err != nil {
 			return err
 		}
 	}
 
 	for _, pv := range p.providingVolumes {
-		if err := nvme.DeleteVolume(pv.storage.FindVolume(pv.volumeId)); err != nil {
+		if err := nvme.DeleteVolume(pv.Storage.FindVolume(pv.VolumeId)); err != nil {
 			return err
 		}
 	}
@@ -186,8 +182,13 @@ type storagePoolPersistentMetadata struct {
 }
 
 type storagePoolPersistentCreateCompleteLogEntry struct {
-	Volumes       []nvme.PersistentVolumeInfo `json:"Volumes,omitempty"`
-	CapacityBytes uint64                      `json:"CapacityBytes"`
+	Volumes       []storagePoolPersistentVolumeInfo `json:"Volumes,omitempty"`
+	CapacityBytes uint64                            `json:"CapacityBytes"`
+}
+
+type storagePoolPersistentVolumeInfo struct {
+	SerialNumber string                    `json:"SerialNumber"`
+	NamespaceId  nvme2.NamespaceIdentifier `json:"NamespaceId"`
 }
 
 func (p *StoragePool) GetKey() string                       { return storagePoolRegistryPrefix + p.id }
@@ -205,14 +206,14 @@ func (p *StoragePool) GenerateStateData(state uint32) ([]byte, error) {
 	switch state {
 	case storagePoolStorageCreateCompleteLogEntryType:
 		entry := storagePoolPersistentCreateCompleteLogEntry{
-			Volumes:       make([]nvme.PersistentVolumeInfo, len(p.providingVolumes)),
+			Volumes:       make([]storagePoolPersistentVolumeInfo, len(p.providingVolumes)),
 			CapacityBytes: p.GetCapacityBytes(),
 		}
 
 		for idx, pv := range p.providingVolumes {
-			entry.Volumes[idx] = nvme.PersistentVolumeInfo{
-				SerialNumber: pv.storage.SerialNumber(),
-				NamespaceId:  pv.storage.FindVolume(pv.volumeId).GetNamespaceId(),
+			entry.Volumes[idx] = storagePoolPersistentVolumeInfo{
+				SerialNumber: pv.Storage.SerialNumber(),
+				NamespaceId:  pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId(),
 			}
 		}
 
@@ -274,7 +275,7 @@ type storagePoolRecoveryReplayHandler struct {
 	storagePool *StoragePool
 
 	// List of volume information associated with the storage pool. Only valid if last log entry > storagePoolStorageCreateCompleteLogEntryType
-	volumes []nvme.PersistentVolumeInfo
+	volumes []storagePoolPersistentVolumeInfo
 }
 
 func (rh *storagePoolRecoveryReplayHandler) Metadata(data []byte) error {

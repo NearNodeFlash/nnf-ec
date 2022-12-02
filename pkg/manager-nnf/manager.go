@@ -201,7 +201,7 @@ func (s *StorageService) createStorageGroup(id string, sp *StoragePool, endpoint
 
 	expectedNamespaces := make([]server.StorageNamespace, len(sp.providingVolumes))
 	for idx, pv := range sp.providingVolumes {
-		volume := pv.storage.FindVolume(pv.volumeId)
+		volume := pv.Storage.FindVolume(pv.VolumeId)
 		expectedNamespaces[idx] = server.StorageNamespace{
 			Id:   volume.GetNamespaceId(),
 			Guid: volume.GetGloballyUniqueIdentifier(),
@@ -367,20 +367,19 @@ func (s *StorageService) Id() string {
 	return s.id
 }
 
-func (s *StorageService) cleanupVolumes() error {
-	// Build a list of all the known volumes/namespaces
-	var deviceNamespaces []nvme.PersistentVolumeInfo
+func (s *StorageService) cleanupVolumes() {
+	// Build a list of all providing volumes from all storage pools
+	var providingVolumes []nvme.ProvidingVolume
 	for _, pool := range s.pools {
 		for _, volume := range pool.providingVolumes {
-			deviceNamespaces = append(deviceNamespaces, nvme.PersistentVolumeInfo{
-				SerialNumber: volume.storage.SerialNumber(),
-				NamespaceId:  volume.storage.FindVolume(volume.volumeId).GetNamespaceId(),
+			providingVolumes = append(providingVolumes, nvme.ProvidingVolume{
+				Storage:  volume.Storage,
+				VolumeId: volume.VolumeId,
 			})
 		}
 	}
 
-	// Remove any unknown namespaces
-	return nvme.CleanupVolumes(deviceNamespaces)
+	nvme.CleanupVolumes(providingVolumes)
 }
 
 // Initialize is responsible for initializing the NNF Storage Service; the
@@ -554,11 +553,12 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		}
 
 		// Remove any namespaces that are not part of a Storage Pool
-		log.Infof("Storage Service: Removing volumes/namespaces that are not allocated as part of a Storage Pool")
-		if err := s.cleanupVolumes(); err != nil {
-			log.WithError(err).Errorf("Failed to cleanup volumes")
-			return err
-		}
+		log.Infof("Storage Service: Removing Volumes that are not allocated as part of a Storage Pool")
+		s.cleanupVolumes()
+		// if err := s.cleanupVolumes(); err != nil {
+		// 	log.WithError(err).Errorf("Failed to cleanup volumes")
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -880,7 +880,7 @@ func (*StorageService) StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVol
 	model.MembersodataCount = int64(len(p.providingVolumes))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
 	for idx, pv := range p.providingVolumes {
-		model.Members[idx] = sf.OdataV4IdRef{OdataId: pv.storage.FindVolume(pv.volumeId).GetOdataId()}
+		model.Members[idx] = sf.OdataV4IdRef{OdataId: pv.Storage.FindVolume(pv.VolumeId).GetOdataId()}
 	}
 
 	return nil
@@ -987,7 +987,7 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 
 	updateFunc := func() error {
 		for _, pv := range sp.providingVolumes {
-			if err := nvme.AttachController(pv.storage.FindVolume(pv.volumeId), sg.endpoint.controllerId); err != nil {
+			if err := nvme.AttachController(pv.Storage.FindVolume(pv.VolumeId), sg.endpoint.controllerId); err != nil {
 				return err
 			}
 		}
@@ -1081,7 +1081,7 @@ func (*StorageService) StorageServiceIdStorageGroupIdDelete(storageServiceId, st
 
 		// Detach the endpoint from the NVMe namespaces
 		for _, pv := range sp.providingVolumes {
-			if err := nvme.DetachController(pv.storage.FindVolume(pv.volumeId), sg.endpoint.controllerId); err != nil {
+			if err := nvme.DetachController(pv.Storage.FindVolume(pv.VolumeId), sg.endpoint.controllerId); err != nil {
 				return ec.NewErrInternalServerError().WithResourceType(StorageGroupOdataType).WithError(err).WithCause(fmt.Sprintf("Storage group '%s' failed to detach controller '%d'", storageGroupId, sg.endpoint.controllerId))
 			}
 		}

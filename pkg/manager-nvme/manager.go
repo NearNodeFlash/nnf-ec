@@ -143,9 +143,10 @@ type Volume struct {
 
 	storage *Storage
 }
-type PersistentVolumeInfo struct {
-	SerialNumber string                   `json:"SerialNumber"`
-	NamespaceId  nvme.NamespaceIdentifier `json:"NamespaceId"`
+
+type ProvidingVolume struct {
+	Storage  *Storage
+	VolumeId string
 }
 
 // TODO: We may want to put this manager under a resource block
@@ -195,27 +196,23 @@ func findStoragePool(storageId, storagePoolId string) (*Storage, *interface{}) {
 	return nil, nil
 }
 
-func CleanupVolumes(volumesToKeep []PersistentVolumeInfo) error {
-	// For each storage device, build a list of namespaces to keep and then remove everything else
+func CleanupVolumes(providingVolumes []ProvidingVolume) {
 	for _, storage := range mgr.storage {
 		if !storage.IsEnabled() {
 			continue
 		}
 
-		var namespacesToKeep []nvme.NamespaceIdentifier
-		for _, keepVolume := range volumesToKeep {
-			if keepVolume.SerialNumber == storage.serialNumber {
-				namespacesToKeep = append(namespacesToKeep, keepVolume.NamespaceId)
+		var volIdsToKeep []string
+		for _, vol := range providingVolumes {
+			if vol.Storage.serialNumber == storage.serialNumber {
+				volIdsToKeep = append(volIdsToKeep, vol.VolumeId)
 			}
 		}
 
-		if err := storage.CleanupNamespaces(namespacesToKeep); err != nil {
-			// TODO return error here or just move to the next storage device?
-			return fmt.Errorf("Cleanup Volumes: Failed to remove abandoned namespaces on storage %s: %v", storage.id, err)
+		if err := storage.purgeVolumes(volIdsToKeep); err != nil {
+			log.Errorf("Cleanup Volumes: Failed to remove abandoned volumes on storage %s: %v", storage.id, err)
 		}
 	}
-
-	return nil
 }
 
 func (m *Manager) fmt(format string, a ...interface{}) string {
@@ -435,28 +432,21 @@ func (s *Storage) purge() error {
 	return nil
 }
 
-func (s *Storage) purgeExcept(namespaceIdsToKeep []nvme.NamespaceIdentifier) error {
+func (s *Storage) purgeVolumes(volIdsToKeep []string) error {
 	if s.device == nil {
 		return fmt.Errorf("Storage %s has no device", s.id)
 	}
 
-	namespaces, err := s.device.ListNamespaces(0)
-	if err != nil {
-		return err
-	}
-
-namespace_loop:
-	for _, nsid := range namespaces {
-		// Skip over any namespaces that we want to keep
-		for _, ns := range namespaceIdsToKeep {
-			if nsid == ns {
-				log.Infof("Keeping namespace ID %d on storage %s", nsid, s.id)
-				continue namespace_loop
+vol_loop:
+	for _, vol := range s.volumes {
+		for _, volIdToKeep := range volIdsToKeep {
+			if volIdToKeep == vol.id {
+				continue vol_loop
 			}
 		}
 
-		log.Infof("Removing namespace ID %d from storage %s", nsid, s.id)
-		if err := s.device.DeleteNamespace(nsid); err != nil {
+		log.Infof("Storage %s Volume ID %s is being removed", s.id, vol.id)
+		if err := s.deleteVolume(vol.id); err != nil {
 			return err
 		}
 	}
@@ -621,10 +611,6 @@ func (s *Storage) recoverVolumes() error {
 	}
 
 	return nil
-}
-
-func (s *Storage) CleanupNamespaces(namespacesToKeep []nvme.NamespaceIdentifier) error {
-	return s.purgeExcept(namespacesToKeep)
 }
 
 func (s *Storage) findVolume(volumeId string) *Volume {
