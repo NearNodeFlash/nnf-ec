@@ -144,6 +144,11 @@ type Volume struct {
 	storage *Storage
 }
 
+type ProvidingVolume struct {
+	Storage  *Storage
+	VolumeId string
+}
+
 // TODO: We may want to put this manager under a resource block
 //   /​redfish/​v1/​ResourceBlocks/​{ResourceBlockId} // <- Rabbit
 //   /​redfish/​v1/​ResourceBlocks/​{ResourceBlockId}/​Systems/{​ComputerSystemId} // <- Also Rabbit & Computes
@@ -189,6 +194,25 @@ func findStorageVolume(storageId, volumeId string) (*Storage, *Volume) {
 
 func findStoragePool(storageId, storagePoolId string) (*Storage, *interface{}) {
 	return nil, nil
+}
+
+func CleanupVolumes(providingVolumes []ProvidingVolume) {
+	for _, storage := range mgr.storage {
+		if !storage.IsEnabled() {
+			continue
+		}
+
+		var volIdsToKeep []string
+		for _, vol := range providingVolumes {
+			if vol.Storage.serialNumber == storage.serialNumber {
+				volIdsToKeep = append(volIdsToKeep, vol.VolumeId)
+			}
+		}
+
+		if err := storage.purgeVolumes(volIdsToKeep); err != nil {
+			log.Errorf("Cleanup Volumes: Failed to remove abandoned volumes on storage %s: %v", storage.id, err)
+		}
+	}
 }
 
 func (m *Manager) fmt(format string, a ...interface{}) string {
@@ -386,6 +410,10 @@ func (s *Storage) initialize() error {
 }
 
 func (s *Storage) purge() error {
+	if s.device == nil {
+		return fmt.Errorf("Storage %s has no device", s.id)
+	}
+
 	namespaces, err := s.device.ListNamespaces(0)
 	if err != nil {
 		return err
@@ -393,6 +421,34 @@ func (s *Storage) purge() error {
 
 	for _, nsid := range namespaces {
 		if err := s.device.DeleteNamespace(nsid); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Delete all the volumes on this storage device except for the volumes that we want to keep
+func (s *Storage) purgeVolumes(volIdsToKeep []string) error {
+	if s.device == nil {
+		return fmt.Errorf("Storage %s has no device", s.id)
+	}
+
+	var volIdsToDelete []string
+
+vol_loop:
+	for _, vol := range s.volumes {
+		for _, volIdToKeep := range volIdsToKeep {
+			if volIdToKeep == vol.id {
+				continue vol_loop
+			}
+		}
+		volIdsToDelete = append(volIdsToDelete, vol.id)
+	}
+
+	for _, volId := range volIdsToDelete {
+		log.Infof("Storage %s Volume ID %s is being removed", s.id, volId)
+		if err := s.deleteVolume(volId); err != nil {
 			return err
 		}
 	}
