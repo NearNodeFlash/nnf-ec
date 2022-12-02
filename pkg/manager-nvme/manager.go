@@ -432,10 +432,13 @@ func (s *Storage) purge() error {
 	return nil
 }
 
+// Delete all the volumes on this storage device except for the volumes that we want to keep
 func (s *Storage) purgeVolumes(volIdsToKeep []string) error {
 	if s.device == nil {
 		return fmt.Errorf("Storage %s has no device", s.id)
 	}
+
+	var volIdsToDelete []string
 
 vol_loop:
 	for _, vol := range s.volumes {
@@ -444,9 +447,12 @@ vol_loop:
 				continue vol_loop
 			}
 		}
+		volIdsToDelete = append(volIdsToDelete, vol.id)
+	}
 
-		log.Infof("Storage %s Volume ID %s is being removed", s.id, vol.id)
-		if err := s.deleteVolume(vol.id); err != nil {
+	for _, volId := range volIdsToDelete {
+		log.Infof("Storage %s Volume ID %s is being removed", s.id, volId)
+		if err := s.deleteVolume(volId); err != nil {
 			return err
 		}
 	}

@@ -555,10 +555,6 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		// Remove any namespaces that are not part of a Storage Pool
 		log.Infof("Storage Service: Removing Volumes that are not allocated as part of a Storage Pool")
 		s.cleanupVolumes()
-		// if err := s.cleanupVolumes(); err != nil {
-		// 	log.WithError(err).Errorf("Failed to cleanup volumes")
-		// 	return err
-		// }
 	}
 
 	return nil
