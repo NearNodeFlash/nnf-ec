@@ -148,11 +148,15 @@ func (p *StoragePool) deallocateVolumes() error {
 	// In order to speed up deleting volumes, we format them first.
 	// Format runs asynchronously on each namespace. Launch format for each namespace
 	// and wait all format operations to complete.
-	for _, pv := range p.providingVolumes {
-		if err := nvme.FormatVolumeAndWaitForComplete(pv.Storage.FindVolume(pv.VolumeId)); err != nil {
-			return err
+
+	/*
+		TEMP: Can't do this just yet - the format must be attached to a controller
+		for _, pv := range p.providingVolumes {
+			if err := nvme.FormatVolumeAndWaitForComplete(pv.Storage.FindVolume(pv.VolumeId)); err != nil {
+				return err
+			}
 		}
-	}
+	*/
 
 	for _, pv := range p.providingVolumes {
 		if err := nvme.DeleteVolume(pv.Storage.FindVolume(pv.VolumeId)); err != nil {
