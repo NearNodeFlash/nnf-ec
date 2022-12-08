@@ -30,6 +30,7 @@ Commands:
     create [SIZE-IN-BYTES]               create an nvme namespace on each drive of the specified size. (0 implies max capacity)
     attach [NAMESPACE-ID] [CONTROLLER]   attach namespaces from each drive to a controller
     delete [NAMESPACE-ID]                delete an nvme namespace on each drive
+    detach [NAMESPACE-ID] [CONTROLLER]   detach namespaces from each drive for a controller
     list                                 list the nvme namespaces on each drive
     list-pdfid                           list the physical device fabric ID (PDFID) of each drive
 
@@ -131,6 +132,14 @@ case $1 in
             TIME switchtec-nvme delete-ns "$DRIVE" --namespace-id="$NAMESPACE"
         }
         execute delete_ns "${2:-1}"
+        ;;
+    detach)
+        function detach_ns() {
+            local DRIVE=$1 NAMESPACE=$2 CONTROLLER=$3
+            echo "Detaching Namespace $NAMESPACE on $DRIVE from Controller $CONTROLLER"
+            TIME switchtec-nvme detach-ns "$DRIVE" --namespace-id="$NAMESPACE" --controllers="$CONTROLLER"
+        }
+        execute detach_ns "${2:-1}" "${3:-3}"
         ;;
     list)
         function list_ns() {
