@@ -71,7 +71,7 @@ case $CMD in
         declare -a DEVICES=("pax0 /dev/ttyS9" "pax1 /dev/ttyS11")
         for DEVICE in "${DEVICES[@]}"
         do
-            PAX=$(echo $DEVICE | cut -w -f1)
+            PAX=$(echo $DEVICE | cut -d' ' -f1)
 
             echo "Enabling Logging on $PAX"
             $SSHPASS ssh -T root@$SYSTEM <<-EOF
