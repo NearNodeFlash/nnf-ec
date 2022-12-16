@@ -41,7 +41,7 @@ type StoragePool struct {
 	policy AllocationPolicy
 
 	allocatedVolume  AllocatedVolume
-	providingVolumes []ProvidingVolume
+	providingVolumes []nvme.ProvidingVolume
 
 	storageGroupIds []string
 	fileSystemId    string
@@ -54,14 +54,9 @@ type AllocatedVolume struct {
 	capacityBytes uint64
 }
 
-type ProvidingVolume struct {
-	storage  *nvme.Storage
-	volumeId string
-}
-
 func (p *StoragePool) GetCapacityBytes() (capacityBytes uint64) {
 	for _, pv := range p.providingVolumes {
-		capacityBytes += pv.storage.FindVolume(pv.volumeId).GetCapaityBytes()
+		capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapaityBytes()
 	}
 	return capacityBytes
 }
@@ -134,9 +129,9 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, 
 			return err
 		}
 
-		p.providingVolumes = append(p.providingVolumes, ProvidingVolume{
-			storage:  storage,
-			volumeId: volume.Id(),
+		p.providingVolumes = append(p.providingVolumes, nvme.ProvidingVolume{
+			Storage:  storage,
+			VolumeId: volume.Id(),
 		})
 
 	}
@@ -155,9 +150,9 @@ func (p *StoragePool) deallocateVolumes() error {
 
 	runOnProvidingVolumes := func(volFn func(*nvme.Volume) error) error {
 		for _, pv := range p.providingVolumes {
-			volume := pv.storage.FindVolume(pv.volumeId)
+			volume := pv.Storage.FindVolume(pv.VolumeId)
 			if volume == nil {
-				return fmt.Errorf("Volume %s not found", pv.volumeId)
+				return fmt.Errorf("Volume %s not found", pv.VolumeId)
 			}
 
 			if err := volFn(volume); err != nil {
@@ -232,8 +227,8 @@ func (p *StoragePool) GenerateStateData(state uint32) ([]byte, error) {
 
 		for idx, pv := range p.providingVolumes {
 			entry.Volumes[idx] = storagePoolPersistentVolumeInfo{
-				SerialNumber: pv.storage.SerialNumber(),
-				NamespaceId:  pv.storage.FindVolume(pv.volumeId).GetNamespaceId(),
+				SerialNumber: pv.Storage.SerialNumber(),
+				NamespaceId:  pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId(),
 			}
 		}
 
@@ -340,7 +335,7 @@ func (rh *storagePoolRecoveryReplayHandler) Done() (bool, error) {
 		// defer to the storage service to automatically clean up abandoned namespaces after all
 		// storage pools have been initialized.
 
-		// TODO: Delete any NVMe Namespaces that are abandoned
+		// TODO: delete storage pool
 
 	case storagePoolStorageCreateCompleteLogEntryType, storagePoolStorageDeleteStartLogEntryType:
 		// Case 1. Create Complete: In this case, we've fully created the storage pool and it should be

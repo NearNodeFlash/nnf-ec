@@ -125,9 +125,9 @@ func (sg *StorageGroup) Rollback(state uint32) error {
 		}
 
 		for _, pv := range sp.providingVolumes {
-			volume := pv.storage.FindVolume(pv.volumeId)
+			volume := pv.Storage.FindVolume(pv.VolumeId)
 			if volume == nil {
-				return fmt.Errorf("Rollback Storage Group %s Create Start: Volume %s not found", sg.id, pv.volumeId)
+				return fmt.Errorf("Rollback Storage Group %s Create Start: Volume %s not found", sg.id, pv.VolumeId)
 			}
 
 			if err := volume.DetachController(sg.endpoint.controllerId); err != nil {
@@ -144,9 +144,9 @@ func (sg *StorageGroup) Rollback(state uint32) error {
 		}
 
 		for _, pv := range sp.providingVolumes {
-			volume := pv.storage.FindVolume(pv.volumeId)
+			volume := pv.Storage.FindVolume(pv.VolumeId)
 			if volume == nil {
-				return fmt.Errorf("Rollback Storage Group %s Delete Start: Volume %s not found", sg.id, pv.volumeId)
+				return fmt.Errorf("Rollback Storage Group %s Delete Start: Volume %s not found", sg.id, pv.VolumeId)
 			}
 
 			if err := volume.AttachController(sg.endpoint.controllerId); err != nil {
@@ -215,9 +215,9 @@ func (rh *storageGroupRecoveryReplyHandler) Done() (bool, error) {
 
 		sp := rh.storageService.findStoragePool(sg.storagePoolId)
 		for _, pv := range sp.providingVolumes {
-			volume := pv.storage.FindVolume(pv.volumeId)
+			volume := pv.Storage.FindVolume(pv.VolumeId)
 			if volume == nil {
-				return false, fmt.Errorf("Storage Group %s Recover: Volume %s not found", sg.id, pv.volumeId)
+				return false, fmt.Errorf("Storage Group %s Recover: Volume %s not found", sg.id, pv.VolumeId)
 			}
 
 			if err := volume.DetachController(sg.endpoint.controllerId); err != nil {
