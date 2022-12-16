@@ -125,7 +125,7 @@ func (p *SpareAllocationPolicy) Initialize(capacityBytes uint64) error {
 
 	storage := []*nvme.Storage{}
 	for _, s := range nvme.GetStorage() {
-		if s.IsEnabled() {
+		if s.IsEnabled() && s.UnallocatedBytes() > 0 {
 			storage = append(storage, s)
 		}
 	}
@@ -148,7 +148,7 @@ func (p *SpareAllocationPolicy) Initialize(capacityBytes uint64) error {
 
 func (p *SpareAllocationPolicy) CheckCapacity() error {
 	if p.capacityBytes == 0 {
-		return fmt.Errorf("Requested capacity %#x is invalid", p.capacityBytes)
+		return fmt.Errorf("Requested capacity must be non-zero")
 	}
 
 	var availableBytes = uint64(0)
@@ -157,7 +157,7 @@ func (p *SpareAllocationPolicy) CheckCapacity() error {
 	}
 
 	if availableBytes < p.capacityBytes {
-		return fmt.Errorf("Insufficient capacity available. Requested: %#x Available: %#x", p.capacityBytes, availableBytes)
+		return fmt.Errorf("Insufficient capacity available. Requested: %d Available: %d", p.capacityBytes, availableBytes)
 	}
 
 	if p.compliance != RelaxedAllocationComplianceType {
@@ -166,8 +166,16 @@ func (p *SpareAllocationPolicy) CheckCapacity() error {
 			return fmt.Errorf("Insufficient drive count. Available %d", len(p.storage))
 		}
 
-		if p.capacityBytes%uint64(len(p.storage)) != 0 {
-			return fmt.Errorf("Requested capacity is a non-multiple of available storage")
+		roundUpToMultiple := func(n, m uint64) uint64 { // Round 'n' up to a multiple of 'm'
+			return ((n + m - 1) / m) * m
+		}
+
+		// Validate each drive can contribute sufficient capacity towards the entire pool.
+		driveCapacityBytes := roundUpToMultiple(roundUpToMultiple(p.capacityBytes, 16) / 16, 4096)
+		for _, s := range p.storage {
+			if driveCapacityBytes > s.UnallocatedBytes() {
+				return fmt.Errorf("Insufficient drive capacity available. Requested: %d Available: %d", driveCapacityBytes, s.UnallocatedBytes())
+			}
 		}
 	}
 
