@@ -78,7 +78,7 @@ func (mgr *MockNvmePersistenceManager) close() error {
 // all the NVMe Namespaces with the attached Controllers.
 func (mgr *MockNvmePersistenceManager) load(dev *mockDevice) error {
 
-	dev.allocatedCapacity = 0
+	dev.allocatedCapacityInBytes = 0
 	for replayIdx := range mgr.replays {
 		replay := &mgr.replays[replayIdx]
 		if dev.id() == replay.id {
@@ -96,7 +96,7 @@ func (mgr *MockNvmePersistenceManager) load(dev *mockDevice) error {
 					ns.attachedControllers[ctrlId] = &dev.controllers[ctrlId]
 				}
 
-				dev.allocatedCapacity += ns.capacityInBytes
+				dev.allocatedCapacityInBytes += ns.capacityInBytes
 			}
 
 			return nil
