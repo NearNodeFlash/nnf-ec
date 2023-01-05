@@ -26,11 +26,12 @@ import (
 )
 
 type ControllerError struct {
-	statusCode   int
-	cause        string
-	resourceType string
-	err          error
-	Event        interface{}
+	statusCode          int
+	retryDelayInSeconds int
+	cause               string
+	resourceType        string
+	err                 error
+	Event               interface{}
 }
 
 func NewControllerError(sc int) *ControllerError {
@@ -41,6 +42,9 @@ func (e *ControllerError) Error() string {
 	errorString := fmt.Sprintf("Error %d: %s", e.statusCode, http.StatusText(e.statusCode))
 	if len(e.cause) != 0 {
 		errorString += fmt.Sprintf(", Cause: %s", e.cause)
+	}
+	if len(e.resourceType) != 0 {
+		errorString += fmt.Sprintf(", Resource: %s", e.resourceType)
 	}
 	if e.err != nil {
 		errorString += fmt.Sprintf(", Internal Error: %s", e.err)
@@ -88,8 +92,26 @@ func (e *ControllerError) WithEvent(event interface{}) *ControllerError {
 	return e
 }
 
+func (e *ControllerError) WithRetryDelay(retryDelayInSeconds int) *ControllerError {
+	e.retryDelayInSeconds = retryDelayInSeconds
+	return e
+}
+
+func (e *ControllerError) IsRetryable() bool {
+	return e.statusCode != http.StatusTooManyRequests
+}
+
+func (e *ControllerError) RetryDelay() int {
+	return e.retryDelayInSeconds
+}
+
 // NewErr** Functions will allocate a controller error for the specific type of error.
 // Error details can be added through the use of WithError(err) and WithCause(string) methods
+func NewErrorNotReady() *ControllerError {
+	// In HTTP, Error 429 (Too Many Requests) response indicates how long to wait before making a
+	// new request. We use that here to include a delay, in seconds, before making a new request.
+	return NewControllerError(http.StatusTooManyRequests).WithRetryDelay(1)
+}
 
 func NewErrNotFound() *ControllerError {
 	return NewControllerError(http.StatusNotFound)

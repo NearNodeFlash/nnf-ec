@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -1342,16 +1341,12 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedSharesPost(storageSer
 		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.ResourceNotFoundBase(StorageGroupOdataType, endpointId))
 	}
 
-refreshState:
-	switch sg.status().State {
-	case sf.ENABLED_RST:
-		break
-	case sf.STARTING_RST:
-		log.Infof("Storage group starting, delay 1s")
-		time.Sleep(time.Second)
-		goto refreshState
-	default:
-		return ec.NewErrNotAcceptable()
+	// Wait for the storage group to be ready (enabled) to ensure the disks are present on the system
+	state := sg.status().State
+	if state == sf.STARTING_RST {
+		return ec.NewErrorNotReady().WithResourceType(StorageGroupOdataType).WithCause(fmt.Sprintf("Storage group '%s' is starting", sg.id))
+	} else if state != sf.ENABLED_RST {
+		return ec.NewErrNotAcceptable().WithResourceType(StorageGroupOdataType).WithCause(fmt.Sprintf("Storage group '%s' is not ready: state %s", sg.id, state))
 	}
 
 	sh := fs.createFileShare(model.Id, sg, model.FileSharePath)
