@@ -23,15 +23,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type ControllerError struct {
-	statusCode          int
-	retryDelayInSeconds int
-	cause               string
-	resourceType        string
-	err                 error
-	Event               interface{}
+	statusCode   int
+	retryDelay   time.Duration
+	cause        string
+	resourceType string
+	err          error
+	Event        interface{}
 }
 
 func NewControllerError(sc int) *ControllerError {
@@ -41,7 +42,7 @@ func NewControllerError(sc int) *ControllerError {
 func (e *ControllerError) Error() string {
 	errorString := fmt.Sprintf("Error %d: %s", e.statusCode, http.StatusText(e.statusCode))
 	if e.IsRetryable() {
-		errorString += fmt.Sprintf(", Retry-Delay: %ds", e.retryDelayInSeconds)
+		errorString += fmt.Sprintf(", Retry-Delay: %ds", e.retryDelay)
 	}
 	if len(e.resourceType) != 0 {
 		errorString += fmt.Sprintf(", Resource: %s", e.resourceType)
@@ -95,8 +96,8 @@ func (e *ControllerError) WithEvent(event interface{}) *ControllerError {
 	return e
 }
 
-func (e *ControllerError) WithRetryDelay(retryDelayInSeconds int) *ControllerError {
-	e.retryDelayInSeconds = retryDelayInSeconds
+func (e *ControllerError) WithRetryDelay(delay time.Duration) *ControllerError {
+	e.retryDelay = delay
 	return e
 }
 
@@ -104,16 +105,16 @@ func (e *ControllerError) IsRetryable() bool {
 	return e.statusCode != http.StatusTooManyRequests
 }
 
-func (e *ControllerError) RetryDelay() int {
-	return e.retryDelayInSeconds
+func (e *ControllerError) RetryDelay() time.Duration {
+	return e.retryDelay
 }
 
 // NewErr** Functions will allocate a controller error for the specific type of error.
 // Error details can be added through the use of WithError(err) and WithCause(string) methods
 func NewErrorNotReady() *ControllerError {
 	// In HTTP, Error 429 (Too Many Requests) response indicates how long to wait before making a
-	// new request. We use that here to include a delay, in seconds, before making a new request.
-	return NewControllerError(http.StatusTooManyRequests).WithRetryDelay(1)
+	// new request. We use that here to include a delay (default 1s) before making a new request.
+	return NewControllerError(http.StatusTooManyRequests).WithRetryDelay(1 * time.Second)
 }
 
 func NewErrNotFound() *ControllerError {
