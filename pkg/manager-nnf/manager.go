@@ -531,6 +531,15 @@ func (s *StorageService) EventHandler(e event.Event) error {
 	if e.Is(msgreg.FabricReadyNnf("")) {
 		log.Infof("Storage Service: Event Received %+v", e)
 
+		if err := s.store.Replay(); err != nil {
+			log.WithError(err).Errorf("Failed to replay storage database")
+			return err
+		}
+
+		// Remove any namespaces that are not part of a Storage Pool
+		log.Infof("Storage Service: Removing Volumes that are not allocated as part of a Storage Pool")
+		s.cleanupVolumes()
+
 		s.state = sf.ENABLED_RST
 		s.health = sf.OK_RH
 
@@ -548,14 +557,7 @@ func (s *StorageService) EventHandler(e event.Event) error {
 			s.health = f.Status.Health
 		}
 
-		if err := s.store.Replay(); err != nil {
-			log.WithError(err).Errorf("Failed to replay storage database")
-			return err
-		}
-
-		// Remove any namespaces that are not part of a Storage Pool
-		log.Infof("Storage Service: Removing Volumes that are not allocated as part of a Storage Pool")
-		s.cleanupVolumes()
+		log.Infof("Storage Service Enabled: Health %s", s.health)
 	}
 
 	return nil
@@ -961,6 +963,8 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 	if sp == nil {
 		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolId))
 	}
+
+	// TODO RABSW-1110: Ensure storage pool is operational before creating a storage group
 
 	fields = strings.Split(model.Links.ServerEndpoint.OdataId, "/")
 	if len(fields) != s.resourceIndex+1 {
