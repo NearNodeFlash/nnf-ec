@@ -72,7 +72,7 @@ execute() {
     SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
     for SWITCH in "${SWITCHES[@]}";
     do
-        mapfile -t PDFIDS < <(switchtec fabric gfms-dump "${SWITCH}" | grep "Function 0 " -A1 | grep PDFID | awk '{print $2}')
+        mapfile -t PDFIDS < <(switchtec fabric gfms-dump "${SWITCH}" | grep "Function 0 (SRIOV-PF)" -A1 | grep PDFID | awk '{print $2}')
         for INDEX in "${!PDFIDS[@]}";
         do
             "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}"
