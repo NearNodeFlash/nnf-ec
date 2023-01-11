@@ -52,6 +52,10 @@ do
             usage
             exit 0
             ;;
+        *)
+            usage
+            exit 1
+            ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -121,6 +125,14 @@ EOF
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
             screen -S $SESSION -X stuff "log -p off\nlog -m 0x54 -s3 -p off\nlog -m 0x82 -s3 -p off\nlog -m 0x84 -s3 -p off\n"
+EOF
+        done
+        ;;
+    switch-hang-logs)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\n"
 EOF
         done
         ;;

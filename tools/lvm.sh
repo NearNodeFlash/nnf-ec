@@ -25,7 +25,7 @@ Usage: $0 COMMAND [ARGS...]
 Commands:
     list-drives                         list the drives used in create/delete
     create [NAME] [NAMESPACE-ID]        create an LVM volume all drives
-    delete [NAME]                       delete an LVM volume
+    delete [NAME] [NAMESPACE-ID]        delete an LVM volume
 EOF
 }
 
