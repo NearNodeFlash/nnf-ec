@@ -106,6 +106,7 @@ displaySlotStatus() {
 
     # Make sure we can get the PAX ID
     if [ ! "$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "^PAX ID:" | awk '{print $3}')" ]; then
+        echo "Unable to retrieve PAX ID"
         exit $?
     fi
 
