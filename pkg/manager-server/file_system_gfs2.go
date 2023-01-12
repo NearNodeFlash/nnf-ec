@@ -69,6 +69,18 @@ func (*FileSystemGfs2) New(oem FileSystemOem) (FileSystemApi, error) {
 		return nil, fmt.Errorf("Cluster Name '%s' is invalid. Must match pattern '%s'", oem.Gfs2.ClusterName, exp.String())
 	}
 
+	if oem.LvmCmd.IsZero() {
+		oem.LvmCmd = oem.LvmCmd.Defaults()
+	}
+
+	if oem.Gfs2.IsZero() {
+		oem.Gfs2 = oem.Gfs2.Defaults()
+	}
+
+	if oem.MkfsMount.IsZero() {
+		oem.MkfsMount = oem.MkfsMount.Gfs2Defaults()
+	}
+
 	return &FileSystemGfs2{
 		FileSystemLvm: FileSystemLvm{
 			FileSystem: FileSystem{name: oem.Name},

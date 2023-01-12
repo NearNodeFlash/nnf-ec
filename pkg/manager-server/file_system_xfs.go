@@ -37,6 +37,15 @@ func init() {
 }
 
 func (*FileSystemXfs) New(oem FileSystemOem) (FileSystemApi, error) {
+
+	if oem.LvmCmd.IsZero() {
+		oem.LvmCmd = oem.LvmCmd.Defaults()
+	}
+
+	if oem.MkfsMount.IsZero() {
+		oem.MkfsMount = oem.MkfsMount.XfsDefaults()
+	}
+
 	return &FileSystemXfs{
 		FileSystemLvm: FileSystemLvm{
 			FileSystem: FileSystem{name: oem.Name},

@@ -200,6 +200,22 @@ type FileSystemOemMkfsMount struct {
 	Mount []string `json:"Mount,omitempty"`
 }
 
+func (oem FileSystemOemMkfsMount) IsZero() bool {
+	return len(oem.Mkfs) == 0 && len(oem.Mount) == 0
+}
+
+func (oem FileSystemOemMkfsMount) XfsDefaults() FileSystemOemMkfsMount {
+	return FileSystemOemMkfsMount{
+		Mkfs: "$DEVICE",
+	}
+}
+
+func (oem FileSystemOemMkfsMount) Gfs2Defaults() FileSystemOemMkfsMount {
+	return FileSystemOemMkfsMount{
+		Mkfs: "-j2 -p $PROTOCOL -t $CLUSTER_NAME:$LOCK_SPACE $DEVICE",
+	}
+}
+
 type FileSystemOemLvm struct {
 	// The pvcreate commandline, minus the "pvcreate" command.
 	PvCreate string `json:"PvCreate,omitempty"`
@@ -209,6 +225,18 @@ type FileSystemOemLvm struct {
 
 	// The lvcreate commandline, minus the "lvcreate" command.
 	LvCreate string `json:"LvCreate,omitempty"`
+}
+
+func (oem FileSystemOemLvm) IsZero() bool {
+	return len(oem.PvCreate) == 0 && len(oem.VgCreate) == 0 && len(oem.LvCreate) == 0
+}
+
+func (FileSystemOemLvm) Defaults() FileSystemOemLvm {
+	return FileSystemOemLvm{
+		PvCreate: "$DEVICE",
+		VgCreate: "$VG_NAME $DEVICE_LIST",
+		LvCreate: "-l 100%VG --stripes $DEVICE_NUM --stripesize=32KiB --name $LV_NAME $VG_NAME",
+	}
 }
 
 type FileSystemOemZfs struct {
@@ -229,11 +257,22 @@ type FileSystemOemGfs2 struct {
 	ClusterName string `json:"ClusterName"`
 }
 
+func (oem FileSystemOemGfs2) IsZero() bool {
+	return len(oem.ClusterName) == 0
+}
+
+func (FileSystemOemGfs2) Defaults() FileSystemOemGfs2 {
+	return FileSystemOemGfs2{
+		ClusterName: "$CLUSTER_NAME",
+	}
+}
+
 // File System OEM defines the structure that is expected to be included inside a
 // Redfish / Swordfish FileSystemV122FileSystem
 type FileSystemOem struct {
-	Type   string              `json:"Type"`
-	Name   string              `json:"Name"`
+	Type string `json:"Type"`
+	Name string `json:"Name"`
+
 	Lustre FileSystemOemLustre `json:"Lustre,omitempty"`
 	Gfs2   FileSystemOemGfs2   `json:"Gfs2,omitempty"`
 
