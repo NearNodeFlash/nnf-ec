@@ -54,11 +54,13 @@ func (*FileSystemLvm) New(oem FileSystemOem) (FileSystemApi, error) {
 	}, nil
 }
 
-func (*FileSystemLvm) IsType(oem FileSystemOem) bool { return oem.Type == "lvm" }
-func (*FileSystemLvm) IsMockable() bool              { return false }
+func (*FileSystemLvm) IsType(oem *FileSystemOem) bool { return oem.Type == "lvm" }
+func (*FileSystemLvm) IsMockable() bool               { return false }
+func (*FileSystemLvm) Type() string                   { return "lvm" }
 
-func (*FileSystemLvm) Type() string   { return "lvm" }
 func (f *FileSystemLvm) Name() string { return f.name }
+
+func (f *FileSystemLvm) MkfsDefault() string { return "" }
 
 func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 
@@ -83,10 +85,7 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		return err
 	}
 
-	rsp, _ := f.run(fmt.Sprintf("lvdisplay %s || echo 'not found'", f.vgName))
-	if len(rsp) != 0 && !strings.Contains(string(rsp), "not found") {
-		// Volume Group is present, activate the volume. This is for the case where another
-		// node created the volume group and we just want to share it.
+	activateVolumeGroup := func() error {
 		shared := ""
 		if f.shared {
 			// Activate the shared lock
@@ -102,6 +101,13 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		}
 
 		return nil
+	}
+
+	rsp, _ := f.run(fmt.Sprintf("lvdisplay %s || echo 'not found'", f.vgName))
+	if len(rsp) != 0 && !strings.Contains(string(rsp), "not found") {
+		// Volume Group is present, activate the volume. This is for the case where another
+		// node created the volume group and we just want to share it.
+		return activateVolumeGroup()
 	}
 
 	varHandler := var_handler.NewVarHandler(map[string]string{
@@ -135,17 +141,12 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		return err
 	}
 
-	shared = ""
-	if f.shared {
-		if _, err := f.run(fmt.Sprintf("vgchange --lockstart %s", f.vgName)); err != nil {
-			return err
-		}
-
-		shared = "s"
+	if err := activateVolumeGroup(); err != nil {
+		return err
 	}
 
 	// Create the logical volume
-	// -Zn - don't zero the volume, it will fail.
+	// --zero n - don't zero the volume, it will fail.
 	// We are depending on the drive behavior for newly allocated blocks to track
 	// NVM Command Set spec, Section 3.2.3.2.1 Deallocated or Unwritten Logical Blocks
 	// The Kioxia drives support DLFEAT=001b
@@ -159,19 +160,14 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 	// error is not enabled, the values read from a deallocated or unwritten block and its metadata (excluding protection information)
 	// shall be:
 	// • all bytes cleared to 0h if bits 2:0 in the DLFEAT field are set to 001b;
-	zeroOpt := "-Zn"
+	zeroOpt := "--zero n"
 	if _, ok := os.LookupEnv("NNF_SUPPLIED_DEVICES"); ok {
 		// On non-NVMe, let the zeroing happen so devices can be reused.
-		zeroOpt = "--yes"
+		zeroOpt = "--zero y"
 	}
 
 	lvArgs := varHandler.ReplaceAll(f.CmdArgs.LvCreate)
-	if _, err := f.run(fmt.Sprintf("lvcreate %s %s", zeroOpt, lvArgs)); err != nil {
-		return err
-	}
-
-	// Activate the volume group.
-	if _, err := f.run(fmt.Sprintf("vgchange --activate %sy %s", shared, f.vgName)); err != nil {
+	if _, err := f.run(fmt.Sprintf("lvcreate --yes %s %s", zeroOpt, lvArgs)); err != nil {
 		return err
 	}
 
