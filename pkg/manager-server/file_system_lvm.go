@@ -47,11 +47,6 @@ func init() {
 }
 
 func (*FileSystemLvm) New(oem FileSystemOem) (FileSystemApi, error) {
-
-	if oem.LvmCmd.IsZero() {
-		oem.LvmCmd = oem.LvmCmd.Defaults()
-	}
-
 	return &FileSystemLvm{
 		FileSystem: FileSystem{name: oem.Name},
 		CmdArgs:    oem.LvmCmd,
@@ -59,11 +54,13 @@ func (*FileSystemLvm) New(oem FileSystemOem) (FileSystemApi, error) {
 	}, nil
 }
 
-func (*FileSystemLvm) IsType(oem FileSystemOem) bool { return oem.Type == "lvm" }
-func (*FileSystemLvm) IsMockable() bool              { return false }
+func (*FileSystemLvm) IsType(oem *FileSystemOem) bool { return oem.Type == "lvm" }
+func (*FileSystemLvm) IsMockable() bool               { return false }
+func (*FileSystemLvm) Type() string                   { return "lvm" }
 
-func (*FileSystemLvm) Type() string   { return "lvm" }
 func (f *FileSystemLvm) Name() string { return f.name }
+
+func (f *FileSystemLvm) MkfsDefault() string { return "" }
 
 func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 

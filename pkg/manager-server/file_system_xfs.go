@@ -37,15 +37,6 @@ func init() {
 }
 
 func (*FileSystemXfs) New(oem FileSystemOem) (FileSystemApi, error) {
-
-	if oem.LvmCmd.IsZero() {
-		oem.LvmCmd = oem.LvmCmd.Defaults()
-	}
-
-	if oem.MkfsMount.IsZero() {
-		oem.MkfsMount = oem.MkfsMount.XfsDefaults()
-	}
-
 	return &FileSystemXfs{
 		FileSystemLvm: FileSystemLvm{
 			FileSystem: FileSystem{name: oem.Name},
@@ -55,11 +46,13 @@ func (*FileSystemXfs) New(oem FileSystemOem) (FileSystemApi, error) {
 	}, nil
 }
 
-func (*FileSystemXfs) IsType(oem FileSystemOem) bool { return oem.Type == "xfs" }
-func (*FileSystemXfs) IsMockable() bool              { return false }
+func (*FileSystemXfs) IsType(oem *FileSystemOem) bool { return oem.Type == "xfs" }
+func (*FileSystemXfs) IsMockable() bool               { return false }
+func (*FileSystemXfs) Type() string                   { return "xfs" }
 
-func (*FileSystemXfs) Type() string   { return "xfs" }
 func (f *FileSystemXfs) Name() string { return f.name }
+
+func (f *FileSystemXfs) MkfsDefault() string { return "$DEVICE" }
 
 func (f *FileSystemXfs) Create(devices []string, opts FileSystemOptions) (err error) {
 	if err := f.FileSystemLvm.Create(devices, opts); err != nil {

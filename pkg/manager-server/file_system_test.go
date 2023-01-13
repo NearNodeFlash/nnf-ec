@@ -47,7 +47,7 @@ func _TestFileSystemZfs(t *testing.T) {
 
 	pool, ctrl := prepare(t, uuid.MustParse("00000000-0000-0000-0000-000000000000"))
 
-	oem := FileSystemOem{Name: "test", Type: "ZFS"}
+	oem := &FileSystemOem{Name: "test", Type: "ZFS"}
 	fs, err := ctrl.NewFileSystem(oem)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func _TestFileSystemLvm(t *testing.T) {
 
 	pool, ctrl := prepare(t, uuid.MustParse("5d340875-a5c2-4e86-9406-37751954c022"))
 
-	oem := FileSystemOem{Name: "test", Type: "LVM"}
+	oem := &FileSystemOem{Name: "test", Type: "LVM"}
 	fs, err := ctrl.NewFileSystem(oem)
 	if err != nil {
 		t.Fatal(err)

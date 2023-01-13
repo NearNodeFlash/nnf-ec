@@ -419,7 +419,7 @@ func (s *ServerStorageService) StorageServiceIdFileSystemsPost(storageServiceId 
 		return ec.NewErrBadRequest().WithError(err)
 	}
 
-	api, err := server.FileSystemController.NewFileSystem(oem)
+	api, err := server.FileSystemController.NewFileSystem(&oem)
 	if err != nil {
 		return ec.NewErrBadRequest().WithError(err)
 	}

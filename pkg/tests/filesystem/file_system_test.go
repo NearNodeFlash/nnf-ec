@@ -125,11 +125,11 @@ func (t *testFileSystem) New(oem server.FileSystemOem) (server.FileSystemApi, er
 	return &testFileSystem{master: t, t: t.t, created: false, devices: nil, mountpoint: ""}, nil
 }
 
-func (*testFileSystem) IsType(oem server.FileSystemOem) bool { return oem.Type == "test" }
-func (*testFileSystem) IsMockable() bool                     { return true }
-
-func (*testFileSystem) Type() string { return "test" }
-func (*testFileSystem) Name() string { return "test" }
+func (*testFileSystem) IsType(oem *server.FileSystemOem) bool { return oem.Type == "test" }
+func (*testFileSystem) IsMockable() bool                      { return true }
+func (*testFileSystem) Type() string                          { return "test" }
+func (*testFileSystem) Name() string                          { return "test" }
+func (*testFileSystem) MkfsDefault() string                   { return "" }
 
 func (fs *testFileSystem) Create(devices []string, options server.FileSystemOptions) error {
 	fs.t.Logf("Test File System: Create File System: Devices: %+v Options: %+v", devices, options)

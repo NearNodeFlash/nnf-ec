@@ -69,18 +69,6 @@ func (*FileSystemGfs2) New(oem FileSystemOem) (FileSystemApi, error) {
 		return nil, fmt.Errorf("Cluster Name '%s' is invalid. Must match pattern '%s'", oem.Gfs2.ClusterName, exp.String())
 	}
 
-	if oem.LvmCmd.IsZero() {
-		oem.LvmCmd = oem.LvmCmd.Defaults()
-	}
-
-	if oem.Gfs2.IsZero() {
-		oem.Gfs2 = oem.Gfs2.Defaults()
-	}
-
-	if oem.MkfsMount.IsZero() {
-		oem.MkfsMount = oem.MkfsMount.Gfs2Defaults()
-	}
-
 	return &FileSystemGfs2{
 		FileSystemLvm: FileSystemLvm{
 			FileSystem: FileSystem{name: oem.Name},
@@ -92,11 +80,15 @@ func (*FileSystemGfs2) New(oem FileSystemOem) (FileSystemApi, error) {
 	}, nil
 }
 
-func (*FileSystemGfs2) IsType(oem FileSystemOem) bool { return oem.Type == "gfs2" }
-func (*FileSystemGfs2) IsMockable() bool              { return false }
-func (*FileSystemGfs2) Type() string                  { return "gfs2" }
+func (*FileSystemGfs2) IsType(oem *FileSystemOem) bool { return oem.Type == "gfs2" }
+func (*FileSystemGfs2) IsMockable() bool               { return false }
+func (*FileSystemGfs2) Type() string                   { return "gfs2" }
 
 func (f *FileSystemGfs2) Name() string { return f.name }
+
+func (*FileSystemGfs2) MkfsDefault() string {
+	return "-j2 -p $PROTOCOL -t $CLUSTER_NAME:$LOCK_SPACE $DEVICE"
+}
 
 func (f *FileSystemGfs2) Create(devices []string, opts FileSystemOptions) (err error) {
 

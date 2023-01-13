@@ -26,6 +26,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"reflect"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/mount-utils"
@@ -34,7 +35,7 @@ import (
 )
 
 type FileSystemControllerApi interface {
-	NewFileSystem(oem FileSystemOem) (FileSystemApi, error)
+	NewFileSystem(oem *FileSystemOem) (FileSystemApi, error)
 }
 
 func NewFileSystemController(config *ConfigFile) FileSystemControllerApi {
@@ -46,7 +47,7 @@ type fileSystemController struct {
 }
 
 // NewFileSystem -
-func (c *fileSystemController) NewFileSystem(oem FileSystemOem) (FileSystemApi, error) {
+func (c *fileSystemController) NewFileSystem(oem *FileSystemOem) (FileSystemApi, error) {
 	return FileSystemRegistry.NewFileSystem(oem)
 }
 
@@ -74,8 +75,8 @@ type FileSystemOptions = map[string]interface{}
 type FileSystemApi interface {
 	New(oem FileSystemOem) (FileSystemApi, error)
 
-	IsType(oem FileSystemOem) bool // Returns true if the provided oem fields match the file system type, false otherwise
-	IsMockable() bool              // Returns true if the file system can be instantiated by the mock server, false otherwise
+	IsType(oem *FileSystemOem) bool // Returns true if the provided oem fields match the file system type, false otherwise
+	IsMockable() bool   // Returns true if the file system can be instantiated by the mock server, false otherwise
 
 	Type() string
 	Name() string
@@ -83,6 +84,8 @@ type FileSystemApi interface {
 	Create(devices []string, opts FileSystemOptions) error
 	Delete() error
 
+	MkfsDefault() string
+	
 	Mount(mountpoint string) error
 	Unmount(mountpoint string) error
 
@@ -200,22 +203,6 @@ type FileSystemOemMkfsMount struct {
 	Mount []string `json:"Mount,omitempty"`
 }
 
-func (oem FileSystemOemMkfsMount) IsZero() bool {
-	return len(oem.Mkfs) == 0 && len(oem.Mount) == 0
-}
-
-func (oem FileSystemOemMkfsMount) XfsDefaults() FileSystemOemMkfsMount {
-	return FileSystemOemMkfsMount{
-		Mkfs: "$DEVICE",
-	}
-}
-
-func (oem FileSystemOemMkfsMount) Gfs2Defaults() FileSystemOemMkfsMount {
-	return FileSystemOemMkfsMount{
-		Mkfs: "-j2 -p $PROTOCOL -t $CLUSTER_NAME:$LOCK_SPACE $DEVICE",
-	}
-}
-
 type FileSystemOemLvm struct {
 	// The pvcreate commandline, minus the "pvcreate" command.
 	PvCreate string `json:"PvCreate,omitempty"`
@@ -225,18 +212,6 @@ type FileSystemOemLvm struct {
 
 	// The lvcreate commandline, minus the "lvcreate" command.
 	LvCreate string `json:"LvCreate,omitempty"`
-}
-
-func (oem FileSystemOemLvm) IsZero() bool {
-	return len(oem.PvCreate) == 0 && len(oem.VgCreate) == 0 && len(oem.LvCreate) == 0
-}
-
-func (FileSystemOemLvm) Defaults() FileSystemOemLvm {
-	return FileSystemOemLvm{
-		PvCreate: "$DEVICE",
-		VgCreate: "$VG_NAME $DEVICE_LIST",
-		LvCreate: "-l 100%VG --stripes $DEVICE_NUM --stripesize=32KiB --name $LV_NAME $VG_NAME",
-	}
 }
 
 type FileSystemOemZfs struct {
@@ -257,16 +232,6 @@ type FileSystemOemGfs2 struct {
 	ClusterName string `json:"ClusterName"`
 }
 
-func (oem FileSystemOemGfs2) IsZero() bool {
-	return len(oem.ClusterName) == 0
-}
-
-func (FileSystemOemGfs2) Defaults() FileSystemOemGfs2 {
-	return FileSystemOemGfs2{
-		ClusterName: "$CLUSTER_NAME",
-	}
-}
-
 // File System OEM defines the structure that is expected to be included inside a
 // Redfish / Swordfish FileSystemV122FileSystem
 type FileSystemOem struct {
@@ -279,6 +244,30 @@ type FileSystemOem struct {
 	LvmCmd    FileSystemOemLvm       `json:"Lvm,omitempty"`
 	MkfsMount FileSystemOemMkfsMount `json:"MkfsMount,omitempty"`
 	ZfsCmd    FileSystemOemZfs       `json:"Zfs,omitempty"`
+}
+
+func (oem *FileSystemOem) IsEmpty() bool {
+	return reflect.DeepEqual(oem, &FileSystemOem{Type: oem.Type, Name: oem.Name})
+}
+
+func (oem *FileSystemOem) LoadDefaults(fs FileSystemApi) {
+	oem.LvmCmd = FileSystemOemLvm{
+		PvCreate: "$DEVICE",
+		VgCreate: "$VG_NAME $DEVICE_LIST",
+		LvCreate: "--extents 100%VG --stripes $DEVICE_NUM --stripesize 32KiB --name $LV_NAME $VG_NAME",
+	}
+
+	oem.Gfs2 = FileSystemOemGfs2{
+		ClusterName: "$CLUSTER_NAME",
+	}
+
+	oem.ZfsCmd = FileSystemOemZfs{
+		ZpoolCreate: "-O canmount=off -o cachefile=none $POOL_NAME $DEVICE_LIST",
+	}
+
+	oem.MkfsMount = FileSystemOemMkfsMount{
+		Mkfs: fs.MkfsDefault(),
+	}
 }
 
 // File System Registry - Maintains a list of eligible file systems registered in the system.
@@ -305,14 +294,19 @@ func (r *fileSystemRegistry) RegisterFileSystem(fileSystem FileSystemApi) {
 	*r = append(*r, fileSystem)
 }
 
-func (r *fileSystemRegistry) NewFileSystem(oem FileSystemOem) (FileSystemApi, error) {
+func (r *fileSystemRegistry) NewFileSystem(oem *FileSystemOem) (FileSystemApi, error) {
 	for _, fs := range *r {
 		if fs.IsType(oem) {
-			return fs.New(oem)
+
+			if oem.IsEmpty() {
+				oem.LoadDefaults(fs)
+			}
+
+			return fs.New(*oem)
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("file systems '%s' not supported", oem.Type)
 }
 
 func setFileSystemPermissions(f FileSystemApi, opts FileSystemOptions) (err error) {
