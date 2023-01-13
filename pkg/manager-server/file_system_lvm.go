@@ -86,6 +86,16 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		return err
 	}
 
+	varHandler := var_handler.NewVarHandler(map[string]string{
+		"$DEVICE_NUM":  fmt.Sprintf("%d", len(devices)),
+		"$DEVICE_LIST": strings.Join(devices, " "),
+		"$LV_NAME":     f.lvName,
+		"$VG_NAME":     f.vgName,
+	})
+	if err := varHandler.ListToVars("$DEVICE_LIST", "$DEVICE"); err != nil {
+		return fmt.Errorf("invalid internal device list: %w", err)
+	}
+
 	activateVolumeGroup := func() error {
 		shared := ""
 		if f.shared {
@@ -97,7 +107,8 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 			shared = "s" // activate with shared option
 		}
 
-		if _, err := f.run(fmt.Sprintf("vgchange --activate %sy %s", shared, f.vgName)); err != nil {
+		vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange)
+		if _, err := f.run(fmt.Sprintf("vgchange --activate %sy %s", shared, vgArgs)); err != nil {
 			return err
 		}
 
@@ -109,16 +120,6 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		// Volume Group is present, activate the volume. This is for the case where another
 		// node created the volume group and we just want to share it.
 		return activateVolumeGroup()
-	}
-
-	varHandler := var_handler.NewVarHandler(map[string]string{
-		"$DEVICE_NUM":  fmt.Sprintf("%d", len(devices)),
-		"$DEVICE_LIST": strings.Join(devices, " "),
-		"$LV_NAME":     f.lvName,
-		"$VG_NAME":     f.vgName,
-	})
-	if err := varHandler.ListToVars("$DEVICE_LIST", "$DEVICE"); err != nil {
-		return fmt.Errorf("invalid internal device list: %w", err)
 	}
 
 	// Create the physical volumes.
@@ -192,15 +193,23 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 
 func (f *FileSystemLvm) Delete() error {
 
-	if _, err := f.run(fmt.Sprintf("lvremove --yes %s", f.devPath())); err != nil {
+	varHandler := var_handler.NewVarHandler(map[string]string{
+		"$LV_NAME":     f.lvName,
+		"$VG_NAME":     f.vgName,
+	})
+
+	lvArgs := varHandler.ReplaceAll(f.CmdArgs.LvRemove)
+	if _, err := f.run(fmt.Sprintf("lvremove --yes %s", lvArgs)); err != nil {
 		return err
 	}
 
-	if _, err := f.run(fmt.Sprintf("vgchange --activate n %s", f.vgName)); err != nil {
+	vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange)
+	if _, err := f.run(fmt.Sprintf("vgchange --activate n %s", vgArgs)); err != nil {
 		return err
 	}
 
-	if _, err := f.run(fmt.Sprintf("vgremove --yes %s", f.vgName)); err != nil {
+	vgArgs = varHandler.ReplaceAll(f.CmdArgs.VgRemove)
+	if _, err := f.run(fmt.Sprintf("vgremove --yes %s", vgArgs)); err != nil {
 		return err
 	}
 

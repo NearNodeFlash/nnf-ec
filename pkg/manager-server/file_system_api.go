@@ -76,7 +76,7 @@ type FileSystemApi interface {
 	New(oem FileSystemOem) (FileSystemApi, error)
 
 	IsType(oem *FileSystemOem) bool // Returns true if the provided oem fields match the file system type, false otherwise
-	IsMockable() bool   // Returns true if the file system can be instantiated by the mock server, false otherwise
+	IsMockable() bool               // Returns true if the file system can be instantiated by the mock server, false otherwise
 
 	Type() string
 	Name() string
@@ -85,7 +85,7 @@ type FileSystemApi interface {
 	Delete() error
 
 	MkfsDefault() string
-	
+
 	Mount(mountpoint string) error
 	Unmount(mountpoint string) error
 
@@ -212,6 +212,15 @@ type FileSystemOemLvm struct {
 
 	// The lvcreate commandline, minus the "lvcreate" command.
 	LvCreate string `json:"LvCreate,omitempty"`
+
+	// The vgchange commandline, minus the "vgchange" command.
+	VgChange string `json:"VgChange,omitempty"`
+	
+	// The vgremove commandline, minus the "vgremove" command.
+	VgRemove string `json:"VgRemove,omitempty"`
+
+	// The lvremove commandline, minus the "lvremove" command
+	LvRemove string `json:"LvRemove,omitempty"`
 }
 
 type FileSystemOemZfs struct {
@@ -255,6 +264,9 @@ func (oem *FileSystemOem) LoadDefaults(fs FileSystemApi) {
 		PvCreate: "$DEVICE",
 		VgCreate: "$VG_NAME $DEVICE_LIST",
 		LvCreate: "--extents 100%VG --stripes $DEVICE_NUM --stripesize 32KiB --name $LV_NAME $VG_NAME",
+		VgChange: "$VG_NAME",
+		VgRemove: "$VG_NAME",
+		LvRemove: "$VG_NAME",
 	}
 
 	oem.Gfs2 = FileSystemOemGfs2{
