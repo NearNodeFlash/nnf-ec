@@ -180,7 +180,7 @@ func (f *FileSystemLvm) Delete() error {
 		return err
 	}
 
-	if _, err := f.run(fmt.Sprintf("vgchange --activate n %s", f.vgName)); err != nil {
+	if _, err := f.run(fmt.Sprintf("vgchange --nolocking --activate n %s", f.vgName)); err != nil {
 		return err
 	}
 
