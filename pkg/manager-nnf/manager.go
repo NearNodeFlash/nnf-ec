@@ -1408,7 +1408,6 @@ func (*StorageService) StorageServiceIdFileSystemIdExportedShareIdPut(storageSer
 	ep := s.findEndpoint(endpointId)
 	if ep == nil {
 		return ec.NewErrNotAcceptable().WithResourceType(EndpointOdataType).WithEvent(msgreg.ResourceNotFoundBase(EndpointOdataType, endpointId))
-
 	}
 
 	sp := s.findStoragePool(fs.storagePoolId)
