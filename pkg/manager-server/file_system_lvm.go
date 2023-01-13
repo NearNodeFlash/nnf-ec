@@ -22,8 +22,9 @@ package server
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/NearNodeFlash/nnf-ec/pkg/var_handler"
 )
@@ -171,7 +172,22 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		return err
 	}
 
-	return nil
+	// Ensure that the Logical Volume exists prior to returning; otherwise a future 'mkfs' command may fail.
+	/*
+		NJT: Can't do this yet since to Persistent() controller all errors are fatal and perform a Rollback.
+		if _, err := os.Stat(f.devPath()); os.IsNotExist(err) {
+			return ec.NewErrorNotReady().WithCause(fmt.Sprintf("logical volume '%s' does not exist", f.devPath()))
+		}
+	*/
+
+	// HACK: Wait up to 10 seconds for the path to come ready
+	for start := time.Now(); time.Since(start) < 10*time.Second; time.Sleep(time.Second) {
+		if _, err := os.Stat(f.devPath()); !os.IsNotExist(err) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("logical volume path '%s' does not exist after 10s", f.devPath())
 }
 
 func (f *FileSystemLvm) Delete() error {
@@ -214,5 +230,5 @@ func (f *FileSystemLvm) LoadRecoveryData(data map[string]string) {
 }
 
 func (f *FileSystemLvm) devPath() string {
-	return filepath.Join("/dev", f.vgName, f.lvName)
+	return path.Join("/dev", f.vgName, f.lvName)
 }
