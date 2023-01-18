@@ -61,7 +61,8 @@ func (*FileSystemLvm) Type() string                   { return "lvm" }
 
 func (f *FileSystemLvm) Name() string { return f.name }
 
-func (f *FileSystemLvm) MkfsDefault() string { return "" }
+func (f *FileSystemLvm) VgChangeActivateDefault() string { return "--activate y $VG_NAME" }
+func (f *FileSystemLvm) MkfsDefault() string             { return "" }
 
 func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 
@@ -97,18 +98,16 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 	}
 
 	activateVolumeGroup := func() error {
-		shared := ""
 		if f.shared {
 			// Activate the shared lock
-			if _, err := f.run(fmt.Sprintf("vgchange --lock-start %s", f.vgName)); err != nil {
+			vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange.LockStart)
+			if _, err := f.run(fmt.Sprintf("vgchange %s", vgArgs)); err != nil {
 				return err
 			}
-
-			shared = "s" // activate with shared option
 		}
 
-		vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange)
-		if _, err := f.run(fmt.Sprintf("vgchange --activate %sy %s", shared, vgArgs)); err != nil {
+		vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange.Activate)
+		if _, err := f.run(fmt.Sprintf("vgchange %s", vgArgs)); err != nil {
 			return err
 		}
 
@@ -194,17 +193,12 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 func (f *FileSystemLvm) Delete() error {
 
 	varHandler := var_handler.NewVarHandler(map[string]string{
-		"$LV_NAME":     f.lvName,
-		"$VG_NAME":     f.vgName,
+		"$LV_NAME": f.lvName,
+		"$VG_NAME": f.vgName,
 	})
 
-	lvArgs := varHandler.ReplaceAll(f.CmdArgs.LvRemove)
-	if _, err := f.run(fmt.Sprintf("lvremove --yes %s", lvArgs)); err != nil {
-		return err
-	}
-
-	vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange)
-	if _, err := f.run(fmt.Sprintf("vgchange --activate n %s", vgArgs)); err != nil {
+	vgArgs := varHandler.ReplaceAll(f.CmdArgs.VgChange.Deactivate)
+	if _, err := f.run(fmt.Sprintf("vgchange %s", vgArgs)); err != nil {
 		return err
 	}
 

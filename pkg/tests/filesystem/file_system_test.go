@@ -129,6 +129,7 @@ func (*testFileSystem) IsType(oem *server.FileSystemOem) bool { return oem.Type 
 func (*testFileSystem) IsMockable() bool                      { return true }
 func (*testFileSystem) Type() string                          { return "test" }
 func (*testFileSystem) Name() string                          { return "test" }
+func (*testFileSystem) VgChangeActivateDefault() string       { return "" }
 func (*testFileSystem) MkfsDefault() string                   { return "" }
 
 func (fs *testFileSystem) Create(devices []string, options server.FileSystemOptions) error {

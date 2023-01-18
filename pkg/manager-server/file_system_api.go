@@ -84,6 +84,7 @@ type FileSystemApi interface {
 	Create(devices []string, opts FileSystemOptions) error
 	Delete() error
 
+	VgChangeActivateDefault() string
 	MkfsDefault() string
 
 	Mount(mountpoint string) error
@@ -214,13 +215,24 @@ type FileSystemOemLvm struct {
 	LvCreate string `json:"LvCreate,omitempty"`
 
 	// The vgchange commandline, minus the "vgchange" command.
-	VgChange string `json:"VgChange,omitempty"`
-	
+	VgChange FileSystemOemVgChange `json:"VgChange,omitempty"`
+
 	// The vgremove commandline, minus the "vgremove" command.
 	VgRemove string `json:"VgRemove,omitempty"`
 
 	// The lvremove commandline, minus the "lvremove" command
 	LvRemove string `json:"LvRemove,omitempty"`
+}
+
+type FileSystemOemVgChange struct {
+	// The vgchange commandline, minus the "vgchange" command
+	Activate string `json:"Activate,omitempty"`
+
+	// The vgchange commandline, minus the "vgchange" command
+	Deactivate string `json:"Deactivate,omitempty"`
+
+	// The vgchange commandline, minus the "vgchange" command
+	LockStart string `json:"Lockstart,omitempty"`
 }
 
 type FileSystemOemZfs struct {
@@ -264,7 +276,11 @@ func (oem *FileSystemOem) LoadDefaults(fs FileSystemApi) {
 		PvCreate: "$DEVICE",
 		VgCreate: "$VG_NAME $DEVICE_LIST",
 		LvCreate: "--extents 100%VG --stripes $DEVICE_NUM --stripesize 32KiB --name $LV_NAME $VG_NAME",
-		VgChange: "$VG_NAME",
+		VgChange: FileSystemOemVgChange{
+			Activate:   fs.VgChangeActivateDefault(),
+			Deactivate: "--activate n $VG_NAME",
+			LockStart:  "--lock-start $VG_NAME",
+		},
 		VgRemove: "$VG_NAME",
 		LvRemove: "$VG_NAME",
 	}
