@@ -20,11 +20,17 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"k8s.io/mount-utils"
 
 	"github.com/NearNodeFlash/nnf-ec/pkg/var_handler"
 )
@@ -41,6 +47,8 @@ type FileSystemLvm struct {
 	vgName  string
 	shared  bool
 	CmdArgs FileSystemOemLvm
+	uid     int
+	gid     int
 }
 
 func init() {
@@ -75,6 +83,18 @@ func (f *FileSystemLvm) Create(devices []string, opts FileSystemOptions) error {
 		f.lvName = opts[LogicalVolumeName].(string)
 	} else {
 		f.lvName = fmt.Sprintf("%s_lv", f.Name())
+	}
+
+	if _, exists := opts[UserID]; exists {
+		f.uid = opts[UserID].(int)
+	} else {
+		f.uid = 0
+	}
+
+	if _, exists := opts[GroupID]; exists {
+		f.gid = opts[GroupID].(int)
+	} else {
+		f.gid = 0
 	}
 
 	// TODO: Some sort of rollback mechanism on failure condition
@@ -214,7 +234,61 @@ func (f *FileSystemLvm) Delete() error {
 }
 
 func (f *FileSystemLvm) Mount(mountpoint string) error {
-	return f.mount(f.devPath(), mountpoint, "", []string{"--bind"})
+	// Make the parent directory
+	if err := os.MkdirAll(filepath.Dir(mountpoint), 0755); err != nil {
+		return err
+	}
+
+	// Create an empty file to bind mount the device onto
+	if err := os.WriteFile(mountpoint, []byte(""), 0644); err != nil {
+		return err
+	}
+
+	mounter := mount.New("")
+	mounted, err := mounter.IsMountPoint(mountpoint)
+	if err != nil {
+		return err
+	}
+
+	if !mounted {
+		if err := mounter.Mount(f.devPath(), mountpoint, "none", []string{"bind"}); err != nil {
+			log.Errorf("Mount failed: %v", err)
+			return err
+		}
+
+		if err := os.Chown(f.devPath(), f.uid, f.gid); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (f *FileSystemLvm) Unmount(mountpoint string) error {
+	if mountpoint == "" {
+		return nil
+	}
+
+	mounter := mount.New("")
+	mounted, err := mounter.IsMountPoint(mountpoint)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+
+	if mounted {
+		if err := mounter.Unmount(mountpoint); err != nil {
+			log.Errorf("Unmount failed: %v", err)
+			return err
+		}
+	}
+
+	_ = os.RemoveAll(filepath.Dir(mountpoint)) // Attempt to remove the directory but don't fuss about it if not
+
+	return nil
 }
 
 func (f *FileSystemLvm) GenerateRecoveryData() map[string]string {
