@@ -217,7 +217,7 @@ func (f *FileSystemLvm) Delete() error {
 }
 
 func (f *FileSystemLvm) Mount(mountpoint string) error {
-	return f.mount(f.devPath(), mountpoint, "", []string{"--bind"})
+	return nil
 }
 
 func (f *FileSystemLvm) GenerateRecoveryData() map[string]string {

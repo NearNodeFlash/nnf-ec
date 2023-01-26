@@ -34,6 +34,11 @@ import (
 	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
 )
 
+const (
+	UserID  = "userID"
+	GroupID = "groupID"
+)
+
 type FileSystemControllerApi interface {
 	NewFileSystem(oem *FileSystemOem) (FileSystemApi, error)
 }
@@ -121,6 +126,7 @@ func (f *FileSystem) mount(source string, target string, fstype string, options 
 	if !mounted {
 		if err := mounter.Mount(source, target, fstype, options); err != nil {
 			log.Errorf("Mount failed: %v", err)
+			return err
 		}
 	}
 
@@ -338,11 +344,6 @@ func (r *fileSystemRegistry) NewFileSystem(oem *FileSystemOem) (FileSystemApi, e
 }
 
 func setFileSystemPermissions(f FileSystemApi, opts FileSystemOptions) (err error) {
-	const (
-		UserID  = "userID"
-		GroupID = "groupID"
-	)
-
 	userID := 0
 	if _, exists := opts[UserID]; exists {
 		userID = opts[UserID].(int)
