@@ -619,6 +619,10 @@ func (p *Port) Initialize() error {
 					panic(fmt.Sprintf("No EP Functions received for port %+v", port))
 				}
 
+				if len(epPort.Ep.Functions) == 1 {
+					return fmt.Errorf("Port %s: Single Root I/O Virtualization (SR-IOV) not supported", port.id)
+				}
+
 				f := port.swtch.fabric
 				if len(epPort.Ep.Functions) < 1 /*PF*/ +f.managementEndpointCount+f.upstreamEndpointCount {
 					log.Warnf("Port %s: Insufficient function count %d", port.id, len(epPort.Ep.Functions))
