@@ -19,6 +19,9 @@
 
 shopt -s expand_aliases
 
+# Pull in common utility functions
+source ./_util.sh
+
 usage() {
     cat <<EOF
 Run various switch command over all switches.
@@ -30,6 +33,8 @@ Commands:
     status                               display port status for Rabbit connections
     switchtec-status                     display switchtec utility's port status inf
     info                                 display switch hardware information
+    ep-tunnel-status                     display endpoint tunnel status for each drive
+    ep-tunnel-enable                     enable the endpoint tunnel for each drive
     fabric [COMMAND] [ARG [ARG]...]      execute the fabric COMMAND (default is gfms-dump)
 
     cmd [COMMAND] [ARG [ARG]...]         execute COMMAND on each switchtec device in the system.
@@ -260,6 +265,26 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
+function ep-tunnel-command() {
+    local SWITCH=$1 CMD=$2
+    echo "Execute switch ep-tunnel $CMD on $SWITCH"
+
+    DRIVES=$(getPDFIDs "$SWITCH")
+    for DRIVE in $DRIVES;
+    do
+        case $CMD in
+            status)
+                printf "%s\t" "$DRIVE"
+                ;;
+            *)
+                ;;
+        esac
+
+        TIME switchtec fabric ep-tunnel-cfg "$SWITCH" --cmd="$CMD" --pdfid="$DRIVE";
+    done
+}
+
+
 case $1 in
     slot-info)
         function slot-info() {
@@ -292,6 +317,20 @@ case $1 in
             TIME switchtec status "$SWITCH"
         }
         execute switchtec-status
+        ;;
+    ep-tunnel-status)
+        function ep-tunnel-status() {
+            local SWITCH=$1
+            ep-tunnel-command "$SWITCH" "status"
+        }
+        execute ep-tunnel-status
+        ;;
+    ep-tunnel-enable)
+        function ep-tunnel-enable() {
+            local SWITCH=$1
+            ep-tunnel-command "$SWITCH" "enable"
+        }
+        execute ep-tunnel-enable
         ;;
     fabric)
         function fabric() {
