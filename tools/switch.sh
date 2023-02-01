@@ -19,6 +19,9 @@
 
 shopt -s expand_aliases
 
+# Pull in common utility functions
+source ./_util.sh
+
 usage() {
     cat <<EOF
 Run various switch command over all switches.
@@ -266,7 +269,7 @@ function ep-tunnel-command() {
     local SWITCH=$1 CMD=$2
     echo "Execute switch ep-tunnel $CMD on $SWITCH"
 
-    DRIVES=$(switchtec fabric gfms-dump "$SWITCH" | grep "SRIOV-PF" -A2 | grep PDFID | awk '{print $2}')
+    DRIVES=$(getPDFIDs "$SWITCH")
     for DRIVE in $DRIVES;
     do
         case $CMD in
@@ -276,7 +279,7 @@ function ep-tunnel-command() {
             *)
                 ;;
         esac
-        
+
         TIME switchtec fabric ep-tunnel-cfg "$SWITCH" --cmd="$CMD" --pdfid="$DRIVE";
     done
 }

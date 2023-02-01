@@ -19,6 +19,9 @@
 
 shopt -s expand_aliases
 
+# Pull in common utility functions
+source ./_util.sh
+
 usage() {
     cat <<EOF
 Run various NVMe Namespace commands over the NVMe switch fabric using
@@ -64,6 +67,7 @@ EOF
 execute() {
     local FUNCTION=$1 ARGS=( "${@:2}" )
 
+    # shellcheck disable=SC2086
     if [ "$(type -t $FUNCTION)" != "function" ]; then
         echo "$1 is not a function."
         exit 1
@@ -72,7 +76,7 @@ execute() {
     SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
     for SWITCH in "${SWITCHES[@]}";
     do
-        mapfile -t PDFIDS < <(switchtec fabric gfms-dump "${SWITCH}" | grep "Function 0 (SRIOV-PF)" -A1 | grep PDFID | awk '{print $2}')
+        mapfile -t PDFIDS < <(getPDFIDs "$SWITCH")
         for INDEX in "${!PDFIDS[@]}";
         do
             "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}"
