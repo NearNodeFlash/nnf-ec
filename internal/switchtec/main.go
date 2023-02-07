@@ -43,22 +43,23 @@ var cli struct {
 	Event    cmd.EventCmd     `kong:"cmd,help='Event commands.'"`
 	Bw       cmd.BandwidthCmd `kong:"cmd,help='Measure the traffic bandwidth through each port.'"`
 
-	IdCtrl         nvme.IdCtrlCmd         `kong:"cmd,help='Identify Controller.'"`
-	IdNs           nvme.IdNsCmd           `kong:"cmd,help='IdentifyNamespace.'"`
-	ListNs         nvme.ListNsCmd         `kong:"cmd,help='List Namespace.'"`
-	IdNsCtrls      nvme.IdNamespaceCtrls  `kong:"cmd,help='Identify Controller attached to Namespace.'"`
-	CreateNs       nvme.CreateNsCmd       `kong:"cmd,help='Create namespace.'"`
-	DeleteNs       nvme.DeleteNsCmd       `kong:"cmd,help='Delete namespace.'"`
-	FormatNs       nvme.FormatNsCmd       `kong:"cmd,help='Format namespace.'"`
-	AttachNs       nvme.AttachNsCmd       `kong:"cmd,help='attaches a namespace to the given controller or comma-sep list of controllers.'"`
-	DetachNs       nvme.DetachNsCmd       `kong:"cmd,help='detaches a namespace from the given controller or comma-sep list of controllers.'"`
-	ListSecondary  nvme.ListSecondaryCmd  `kong:"cmd,help='Show secondary controller list associated with the primary controller of the given device.'"`
-	VirtMgmt       nvme.VirtualMgmtCmd    `kong:"cmd,help='Virtualization command supported by primary NVMe controlers.'"`
-	GetFeature     nvme.GetFeatureCmd     `kong:"cmd,help='Get feature.'"`
-	SetFeature     nvme.SetFeatureCmd     `kong:"cmd,help='Set feature.'"`
-	GetSmartLog    nvme.GetSmartLogCmd    `kong:"cmd,help='Retrieve SMART log for the given device.'"`
-	BuildMiFeature nvme.BuildMiFeatureCmd `kong:"cmd,help='Build MI Metadata feature file with interactive terminal'"`
-	Discover       nvme.DiscoverCmd       `kong:"cmd,help='Discover NVMe devices by Serial Number, Model Number, or NQN.'"`
+	IdCtrl            nvme.IdCtrlCmd          `kong:"cmd,help='Identify Controller.'"`
+	IdPrimaryCtlrCaps nvme.PrimaryCtrlCapsCmd `kong:"cmd,help='Identify Primary Controller Capabilities.'"`
+	IdNs              nvme.IdNsCmd            `kong:"cmd,help='IdentifyNamespace.'"`
+	ListNs            nvme.ListNsCmd          `kong:"cmd,help='List Namespace.'"`
+	IdNsCtrls         nvme.IdNamespaceCtrls   `kong:"cmd,help='Identify Controller attached to Namespace.'"`
+	CreateNs          nvme.CreateNsCmd        `kong:"cmd,help='Create namespace.'"`
+	DeleteNs          nvme.DeleteNsCmd        `kong:"cmd,help='Delete namespace.'"`
+	FormatNs          nvme.FormatNsCmd        `kong:"cmd,help='Format namespace.'"`
+	AttachNs          nvme.AttachNsCmd        `kong:"cmd,help='attaches a namespace to the given controller or comma-sep list of controllers.'"`
+	DetachNs          nvme.DetachNsCmd        `kong:"cmd,help='detaches a namespace from the given controller or comma-sep list of controllers.'"`
+	ListSecondary     nvme.ListSecondaryCmd   `kong:"cmd,help='Show secondary controller list associated with the primary controller of the given device.'"`
+	VirtMgmt          nvme.VirtualMgmtCmd     `kong:"cmd,help='Virtualization command supported by primary NVMe controlers.'"`
+	GetFeature        nvme.GetFeatureCmd      `kong:"cmd,help='Get feature.'"`
+	SetFeature        nvme.SetFeatureCmd      `kong:"cmd,help='Set feature.'"`
+	GetSmartLog       nvme.GetSmartLogCmd     `kong:"cmd,help='Retrieve SMART log for the given device.'"`
+	BuildMiFeature    nvme.BuildMiFeatureCmd  `kong:"cmd,help='Build MI Metadata feature file with interactive terminal'"`
+	Discover          nvme.DiscoverCmd        `kong:"cmd,help='Discover NVMe devices by Serial Number, Model Number, or NQN.'"`
 
 	Config cfg.ConfigCmd `kong:"cmd,help='Configure device.'"`
 }
