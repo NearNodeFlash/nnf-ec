@@ -40,7 +40,7 @@ func (cmd *PrimaryCtrlCapsCmd) Run() error {
 			return err
 		}
 
-		fmt.Printf("Identify Primary Controller:\n")
+		fmt.Printf("Identify Primary Controller Capabilities:\n")
 		fmt.Printf("%-6s: %-42s : %#x\n", "CNTLID", "Controller Identifier", caps.ControllerId)
 		fmt.Printf("%-6s: %-42s : %#x\n", "PORTID", "Port Identifier", caps.PortId)
 		fmt.Printf("%-6s: %-42s : %#x\n", "CRT", "Controller Resource Type", caps.ControllerResourceType)
