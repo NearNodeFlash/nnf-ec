@@ -31,7 +31,7 @@ type PrimaryCtrlCapsCmd struct {
 	ControllerId uint16 `kong:"arg,optional,short='c',default='0',help='Controller ID'"`
 }
 
-// Run will run the List Namespace Command.
+// Run will run the Primary Controller Capabilities command
 func (cmd *PrimaryCtrlCapsCmd) Run() error {
 
 	return run(cmd.Device, func(dev *nvme.Device) error {
