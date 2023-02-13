@@ -36,9 +36,10 @@ drives() {
     DRIVES=()
     for DRIVE in $(ls /dev/nvme* | grep -E "nvme[[:digit:]]+n[[:digit:]]+$");
     do
-        if [ "$(nvme id-ctrl ${DRIVE} | grep KIOXIA)" != "" ];
+        # shellcheck disable=SC2086
+        if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
         then
-            echo "  Found Kioxia drive ${DRIVE}"
+            echo "  Found drive ${DRIVE}"
             NAMESPACEID=$(nvme id-ns ${DRIVE} | grep -E '^NVME Identify Namespace [[:digit:]]+' | awk '{print $4}')
             if [ "${NAMESPACEID::-1}" == "$NAMESPACE" ];
             then
@@ -49,7 +50,7 @@ drives() {
         fi
     done
 
-    echo "${#DRIVES[@]} DRIVES: ${DRIVES[@]}"
+    echo "${#DRIVES[@]}" DRIVES: "${DRIVES[@]}"
 }
 
 join() {
