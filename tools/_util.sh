@@ -19,7 +19,7 @@
 
 # Retrieve the Physical Device Fabric IDs used to iterate through a list of nvme drives
 function getPDFIDs() {
-    local SWITCH=$1
+    local SWITCH=$1 FUNCTION="${2:-0}"
 
-    switchtec fabric gfms-dump "$SWITCH" | grep "Function 0 " -A2 | grep PDFID | awk '{print $2}'
+    switchtec fabric gfms-dump "$SWITCH" | grep "Function $FUNCTION " -A2 | grep PDFID | awk '{print $2}'
 }

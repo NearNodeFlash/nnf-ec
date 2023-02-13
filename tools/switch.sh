@@ -20,7 +20,8 @@
 shopt -s expand_aliases
 
 # Pull in common utility functions
-source ./_util.sh
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SCRIPT_DIR"/_util.sh
 
 usage() {
     cat <<EOF
