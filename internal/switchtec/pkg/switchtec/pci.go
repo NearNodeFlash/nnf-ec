@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2023 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -22,57 +22,77 @@ package switchtec
 import "fmt"
 
 const (
-	// TODO: Document these registers
-	pcieCapabilitiesOffset uint16 = 0x34
-	pcieCapabilitiesMask   uint8  = 0xFC
+	// PCIe Capabilities Registers - all definitions derived from
+	// the PCI Express Base Specification, Rev 4.0 Version 1.0
 
-	pcieCapabilitiesId uint8 = 0x10
+	// 7.5.1.1.11 Capabilities Pointer (Offset 34h) - points to a linked
+	// list of capabilities implemented by this function. Bottom two bits
+	// are reserved and must be set to 00b.
+	pcieCapabilitiesPointer     uint16 = 0x34
+	pcieCapabilitiesPointerMask uint8  = 0xFC
 
-	pcieDeviceControlerRegisterOffset uint8  = 0x08
-	pcieDeviceResetFlag               uint16 = 0x8000
+	// 7.5.3.1 PCI Express Capability List Register (Offset 00h)
+	pcieNextCapabilityPointerOffset uint16 = 0x01
 
-	pcieNextCapabilityOffset uint8 = 0x01
+	// 7.5.3.2 PCI Express Capabilities Register (Offset 02h)
+	pcieCapabilitiesVersionMask uint16 = 0xFC
+
+	// 7.5.3 PCI Express Capability Structure - this structure is a mechanism
+	// for identifying and managaging PCI Express device.
+	pcieExpressCapabilitiesId uint8 = 0x10
+
+	// 7.5.3.4 Device Control Register (Offset 08h)
+	// PCI Express Base Specification, Rev 4.0 Version 1.0
+	pcieDeviceControlRegisterOffset                         uint16 = 0x08
+	pcieDeviceControlRegisterInitiateFunctionLevelResetFlag uint16 = 0x8000
 )
 
 func (dev *Device) VfReset(pdfid uint16) error {
 
-	offset, err := dev.CsrRead8(pdfid, pcieCapabilitiesOffset)
+	// Read the capabilities pointer
+	capabilityOffset, err := dev.CsrRead8(pdfid, pcieCapabilitiesPointer)
 	if err != nil {
-		return fmt.Errorf("vf reset - failed to read register address %#02x", pcieCapabilitiesOffset)
+		return fmt.Errorf("vf reset - failed to read register address %#04x", pcieCapabilitiesPointer)
 	}
 
-	offset &= pcieCapabilitiesMask
+	// Bottom two bits are reserved and must be set to 00b.
+	capabilityOffset &= pcieCapabilitiesPointerMask
+
+	// Loop through the PCI capabilities until the PCI Express Capabilities ID is found
+	offset := uint16(capabilityOffset)
 	for offset != 0 {
-		capId, err := dev.CsrRead8(pdfid, uint16(offset))
+		capId, err := dev.CsrRead8(pdfid, offset)
 		if err != nil {
-			return fmt.Errorf("vf reset - failed to read register address %#02x", offset)
+			return fmt.Errorf("vf reset - failed to read register address %#04x", offset)
 		}
 
-		if capId == pcieCapabilitiesId {
+		if capId == pcieExpressCapabilitiesId {
 			break
 		}
 
-		offset += pcieNextCapabilityOffset
-		nextOffset, err := dev.CsrRead8(pdfid, uint16(offset))
+		offset += pcieNextCapabilityPointerOffset
+		nextOffset, err := dev.CsrRead8(pdfid, offset)
 		if err != nil {
-			return fmt.Errorf("vf reset - failed to read register address %#02x", offset)
+			return fmt.Errorf("vf reset - failed to read register address %#04x", offset)
 		}
 
-		offset = nextOffset
+		offset = uint16(nextOffset)
 	}
 
 	if offset == 0 {
-		return fmt.Errorf("vf reset - cannot find capability register '%#02x'", pcieCapabilitiesId)
+		return fmt.Errorf("vf reset - cannot find capability register '%#02x'", pcieExpressCapabilitiesId)
 	}
 
-	offset += pcieDeviceControlerRegisterOffset
-	ctrl, err := dev.CsrRead16(pdfid, uint16(offset))
+	// We've located the start of the PCIe Express Capability structure. Read in
+	// the Device Control register and toggle the reset flag.
+	offset += pcieDeviceControlRegisterOffset
+	ctrl, err := dev.CsrRead16(pdfid, offset)
 	if err != nil {
 		return fmt.Errorf("vf reset - failed to read register %#04x", offset)
 	}
 
-	ctrl |= pcieDeviceResetFlag
-	if err := dev.CsrWrite16(pdfid, uint16(offset), ctrl); err != nil {
+	ctrl |= pcieDeviceControlRegisterInitiateFunctionLevelResetFlag
+	if err := dev.CsrWrite16(pdfid, offset, ctrl); err != nil {
 		return fmt.Errorf("vf reset - failed to write register %#04x", offset)
 	}
 

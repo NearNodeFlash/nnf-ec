@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	csrMaxReadWriteLength = 4
+	csrMaxReadWriteLengthInBytes = 4
 
 	csrReadSubCommand  uint8 = 0
 	csrWriteSubCommand uint8 = 1
@@ -33,8 +33,8 @@ const (
 
 func (dev *Device) CsrRead(pdfid uint16, addr uint16, length uint8) ([]byte, error) {
 
-	if length > csrMaxReadWriteLength {
-		return nil, fmt.Errorf("csr read of length %d exceeds limit %d", length, csrMaxReadWriteLength)
+	if length > csrMaxReadWriteLengthInBytes {
+		return nil, fmt.Errorf("csr read of length %d exceeds limit %d", length, csrMaxReadWriteLengthInBytes)
 	}
 
 	cmd := struct {
@@ -93,8 +93,8 @@ func (dev *Device) CsrRead32(pdfid uint16, addr uint16) (uint32, error) {
 func (dev *Device) CsrWrite(pdfid uint16, addr uint16, payload []byte) error {
 
 	length := len(payload)
-	if length > csrMaxReadWriteLength {
-		return fmt.Errorf("csr write of length %d exceeds limit %d", length, csrMaxReadWriteLength)
+	if length > csrMaxReadWriteLengthInBytes {
+		return fmt.Errorf("csr write of length %d exceeds limit %d", length, csrMaxReadWriteLengthInBytes)
 	}
 
 	cmd := struct {
