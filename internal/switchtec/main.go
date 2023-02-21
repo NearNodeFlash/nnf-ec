@@ -38,10 +38,12 @@ var cli struct {
 	Bind     cmd.BindCmd      `kong:"cmd,help='Bind an endpoint to a port within a host virtualization domain.'"`
 	Unbind   cmd.UnbindCmd    `kong:"cmd,help='Unbind an endpoint on a port within a host virtualization domain.'"`
 	Dump     cmd.DumpCmd      `kong:"cmd,help='Dump various types of GFMS information.'"`
-	Gas      cmd.GasCmd       `kong:"cmd,help='Global Address Space access commands.'"`
+	Gas      cmd.GasCmd       `kong:"cmd,help='Global Address Space (GAS) access commands.'"`
+	Csr      cmd.CsrCmd       `kong:"cmd,help='Configuration Status Register (CSR) access commands.'"`
 	Mfg      cmd.MfgCmd       `kong:"cmd,help='Manufacturing commands.'"`
 	Event    cmd.EventCmd     `kong:"cmd,help='Event commands.'"`
 	Bw       cmd.BandwidthCmd `kong:"cmd,help='Measure the traffic bandwidth through each port.'"`
+	VfReset  cmd.VfResetCmd `kong:"cmd,help='Perform a Function Level Reset (FLR) on a Virtual Function'"`
 
 	IdCtrl            nvme.IdCtrlCmd          `kong:"cmd,help='Identify Controller.'"`
 	IdPrimaryCtlrCaps nvme.PrimaryCtrlCapsCmd `kong:"cmd,help='Identify Primary Controller Capabilities.'"`
