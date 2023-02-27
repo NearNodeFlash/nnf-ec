@@ -22,6 +22,8 @@ package main
 import (
 	"flag"
 
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
 	nnf "github.com/NearNodeFlash/nnf-ec/pkg"
 	ec "github.com/NearNodeFlash/nnf-ec/pkg/ec"
 )
@@ -36,9 +38,14 @@ func main() {
 	nnfOpts := nnf.BindFlags(flag.CommandLine)
 	ecOpts := ec.BindFlags(flag.CommandLine)
 
+	zapOpts := zap.Options{Development: true}
+	zapOpts.BindFlags(flag.CommandLine)
+
 	flag.Parse()
 
-	c := nnf.NewController(nnfOpts)
+	logger := zap.New(zap.UseFlagOptions(&zapOpts))
+
+	c := nnf.NewController(nnfOpts).WithLogger(logger)
 
 	c.Init(ecOpts)
 	c.Run()

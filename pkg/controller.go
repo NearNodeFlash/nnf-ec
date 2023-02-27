@@ -115,12 +115,7 @@ func NewController(opts *Options) *ec.Controller {
 		persistent.StorageProvider = persistent.NewJsonFilePersistentStorageProvider(opts.json)
 	}
 
-	return &ec.Controller{
-		Name:    Name,
-		Port:    Port,
-		Version: Version,
-		Routers: NewDefaultApiRouters(switchCtrl, nvmeCtrl, nnfCtrl),
-	}
+	return ec.NewController(Name, Port, Version, NewDefaultApiRouters(switchCtrl, nvmeCtrl, nnfCtrl))
 }
 
 // NewDefaultApiRouters -

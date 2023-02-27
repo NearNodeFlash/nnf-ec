@@ -24,7 +24,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 
 	nvme2 "github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
@@ -106,22 +105,25 @@ func (p *StoragePool) findStorageGroupByEndpoint(endpoint *Endpoint) *StorageGro
 }
 
 func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, ignoreErrors bool) error {
+	log := p.storageService.log
 
-	log.Infof("Storage Pool %s: Recover Volumes", p.id)
+	log.WithValues(storagePoolIdKey, p.id)
+	log.Info("recover volumes")
 
 	for _, volumeInfo := range volumes {
+		log := log.WithValues("serialNumber", volumeInfo.SerialNumber, "namespaceId", volumeInfo.NamespaceId)
 
 		// Locate the NVMe Storage device by Serial Number
 		storage := p.storageService.findStorage(volumeInfo.SerialNumber)
 		if storage == nil {
-			log.Warnf("Storage %s not found", volumeInfo.SerialNumber)
+			log.Info("storage device not found")
 			continue
 		}
 
 		// Locate the Volume by Namespace ID
 		volume, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
 		if err != nil {
-			log.Errorf("Volume %d not found", volumeInfo.NamespaceId)
+			log.Error(err, "namespace not found")
 			if ignoreErrors {
 				continue
 			}
@@ -270,7 +272,6 @@ func NewStoragePoolRecoveryRegistry(s *StorageService) persistent.Registry {
 func (*storagePoolRecoveryRegistry) Prefix() string { return storagePoolRegistryPrefix }
 
 func (r *storagePoolRecoveryRegistry) NewReplay(id string) persistent.ReplayHandler {
-	log.Infof("Storage Pool %s: New Replay", id)
 	return &storagePoolRecoveryReplayHandler{storageService: r.storageService, id: id}
 }
 

@@ -151,7 +151,7 @@ func (s *ServerStorageService) Id() string {
 	return s.id
 }
 
-func (s *ServerStorageService) Initialize(nnf.NnfControllerInterface) error {
+func (s *ServerStorageService) Initialize(ec.Logger, nnf.NnfControllerInterface) error {
 
 	// Ensure the server is initialized
 	if err := server.Initialize(); err != nil {
