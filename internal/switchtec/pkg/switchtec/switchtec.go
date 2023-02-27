@@ -48,6 +48,23 @@ const (
 	PAXIdShift = 18
 )
 
+type CommandError struct {
+	cmd Command
+	err error
+}
+
+func newCommandError(cmd Command, err error) *CommandError {
+	return &CommandError{cmd: cmd, err: err}
+}
+
+func (e *CommandError) Error() string {
+	return fmt.Sprintf("Switchtec Command: %s (%#x) Error: %s", e.cmd, e.cmd, e.err)
+}
+
+func (e *CommandError) Unwrap() error {
+	return e.err
+}
+
 // Open returns the device such that it is accessible to other
 // API functions.
 func Open(path string) (*Device, error) {
@@ -118,13 +135,13 @@ func (dev *Device) RunCommand(cmd Command, payload interface{}, response interfa
 	defer dev.Unlock()
 
 	if err := dev.ops.submitCommand(dev, cmd, payloadBuf.Bytes()); err != nil {
-		return err
+		return newCommandError(cmd, err)
 	}
 
 	responseBuf := structex.NewBuffer(response)
 
 	if err := dev.ops.readResponse(dev, responseBuf.Bytes()); err != nil {
-		return err
+		return newCommandError(cmd, err)
 	}
 
 	if response == nil {
