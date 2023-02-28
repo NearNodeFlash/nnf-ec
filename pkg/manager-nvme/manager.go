@@ -500,27 +500,28 @@ func (s *Storage) createVolume(desiredCapacityInBytes uint64) (*Volume, error) {
 	actualCapacityBytes := roundUpToMultiple(desiredCapacityInBytes, s.blockSizeBytes)
 
 	s.log.V(2).Info("Creating namespace", "capacityInBytes", actualCapacityBytes, "formatIndex", s.lbaFormatIndex)
-
 	namespaceId, guid, err := s.device.CreateNamespace(actualCapacityBytes/s.blockSizeBytes, s.lbaFormatIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	s.log.V(1).Info("Created namespace", namespaceIdKey, namespaceId)
-
-	s.unallocatedBytes -= actualCapacityBytes
-
 	id := strconv.Itoa(int(namespaceId))
+
+	log := s.log.WithName(id).WithValues(namespaceIdKey, namespaceId)
+	log.V(1).Info("Created namespace")
+
 	volume := Volume{
 		id:            id,
 		namespaceId:   namespaceId,
 		guid:          guid,
 		capacityBytes: actualCapacityBytes,
 		storage:       s,
-		log:           s.log.WithValues(namespaceIdKey, namespaceId),
+		log:           log,
 	}
 
 	s.volumes = append(s.volumes, volume)
+
+	s.unallocatedBytes -= actualCapacityBytes
 
 	return &s.volumes[len(s.volumes)-1], nil
 }
@@ -529,11 +530,14 @@ func (s *Storage) deleteVolume(volumeId string) error {
 
 	for idx, volume := range s.volumes {
 		if volume.id == volumeId {
-			volume.log.V(1).Info("Deleting namespace")
+			log := volume.log
 
+			log.V(2).Info("Deleting namespace")
 			if err := s.device.DeleteNamespace(volume.namespaceId); err != nil {
+				log.Error(err, "Delete namespace failed")
 				return err
 			}
+			log.V(1).Info("Deleted namespace")
 
 			s.unallocatedBytes += volume.capacityBytes
 
@@ -551,9 +555,14 @@ func (s *Storage) deleteVolume(volumeId string) error {
 func (s *Storage) formatVolume(volumeID string) error {
 	for _, volume := range s.volumes {
 		if volume.id == volumeID {
+			log := volume.log
+
+			log.V(2).Info("Format namespace")
 			if err := s.device.FormatNamespace(volume.namespaceId); err != nil {
+				log.Error(err, "Format namespace failure")
 				return err
 			}
+			log.V(1).Info("Formatted namespace")
 
 			return nil
 		}
@@ -572,22 +581,24 @@ func (s *Storage) recoverVolumes() error {
 
 	s.volumes = make([]Volume, 0)
 	for _, nsid := range namespaces {
-		s.log.V(1).Info("Identify namespace", "nsid", nsid)
+		log := s.log.WithValues(namespaceIdKey, nsid)
 
+		log.V(2).Info("Identify namespace")
 		ns, err := s.device.IdentifyNamespace(nsid)
 		if err != nil {
-			s.log.Error(err, "Failed to identify namespace", "nsid", nsid)
+			log.Error(err, "Failed to identify namespace")
 		}
 
 		blockSizeBytes := uint64(1 << ns.LBAFormats[ns.FormattedLBASize.Format].LBADataSize)
 
+		id := strconv.Itoa(int(nsid))
 		volume := Volume{
-			id:            strconv.Itoa(int(nsid)),
+			id:            id,
 			namespaceId:   nsid,
 			guid:          ns.GloballyUniqueIdentifier,
 			capacityBytes: ns.Capacity * blockSizeBytes,
 			storage:       s,
-			log:           s.log.WithName(strconv.Itoa(int(nsid))),
+			log:           log.WithName(id),
 		}
 
 		s.volumes = append(s.volumes, volume)
@@ -658,13 +669,16 @@ func (v *Volume) runInAttachDetachBlock(fn func() error) error {
 
 // Wait for Format Completion by polling on the namespace Utilization value to reach zero.
 func (v *Volume) WaitFormatComplete() error {
+	log := v.log
 
+	log.V(2).Info("Wait for format completion")
 	ns, err := v.storage.device.IdentifyNamespace(v.namespaceId)
 	if err != nil {
 		return err
 	}
 
 	for ns.Utilization != 0 {
+		log.V(3).Info("Namespace in use", "utilization", ns.Utilization)
 
 		const delay = 100 * time.Millisecond
 
@@ -679,9 +693,11 @@ func (v *Volume) WaitFormatComplete() error {
 		}
 
 		if lastUtilization == ns.Utilization {
-			return fmt.Errorf("Device %s Format Stalled: Namespace: %d Delay: %s", v.storage.id, v.namespaceId, delay.String())
+			return fmt.Errorf("Device %s Format Stalled: Namespace: %d Delay: %s Utilization: %d", v.storage.id, v.namespaceId, delay.String(), ns.Utilization)
 		}
 	}
+
+	log.V(1).Info("Format completed", "utilization", ns.Utilization)
 
 	return nil
 }
@@ -696,18 +712,20 @@ func (v *Volume) attach(controllerId uint16) error {
 	// still use the secondary controller values for all other ports, but we need to remap the
 	// first index to the physical function.
 	//
-	if v.storage.device.IsDirectDevice() {
-		if controllerId == 1 {
-			controllerId = v.storage.physicalFunctionControllerId
+	if controllerId != v.storage.physicalFunctionControllerId {
+		if v.storage.device.IsDirectDevice() {
+			if controllerId == 1 {
+				controllerId = v.storage.physicalFunctionControllerId
+			}
+		} else if v.storage.virtManagementEnabled {
+			controllerId = v.storage.controllers[controllerId].controllerId
+		} else if v.storage.IsKioxiaDualPortConfiguration() {
+			controllerId = controllerId + 2
 		}
-	} else if v.storage.virtManagementEnabled {
-		controllerId = v.storage.controllers[controllerId].controllerId
-	} else if v.storage.IsKioxiaDualPortConfiguration() {
-		controllerId = controllerId + 2
 	}
 
 	log := v.log.WithValues(controllerIdKey, controllerId)
-	log.V(1).Info("Attach namespace")
+	log.V(2).Info("Attach namespace")
 
 	err := v.storage.device.AttachNamespace(v.namespaceId, []uint16{controllerId})
 
@@ -724,24 +742,28 @@ func (v *Volume) attach(controllerId uint16) error {
 		}
 	}
 
+	log.V(1).Info("Attached namespace")
+
 	return nil
 }
 
 func (v *Volume) detach(controllerId uint16) error {
 	// See the note on "attach" above
 
-	if v.storage.device.IsDirectDevice() {
-		if controllerId == 1 {
-			controllerId = v.storage.physicalFunctionControllerId
+	if controllerId != v.storage.physicalFunctionControllerId {
+		if v.storage.device.IsDirectDevice() {
+			if controllerId == 1 {
+				controllerId = v.storage.physicalFunctionControllerId
+			}
+		} else if v.storage.virtManagementEnabled {
+			controllerId = v.storage.controllers[controllerId].controllerId
+		} else if v.storage.IsKioxiaDualPortConfiguration() {
+			controllerId = controllerId + 2
 		}
-	} else if v.storage.virtManagementEnabled {
-		controllerId = v.storage.controllers[controllerId].controllerId
-	} else if v.storage.IsKioxiaDualPortConfiguration() {
-		controllerId = controllerId + 2
 	}
 
 	log := v.log.WithValues(controllerIdKey, controllerId)
-	log.V(1).Info("Detach namespace")
+	log.V(2).Info("Detach namespace")
 
 	err := v.storage.device.DetachNamespace(v.namespaceId, []uint16{controllerId})
 
@@ -757,6 +779,8 @@ func (v *Volume) detach(controllerId uint16) error {
 			return err
 		}
 	}
+
+	log.V(1).Info("Detached namespace")
 
 	return nil
 }

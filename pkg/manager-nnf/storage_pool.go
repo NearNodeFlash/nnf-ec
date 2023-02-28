@@ -147,6 +147,7 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, 
 }
 
 func (p *StoragePool) deallocateVolumes() error {
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
 	// In order to speed up deleting volumes, we format them first. Format runs asynchronously, so after
 	// each format call, wait for completion before deleting the volume.
 
@@ -165,14 +166,17 @@ func (p *StoragePool) deallocateVolumes() error {
 		return nil
 	}
 
+	log.V(3).Info("Formatting volumes")
 	if err := runOnProvidingVolumes(func(v *nvme.Volume) error { return v.Format() }); err != nil {
 		return fmt.Errorf("Failed to format volumes: %v", err)
 	}
 
+	log.V(3).Info("Wait for format complete")
 	if err := runOnProvidingVolumes(func(v *nvme.Volume) error { return v.WaitFormatComplete() }); err != nil {
 		return fmt.Errorf("Failed to wait on format completions: %v", err)
 	}
 
+	log.V(3).Info("Deleting volumes")
 	if err := runOnProvidingVolumes(func(v *nvme.Volume) error { return v.Delete() }); err != nil {
 		return fmt.Errorf("Failed to delete volumes: %v", err)
 	}

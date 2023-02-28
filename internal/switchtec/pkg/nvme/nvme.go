@@ -87,7 +87,7 @@ type PassthruCmd struct {
 type AdminCmd = PassthruCmd
 
 func (cmd *AdminCmd) String() string {
-	return fmt.Sprintf("'%s' (%#02x)", AdminCommandOpCode(cmd.Opcode), cmd.Opcode)
+	return fmt.Sprintf("OpCode: %s (%#02x)", AdminCommandOpCode(cmd.Opcode), cmd.Opcode)
 }
 
 // AdminCommandOpCode sizes the opcodes listed below
@@ -172,7 +172,7 @@ type CommandError struct {
 }
 
 func (e *CommandError) Error() string {
-	return fmt.Sprintf("NVMe Status: %s (%#03x) CRD: %d More: %t DNR: %t", e.StatusCode, e.StatusCode, e.CommandRetryDelay, e.More, e.DoNotRetry)
+	return fmt.Sprintf("NVMe Status: %s (%#03x) CRD: %d More: %t DNR: %t", e.StatusCode, uint32(e.StatusCode), e.CommandRetryDelay, e.More, e.DoNotRetry)
 }
 
 // NewCommandError generates the default CommandError for use

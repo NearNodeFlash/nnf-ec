@@ -51,7 +51,7 @@ func newSwitchtecNvmeCommandError(dev *Device, cmd *AdminCmd, err error) *Switch
 }
 
 func (e *SwitchtecNvmeCommandError) Error() string {
-	return fmt.Sprintf("Device %s: Failed NVMe Command '%s': Error: %s", e.dev, e.cmd, e.err)
+	return fmt.Sprintf("Device %s: Failed NVMe Command: %s: Error: %s", e.dev, e.cmd, e.err)
 }
 
 func (e *SwitchtecNvmeCommandError) Unwrap() error {

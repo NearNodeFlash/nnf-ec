@@ -539,7 +539,7 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		}
 
 		// Remove any namespaces that are not part of a Storage Pool
-		log.V(1).Info("Removing Volumes that are not allocated as part of a Storage Pool")
+		log.V(2).Info("Cleanup obsolete volumes")
 		s.cleanupVolumes()
 
 		s.state = sf.ENABLED_RST
@@ -1212,7 +1212,7 @@ func (*StorageService) StorageServiceIdFileSystemsPost(storageServiceId string, 
 	}
 
 	log := s.log.WithValues(modelIdKey, model.Id)
-	log.V(1).Info("Create file system")
+	log.V(2).Info("Create file system")
 	defer func() {
 		if err != nil {
 			log.Error(err, "Create file system failed")
