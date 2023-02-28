@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.16 as builder
+FROM golang:1.18 as builder
 
 WORKDIR /workspace
 
@@ -29,7 +29,7 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOPRIVATE=github.hpe.com go build -a -o nnf-ec ./cmd/nnf_ec.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o nnf-ec ./cmd/nnf_ec.go
 
 # Run Go unit tests
 FROM builder AS container-unit-test
