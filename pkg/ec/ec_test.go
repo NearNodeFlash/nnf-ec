@@ -122,13 +122,9 @@ type testModel struct {
 
 func TestHttp(t *testing.T) {
 
-	var c = Controller{
-		Name: "TestController",
-		Port: 8081,
-		Routers: Routers{
-			NewTestApiRouter(),
-		},
-	}
+	c := NewController(
+		"Test", 8081, "test", Routers{NewTestApiRouter()},
+	)
 
 	c.Init(&Options{Http: true, Log: true, Verbose: true})
 	defer c.Close()
@@ -136,10 +132,10 @@ func TestHttp(t *testing.T) {
 	go c.Run()
 	time.Sleep(1 * time.Second)
 
-	Request(t, &c, GET_METHOD)
-	Request(t, &c, POST_METHOD)
+	Request(t, c, GET_METHOD)
+	Request(t, c, POST_METHOD)
 
-	RequestFail(t, &c)
+	RequestFail(t, c)
 }
 
 func Request(t *testing.T, c *Controller, method string) {
