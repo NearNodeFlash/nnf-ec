@@ -53,6 +53,7 @@ const (
 const (
 	switchIdKey = "switchId"
 	portIdKey   = "portId"
+	slotKey     = "slot"
 
 	storageIdKey = "storageId"
 	volumeIdKey  = "volumeId"
@@ -333,7 +334,7 @@ func (s *Storage) OdataIdRef(ref string) sf.OdataV4IdRef {
 
 func (s *Storage) initialize() error {
 
-	log := s.manager.log.WithName(s.id).WithValues(storageIdKey, s.id)
+	log := s.manager.log.WithName(s.id).WithValues(storageIdKey, s.id, slotKey, s.slot)
 	log.Info("Initialize storage device")
 
 	s.log = log
@@ -388,7 +389,7 @@ func (s *Storage) initialize() error {
 		"firmwareRevision", s.firmwareRevision,
 		"capacityInBytes", s.capacityBytes,
 		"unallocatedBytes", s.unallocatedBytes,
-		"virt-mgmt", s.virtManagementEnabled)
+		"virtualizationManagement", s.virtManagementEnabled)
 
 	ns, err := s.device.IdentifyNamespace(CommonNamespaceIdentifier)
 	if err != nil {
@@ -498,14 +499,14 @@ func (s *Storage) createVolume(desiredCapacityInBytes uint64) (*Volume, error) {
 
 	actualCapacityBytes := roundUpToMultiple(desiredCapacityInBytes, s.blockSizeBytes)
 
-	s.log.Info("Creating namespace", "capacityInBytes", actualCapacityBytes, "formatIndex", s.lbaFormatIndex)
+	s.log.V(2).Info("Creating namespace", "capacityInBytes", actualCapacityBytes, "formatIndex", s.lbaFormatIndex)
 
 	namespaceId, guid, err := s.device.CreateNamespace(actualCapacityBytes/s.blockSizeBytes, s.lbaFormatIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	s.log.Info("Created namespace", namespaceIdKey, namespaceId)
+	s.log.V(1).Info("Created namespace", namespaceIdKey, namespaceId)
 
 	s.unallocatedBytes -= actualCapacityBytes
 
@@ -765,11 +766,10 @@ func Initialize(log ec.Logger, ctrl NvmeController) error {
 	log.Info("Initialize NVMe Manager")
 
 	const name = "nvme"
-	log.Info("Creating logger", "name", name)
+	log.V(2).Info("Creating logger", "name", name)
 	log = log.WithName(name)
 	mgr.log = log
 
-	log.V(1).Info("Loading configuration")
 	conf, err := loadConfig()
 	if err != nil {
 		log.Error(err, "failed to load configuration", "id", mgr.id)
@@ -811,12 +811,13 @@ func Close() error {
 }
 
 func (m *Manager) EventHandler(e event.Event) error {
+	log := m.log.WithValues("eventId", e.Id, "eventMessage", e.Message, "eventArgs", e.MessageArgs)
 
 	linkEstablished := e.Is(msgreg.DownstreamLinkEstablishedFabric("", "")) || e.Is(msgreg.DegradedDownstreamLinkEstablishedFabric("", ""))
 	linkDropped := e.Is(msgreg.DownstreamLinkDroppedFabric("", ""))
 
 	if linkEstablished || linkDropped {
-		m.log.V(1).Info("NVMe Manager: Link Event Received", "established", linkEstablished, "dropped", linkDropped)
+		log.V(2).Info("Link event received")
 
 		var switchId, portId string
 		if err := e.Args(&switchId, &portId); err != nil {
@@ -843,6 +844,7 @@ func (m *Manager) EventHandler(e event.Event) error {
 		}
 
 		storage.slot = port.GetSlot()
+		storage.log = m.log.WithValues(slotKey, storage.slot)
 
 		if linkEstablished {
 			return storage.LinkEstablishedEventHandler(switchId, portId)
@@ -857,9 +859,7 @@ func (m *Manager) EventHandler(e event.Event) error {
 }
 
 func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
-
-	log := s.manager.log.WithValues(switchIdKey, switchId, portIdKey, portId)
-	log.Info("Link established event")
+	log := s.log.WithValues(switchIdKey, switchId, portIdKey, portId)
 
 	// Connect
 	device, err := s.manager.ctrl.NewNvmeDevice(fabric.FabricId, switchId, portId)
@@ -875,7 +875,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 		return err
 	}
 
-	log = s.log
+	log = s.log // switch to using the storage logger
 
 	if s.manager.purge {
 		log.Info("Purging existing volumes")
@@ -911,7 +911,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 		}
 
 	} else {
-		log.V(1).Info("List Secondary Controllers")
+		log.V(2).Info("List Secondary Controllers")
 
 		ls, err := device.ListSecondary()
 		if err != nil {
@@ -954,7 +954,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 			log := log.WithValues(controllerIdKey, ctrl.id)
 
 			if !s.IsKioxiaDualPortConfiguration() {
-				log.V(1).Info("Initialize Secondary Controller", "resources", s.config.Resources)
+				log.V(2).Info("Initialize VQ resources", "resources", s.config.Resources)
 				if sc.VQFlexibleResourcesAssigned != uint16(s.config.Resources) {
 					if err := s.device.AssignControllerResources(sc.SecondaryControllerID, VQResourceType, s.config.Resources); err != nil {
 						log.Error(err, "Failed to assign VQ Resources")
@@ -964,6 +964,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 					ctrl.vqResources = uint16(s.config.Resources)
 				}
 
+				log.V(2).Info("Initialize VI resources", "resources", s.config.Resources)
 				if sc.VIFlexibleResourcesAssigned != uint16(s.config.Resources) {
 					if err := s.device.AssignControllerResources(sc.SecondaryControllerID, VIResourceType, s.config.Resources); err != nil {
 						log.Error(err, "Failed to assign VI resources")
@@ -974,6 +975,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 				}
 
 				if sc.SecondaryControllerState&0x01 == 0 {
+					log.V(2).Info("Reset controller")
 					if err := fabric.FabricController.ResetEndpoint(switchId, portId, idx); err != nil {
 						log.Error(err, "Failed to reset controller")
 					}
@@ -981,6 +983,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 			}
 
 			if sc.SecondaryControllerState&0x01 == 0 {
+				log.V(2).Info("Online controller")
 				if err := s.device.OnlineController(sc.SecondaryControllerID); err != nil {
 					log.Error(err, "Failed to online controller")
 					break
@@ -989,7 +992,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 				ctrl.online = true
 			}
 
-			log.V(1).Info("Secondary Controller Initialized")
+			log.V(2).Info("Secondary controller initialized")
 
 		} // for := secondary controllers
 
@@ -1002,7 +1005,10 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 		}
 	}
 
+	log.V(1).Info("Storage initialized")
+
 	// Recover existing volumes
+	log.V(2).Info("Recovering volumes")
 	if err := s.recoverVolumes(); err != nil {
 		log.Error(err, "Failed to recover existing volumes")
 		return err

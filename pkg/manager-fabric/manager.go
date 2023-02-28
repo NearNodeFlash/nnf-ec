@@ -43,6 +43,7 @@ const (
 	switchIdKey   = "switchId"
 	portIdKey     = "portId"
 	endpointIdKey = "endpointId"
+	slotKey       = "slot"
 )
 
 type Fabric struct {
@@ -374,7 +375,8 @@ func (s *Switch) identify() error {
 
 		path := fmt.Sprintf("/dev/switchtec%d", i)
 
-		log.V(1).Info("Opening path", "path", path)
+		log.V(2).Info("Opening path", "path", path)
+
 		dev, err := f.ctrl.Open(path)
 		if os.IsNotExist(err) {
 			continue
@@ -389,7 +391,7 @@ func (s *Switch) identify() error {
 			return err
 		}
 
-		log.V(1).Info("Identified switch device", "pax", paxId)
+		log.V(2).Info("Identified switch device", "pax", paxId)
 		if id := strconv.Itoa(int(paxId)); id == s.id {
 			s.dev = dev
 			s.path = path
@@ -400,7 +402,7 @@ func (s *Switch) identify() error {
 			s.serialNumber = s.getSerialNumber()
 			s.firmwareVersion = s.getFirmwareVersion()
 
-			log.Info("Identified switch",
+			log.Info("Identified switch", "path", path,
 				"model", s.model, "manufacturer", s.manufacturer,
 				"serialNumber", s.serialNumber, "firmwareVersion", s.firmwareVersion)
 
@@ -621,8 +623,8 @@ func (p *Port) getResourceState() sf.ResourceState {
 }
 
 func (p *Port) Initialize() error {
-	log := p.log.WithValues("name", p.config.Name, "port", p.config.Port)
-	log.Info("Initialize Port")
+	log := p.log.WithValues("name", p.config.Name, "port", p.config.Port, "portType", p.portType)
+	log.V(2).Info("Initialize Port")
 
 	switch p.portType {
 	case sf.DOWNSTREAM_PORT_PV130PT:
@@ -671,12 +673,14 @@ func (p *Port) Initialize() error {
 			}
 		}
 
-		log.Info("Initialize Port")
+		log.Info("Initialize Downstream Port")
 		if err := p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p)); err != nil {
 			log.Error(err, "Port Enumeration Failed")
 			return err
 		}
 	}
+
+	log.V(1).Info("Port Initialized")
 
 	return nil
 }
@@ -690,7 +694,7 @@ func (p *Port) bind() error {
 		return nil
 	}
 
-	log.V(1).Info("Starting port bind operation")
+	log.V(2).Info("Starting port bind operation")
 
 	if p.portType != sf.DOWNSTREAM_PORT_PV130PT {
 		panic(fmt.Sprintf("Port %s: Bind operation not allowed for port type %s", p.id, p.portType))
@@ -861,7 +865,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 	log.Info("Initialize Fabric Manager")
 
 	const name = "fabric"
-	log.Info("Creating logger", "name", name)
+	log.V(2).Info("Creating logger", "name", name)
 	log = log.WithName(name)
 
 	manager.log = log
@@ -869,7 +873,6 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 
 	m := &manager
 
-	log.V(1).Info("Loading configuration")
 	conf, err := loadConfig()
 	if err != nil {
 		log.Error(err, "Failed to load configuration")
@@ -911,11 +914,13 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 
 		for portIdx, portConf := range switchConf.Ports {
 			portType := portConf.getPortType()
+			id := strconv.Itoa(portIdx)
+			slot := int64(portConf.Slot)
 
 			s.ports[portIdx] = Port{
-				id:       strconv.Itoa(portIdx),
+				id:       id,
 				fabricId: strconv.Itoa(fabricPortId),
-				slot:     int64(portConf.Slot),
+				slot:     slot,
 				portType: portType,
 				portStatus: portStatus{
 					cfgLinkWidth:    0,
@@ -928,7 +933,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 				swtch:     &m.switches[switchIdx],
 				config:    &switchConf.Ports[portIdx],
 				endpoints: []*Endpoint{},
-				log:       log.WithName(strconv.Itoa(portIdx)),
+				log:       log.WithName(id).WithValues(portIdKey, id, slotKey, slot),
 			}
 
 			fabricPortId++
@@ -959,7 +964,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 	m.downstreamEndpointCount = (1 + // PF
 		mangementAndUpstreamEndpointCount) * m.config.DownstreamPortCount
 
-	log.V(1).Info("Creating endpoints")
+	log.V(2).Info("Creating endpoints")
 
 	m.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+m.downstreamEndpointCount)
 
