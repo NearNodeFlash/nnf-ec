@@ -39,9 +39,11 @@ func main() {
 	nnfOpts := nnf.BindFlags(flag.CommandLine)
 	ecOpts := ec.BindFlags(flag.CommandLine)
 
+	// Use zap for default logging
 	zapOpts := zap.Options{
-		Development: true,
-		Level:       zapcore.Level(-3),
+		Development:     true,
+		Level:           zapcore.Level(-3),
+		StacktraceLevel: zapcore.FatalLevel, // This turns off stack tracing
 	}
 	zapOpts.BindFlags(flag.CommandLine)
 

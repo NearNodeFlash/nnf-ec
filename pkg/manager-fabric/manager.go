@@ -623,8 +623,8 @@ func (p *Port) getResourceState() sf.ResourceState {
 }
 
 func (p *Port) Initialize() error {
-	log := p.log.WithValues("name", p.config.Name, "port", p.config.Port, "portType", p.portType)
-	log.V(2).Info("Initialize Port")
+	log := p.log
+	log.V(2).Info("Initialize port")
 
 	switch p.portType {
 	case sf.DOWNSTREAM_PORT_PV130PT:
@@ -673,14 +673,14 @@ func (p *Port) Initialize() error {
 			}
 		}
 
-		log.Info("Initialize Downstream Port")
+		log.V(2).Info("Initialize downstream port")
 		if err := p.swtch.dev.EnumerateEndpoint(uint8(p.config.Port), processPort(p)); err != nil {
-			log.Error(err, "Port Enumeration Failed")
+			log.Error(err, "Port initialization failed")
 			return err
 		}
 	}
 
-	log.V(1).Info("Port Initialized")
+	log.Info("Port initialized")
 
 	return nil
 }
@@ -1097,8 +1097,12 @@ func Start() error {
 
 		for portIdx := range s.ports {
 			p := &s.ports[portIdx]
+
 			if err := p.Initialize(); err != nil {
-				p.log.Error(err, "Port failed to initialize")
+				m.log.Error(err, "Port initialization failed")
+
+				// Port initialization is not fatal - the manager can continue
+				// to operate with down ports.
 			}
 		}
 
