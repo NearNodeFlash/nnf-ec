@@ -478,14 +478,14 @@ func (s *StorageService) Close() error {
 }
 
 func (s *StorageService) EventHandler(e event.Event) error {
-	log := s.log
+	log := s.log.WithValues("eventId", e.Id, "eventMessage", e.Message, "eventArgs", e.MessageArgs)
 
 	// Upstream link events
 	linkEstablished := e.Is(msgreg.UpstreamLinkEstablishedFabric("", "")) || e.Is(msgreg.DegradedUpstreamLinkEstablishedFabric("", ""))
 	linkDropped := e.Is(msgreg.UpstreamLinkDroppedFabric("", ""))
 
 	if linkEstablished || linkDropped {
-		log.V(2).Info("Link event", "eventId", e.Id, "eventMessage", e.Message, "eventArgs", e.MessageArgs)
+		log.V(2).Info("Link event")
 
 		var switchId, portId string
 		if err := e.Args(&switchId, &portId); err != nil {

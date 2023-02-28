@@ -87,7 +87,7 @@ type PassthruCmd struct {
 type AdminCmd = PassthruCmd
 
 func (cmd *AdminCmd) String() string {
-	return fmt.Sprintf("Admin Command: %s (%#02x)", AdminCommandOpCode(cmd.Opcode), cmd.Opcode)
+	return fmt.Sprintf("'%s' (%#02x)", AdminCommandOpCode(cmd.Opcode), cmd.Opcode)
 }
 
 // AdminCommandOpCode sizes the opcodes listed below
@@ -239,7 +239,12 @@ func Connect(dev *switchtec.Device, pdfid uint16) (*Device, error) {
 		return nil, err
 	}
 
-	return &Device{ops: &ops}, nil
+	device := &Device{
+		Path: fmt.Sprintf("%#x@%s", pdfid, dev.Path),
+		ops:  &ops,
+	}
+
+	return device, nil
 }
 
 func connectDevice(dev *switchtec.Device, ops *switchOps) (err error) {

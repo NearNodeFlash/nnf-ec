@@ -383,7 +383,7 @@ func (s *Storage) initialize() error {
 
 	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
 
-	log.V(1).Info("Identify controller",
+	log.V(1).Info("Identified controller",
 		"serialNumber", s.serialNumber,
 		"modelNumber", s.modelNumber,
 		"firmwareRevision", s.firmwareRevision,

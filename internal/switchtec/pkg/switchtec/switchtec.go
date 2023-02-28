@@ -33,6 +33,8 @@ import (
 
 // Device describing the switchtec device
 type Device struct {
+	Path string
+
 	file           *os.File
 	name           string
 	paxID          int32
@@ -82,6 +84,7 @@ func Open(path string) (*Device, error) {
 	syscall.SetNonblock(int(f.Fd()), false)
 
 	var dev = new(Device)
+	dev.Path = path
 	dev.file = f
 	dev.name = path
 	dev.ops = &charOps{}

@@ -22,6 +22,7 @@ package main
 import (
 	"flag"
 
+	"go.uber.org/zap/zapcore"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nnf "github.com/NearNodeFlash/nnf-ec/pkg"
@@ -38,7 +39,10 @@ func main() {
 	nnfOpts := nnf.BindFlags(flag.CommandLine)
 	ecOpts := ec.BindFlags(flag.CommandLine)
 
-	zapOpts := zap.Options{Development: true}
+	zapOpts := zap.Options{
+		Development: true,
+		Level:       zapcore.Level(-3),
+	}
 	zapOpts.BindFlags(flag.CommandLine)
 
 	flag.Parse()
