@@ -18,6 +18,7 @@ require (
 	github.com/sigurn/crc8 v0.0.0-20220107193325-2243fe600f9f
 	github.com/sirupsen/logrus v1.9.0
 	go.chromium.org/luci v0.0.0-20230227223707-c4460eb434d8
+	go.uber.org/zap v1.24.0
 	golang.org/x/sys v0.5.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/mount-utils v0.26.1
@@ -49,7 +50,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
