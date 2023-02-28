@@ -22,7 +22,7 @@ require (
 	golang.org/x/sys v0.5.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/mount-utils v0.26.1
-	sigs.k8s.io/controller-runtime v0.14.4
+	sigs.k8s.io/controller-runtime v0.13.0
 )
 
 require (
