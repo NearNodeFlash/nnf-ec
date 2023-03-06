@@ -23,13 +23,17 @@ Run various commands to configure rabbit-s.
 Usage: $0 [-h] [-p password] COMMAND SYSTEM
 
 Commands:
-  enable-logging    turn on pax logging via screen sessions
-  clear-logs        clear current pax logs
-  get-logs          retrieve pax logs into current folder
-  fabdbg-on         turn on verbose fabric debug
-  fabdbg-off        turn off verbose fabric debug
-  quit-sessions     terminate any active screen sessions
-  lnkstat           retrieve link state
+  enable-logging        turn on pax logging via screen sessions
+  clear-logs            clear current pax logs
+  get-logs              retrieve pax logs into current folder
+  fabdbg-on             turn on verbose fabric debug
+  fabdbg-off            turn off verbose fabric debug
+  additional-logs       turn on additional logs
+  additional-logs-off   turn off additional logs
+  slow-drive-logs       turn on logs for slow drives (0x82827 response code)
+  switch-hang-logs      turn on logs to find switch hang
+  quit-sessions         terminate any active screen sessions
+  lnkstat               retrieve link state
 
 Arguments:
   -p                password for SYSTEM
@@ -100,7 +104,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "fabdbg -s info\nfabdbg -s gfms\nfabdbg -s fio\nfabdbg -c rule\n"
+            screen -S $SESSION -X stuff "fabdbg -s info\nfabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nfabdbg -s fio\nfabdbg -s rule\n"
 EOF
         done
         ;;
@@ -108,7 +112,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "fabdbg -c info\nfabdbg -c gfms\nfabdbg -c fio\nfabdbg -c rule\n"
+            screen -S $SESSION -X stuff "fabdbg -c info\nfabdbg -c pax\nfabdbg -c gfms\nfabdbg -c hvm\nfabdbg -c sfm\nfabdbg -c fio\nfabdbg -c rule\n"
 EOF
         done
         ;;
@@ -124,7 +128,15 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "log -p off\nlog -m 0x54 -s3 -p off\nlog -m 0x82 -s3 -p off\nlog -m 0x84 -s3 -p off\n"
+            screen -S $SESSION -X stuff "log -p off\nlog -m 0x84 -s3 -p off\nlog -m 0x82 -s3 -p off\nlog -m 0x84 -s3 -p off\n"
+EOF
+        done
+        ;;
+    slow-drive-logs)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\nlog -m 0x82 -s 3 -p on -t on\n"
 EOF
         done
         ;;
@@ -132,7 +144,7 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\n"
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\nlog -m 0x82 -s 3 -p on -t on\n"
 EOF
         done
         ;;
