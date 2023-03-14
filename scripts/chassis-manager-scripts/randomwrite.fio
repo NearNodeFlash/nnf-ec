@@ -1,0 +1,13 @@
+[global]
+direct=1
+ioengine=libaio
+iodepth=128
+numjobs=4
+time_based
+group_reporting
+bs=4k
+runtime=60
+rw=randwrite
+
+[randwrite-rabbit]
+filename=/dev/rabbit/rabbit

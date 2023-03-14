@@ -1,16 +1,38 @@
 #!/usr/bin/env python3
 
-import argparse, sys
+# Copyright 2023 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-import common, connection
+
+import argparse
+import sys
+
+import common
+import connection
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Allocate storage and assign it to a compute node(s)',
-        epilog='Must be executed on Rabbit with nnf-ec running')
+        description='Allocate and attach Rabbit NVMe storage to one or more compute nodes',
+        epilog='NOTE: "nnf-ec" must be running on the Rabbit')
 
-    parser.add_argument('--node', nargs='+', choices=range(0, 16), default=None, help='the node index to attach to (default all 16 nodes)')
-    parser.add_argument('--size', type=str, action=common.ByteSizeAction, default=common.ByteSizeStringToIntegerBytes('500GB'), help='storage pool size (default 500GB)')
+    parser.add_argument('--node', nargs='+', type=int, choices=range(0, 16), default=None,
+                        help='compute node index to attach to (default all 16 nodes), specify "0" "1" ... for the compute nodes you want to use')
+    parser.add_argument('--size', type=str, action=common.ByteSizeAction,
+                        default=common.ByteSizeStringToIntegerBytes('500GB'), help='storage pool size (default 500GB)')
 
     connection.addServerArguments(parser)
 
