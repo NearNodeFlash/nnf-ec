@@ -54,5 +54,11 @@ func main() {
 	c := nnf.NewController(nnfOpts).WithLogger(logger)
 
 	c.Init(ecOpts)
+
+	if nnfOpts.InitializeAndExit {
+		logger.Info("nnf-ec: hardware initialized, exiting as requested")
+		return
+	}
+
 	c.Run()
 }

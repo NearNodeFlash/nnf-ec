@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2023 Hewlett Packard Enterprise Development LP
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -46,7 +46,8 @@ shift $((OPTIND - 1))
 TLD="/root/ajf"
 
 # Find the list of Rabbits we need to tool-up
-rabbits=( $(cm node show | grep Rabbit) )
+# Latest form of the x-name is x1000c[0-7]j7b0n0
+rabbits=( $(cm node show | grep j) )
 # rabbits=( RabbitP-c0 )
 for rabbit in "${rabbits[@]}";
 do
@@ -60,11 +61,14 @@ do
     rsync -r "$TLD"/tools "$rabbit":
     rsync -r "$TLD"/switchtec* "$rabbit":/usr/src
 
+
+    # TODO: Look into using pdsh to launch the following sets of commands in parallel and outside this loop
+
     # Compile/install switchtec-user, then copy the latest switchtec-nvme program into place to get the latest capabilities
     ssh "$rabbit" "cd /usr/src/switchtec-user && ./configure && make install && cp /usr/src/switchtec-nvme-cli/switchtec-nvme /usr/sbin"
 
     # Launch nnf-ec to initialize PAX's, drives and compute node endpoints
     # type CTRL-C when you see "Starting HTTP Server	{"address": ":8080"}"
     # to proceed to the next Rabbit.
-    ssh "$rabbit" "./nnf-ec"
+    ssh "$rabbit" "./nnf-ec --initializeAndExit"
 done

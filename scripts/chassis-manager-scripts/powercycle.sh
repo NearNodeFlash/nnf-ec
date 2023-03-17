@@ -19,8 +19,8 @@
 # set -e
 # set -o xtrace
 
-rabbitPXName="x1000c[0-7]rbt7b0n0"
-rabbitSXName="x1000c[0-7]rbt4b0"
+rabbitPXName="x1000c[0-7]j7b0n0"
+rabbitSXName="x1000c[0-7]j4b0"
 
 paxControl() {
     local op=$1
@@ -98,9 +98,9 @@ waitRabbitState() {
     esac
 
     local areWeThereYet="$(cm power status -t node $rabbitPXName | grep -v $desiredState)"
-    for ((i=0; ${#areWeThereYet} > 300; i++));
+    for ((i=0; ${#areWeThereYet} > 0; i++));
     do
-        if (( i > 9 ));
+        if (( i > 300 ));
         then
             printf "Waited too long\n"
             exit 1
@@ -111,6 +111,8 @@ waitRabbitState() {
 
         if ((i % 10 == 0));
         then
+            date
+            printf "Still waiting for:\n"
             printf "%s\n" "$areWeThereYet"
         fi
     done
