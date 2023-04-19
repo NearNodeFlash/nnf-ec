@@ -26,22 +26,60 @@ Query drive firmware version for all drives in a Rabbit. Update drives that are 
 Assumes that the following are installed on the Rabbit:
 - /root/nnf-ec
 - /root/tools/nvme.sh
-- /root/KIOXIA/<firmware-file>
+- <firmware-file-path>
 
-Usage: $0 [-h] [RABBIT-XNAME] [EXPECTED-FIRMWARE] [FIRMWARE-FILENAME]
+Usage: $0 [-h] [-t] [RABBIT-XNAME] [EXPECTED-FIRMWARE] [FIRMWARE-FILE-PATH]
 
 Arguments:
   -h                display this help
+  -t                time the operation
 
+Examples:
+    ./updateDriveFirmware.sh -h                                                     # Display help message
+    ./updateDriveFirmware.sh x9000c3rbt7b0n0 1TCRS103 /root/KIOXIA/1TCRS103.std     # Rabbit: x9000c3rbt7b0n0, Expected Firmware: "1TCRS103", Firmware File Path: "x9000c3rbt7b0n0:/root/KIOXIA/1TCRS103.std"
+
+    ./updateDriveFirmware.sh root@10.1.1.5 1TCRS103 /root/KIOXIA/1TCRS103.std
 EOF
 }
+
+alias TIME=""
+while getopts "th" OPTION;
+do
+    case "${OPTION}" in
+        t)
+            alias TIME=time
+            export TIMEFORMAT='%3lR'
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -lt 3 ]; then
+    usage
+    exit 1
+fi
 
 rabbit=$1
 expectedFirmware=$2
 firmwareFile=$3
 
+printf "Validating firmware %s on Rabbit %s\n" "$expectedFirmware" "$rabbit"
+
 # Run nnf-ec to initialize PAX chips and drives
-ssh "$rabbit" ./nnf-ec -initializeAndExit > /dev/null 2>&1
+printf "Initialize PCIe Switch connections to drives\n"
+result=$(ssh "$rabbit" ./nnf-ec -initializeAndExit >/dev/null)
+
+if [ $? -ne 0 ]
+then
+    printf "%s\n" "$result"
+    exit 1
+fi
 
 # Retrieve a list of unique firmware levels
 firmware=$(ssh "$rabbit" "tools/nvme.sh cmd id-ctrl | grep -e \"^fr \" | uniq")
