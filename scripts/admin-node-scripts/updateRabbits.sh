@@ -68,7 +68,5 @@ do
     ssh "$rabbit" "cd /usr/src/switchtec-user && ./configure && make install && cp /usr/src/switchtec-nvme-cli/switchtec-nvme /usr/sbin"
 
     # Launch nnf-ec to initialize PAX's, drives and compute node endpoints
-    # type CTRL-C when you see "Starting HTTP Server	{"address": ":8080"}"
-    # to proceed to the next Rabbit.
     ssh "$rabbit" "./nnf-ec --initializeAndExit"
 done

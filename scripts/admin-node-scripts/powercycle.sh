@@ -19,8 +19,41 @@
 # set -e
 # set -o xtrace
 
-rabbitPXName="x1000c[0-7]j7b0n0"
-rabbitSXName="x1000c[0-7]j4b0"
+shopt -s expand_aliases
+
+usage() {
+    cat <<EOF
+Powercycle the specified Rabbits.
+Use 'pdsh' style specifiers to specify multiple Rabbit nodes
+See: https://linux.die.net/man/1/pdsh for details
+
+Usage: $0 [-h] [-t] [RABBIT-P-X-NAMES] [RABBIT-S-X-NAMES]
+
+X-NAMES:
+    # Texas TDS systems
+    x9000c[0-7]rbt7b0n0             Chassis 0..7, Rabbit P (rbt7), board 0, node 0
+    x9000c[0-7]rbt4b0               Chassis 0..7, Rabbit S (rbt4), board 0
+
+    # Stoneship TDS systems
+    x1000c[0-7]j7b0n0               Chassis 0..7, Rabbit P (j7), board 0, node 0
+    x1000c[0-7]j4b0                 Chassis 0..7, Rabbit S (j4), board 0
+
+Arguments:
+  -h                display this help
+  -t                time each command
+
+Examples:
+  # Texas TDS
+  ./powercycle.sh -t x9000c[1,3]rbt7b0n0 x9000c[1,3]rbt4b0              # c[1] - tx-peter, c[3] - tx-bugs
+
+  # Stoneship TDS
+  ./powercycle.sh -t x1000c[0-7]j7b0n0 x1000c[0-7]j4b0                  # c[0-7] all Rabbits
+EOF
+}
+
+
+rabbitPXName="${1:-x9000c3rbt7b0n0}"
+rabbitSXName="${2:-x9000c3rbt4b0}"
 
 paxControl() {
     local op=$1

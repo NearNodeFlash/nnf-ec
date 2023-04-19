@@ -44,23 +44,24 @@ do
     rsync lvm.sh "$nC":
 
     rabbitVGS=$(ssh "$nC" 'vgs | grep rabbit')
-    if [ -z "${rabbitVGS[@]}" ];
+    if [ -z "${rabbitVGS[*]}" ];
     then
         # Retrieve the list of namespaces from each KIOXIA or 'SAMSUNG MZ3LO1T9HCJR' drive seen on the compute node and count this number of namespaces. We expect only 1
-        nameSpaceCount=$(ssh "$nC" 'for DRIVE in $(ls -v /dev/nvme* | grep -E "nvme[[:digit:]]+n[[:digit:]]+$"); do if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ]; then nvme id-ns $DRIVE | grep "NVME"; fi; done | uniq | wc -l')
+        nameSpaceCount=$(ssh "$nC" 'for DRIVE in $(ls -v /dev/nvme* | grep -E "nvme[[:digit:]]+n[[:digit:]]+$"); do if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e MZ3LO1T9HCJR)" != "" ]; then nvme id-ns $DRIVE | grep "NVME"; fi; done | uniq | wc -l')
         if ((nameSpaceCount > 1)); then
             printf "Too many namespaces(%d), please examine your setup\n" "$nameSpaceCount"
             exit 1
         fi
 
         # Pull the namespace list from each KIOXIA or 'SAMSUNG MZ3LO1T9HCJR' drive, we know there is only 1 now.
-        nameSpaceStr=$(ssh "$nC" 'for DRIVE in $(ls -v /dev/nvme* | grep -E "nvme[[:digit:]]+n[[:digit:]]+$"); do if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ]; then nvme id-ns $DRIVE | grep "NVME"; fi; done | uniq')
-        nameSpaceID=$(echo $nameSpaceStr | sed 's|:||g' | awk '{print $4}')
+        nameSpaceStr=$(ssh "$nC" 'for DRIVE in $(ls -v /dev/nvme* | grep -E "nvme[[:digit:]]+n[[:digit:]]+$"); do if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e MZ3LO1T9HCJR)" != "" ]; then nvme id-ns $DRIVE | grep "NVME"; fi; done | uniq')
+        nameSpaceID=$(echo "$nameSpaceStr" | sed 's|:||g' | awk '{print $4}')
 
         # Create an LVM volume from the namespaces present
+        # shellcheck disable=SC2029
         ssh "$nC" "./lvm.sh create rabbit $nameSpaceID"
+    else
+        printf "%s\n", "${rabbitVGS[*]}"
     fi
 done
 printf "\n"
-
-

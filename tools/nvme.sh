@@ -65,9 +65,9 @@ Drive Firmware upgrade:
 EOF
 }
 
-# execute <fn<path>> <args...>
-execute() {
-    local FUNCTION=$1 ARGS=( "${@:2}" )
+# executeOnSwitch <fn<path>> <switch> <args...>
+executeOnSwitch() {
+    local FUNCTION=$1 SWITCH=$2 ARGS=( "${@:3}" )
 
     # shellcheck disable=SC2086
     if [ "$(type -t $FUNCTION)" != "function" ]; then
@@ -75,15 +75,51 @@ execute() {
         exit 1
     fi
 
+    mapfile -t PDFIDS < <(getPDFIDs "$SWITCH")
+    for INDEX in "${!PDFIDS[@]}";
+    do
+        "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}"
+    done
+}
+
+# execute <fn<path>> <args...>
+execute() {
+    local FUNCTION=$1 ARGS=( "${@:2}" )
+
     SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
     for SWITCH in "${SWITCHES[@]}";
     do
-        mapfile -t PDFIDS < <(getPDFIDs "$SWITCH")
-        for INDEX in "${!PDFIDS[@]}";
-        do
-            "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}"
-        done
+        executeOnSwitch "$FUNCTION" "$SWITCH" "${ARGS[@]}"
     done
+}
+
+# executeParallel <fn<path>> on each switch in parallel
+executeParallel() {
+    local FUNCTION=$1 ARGS=( "${@:2}" )
+
+    SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
+    for SWITCH in "${SWITCHES[@]}";
+    do
+        # To see the output as commands run use this approach. This produces
+        # a mixed output that is difficult to read, but provides feedback that something is happening
+        # executeOnSwitch "$FUNCTION" "$SWITCH" "${ARGS[@]}" 2>&1 | tee _result"$(basename "$SWITCH")" &
+
+        local functionName="$FUNCTION"
+        if [ "$FUNCTION" == "cmd" ];
+        then
+            functionName="$2"
+            printf "Executing %s for each drive on %s\n" "$functionName" "$SWITCH"
+        fi
+        executeOnSwitch "$FUNCTION" "$SWITCH" "${ARGS[@]}" > _result"$(basename "$SWITCH")" 2>&1 &
+    done
+    wait
+
+    for SWITCH in "${SWITCHES[@]}";
+    do
+        cat _result"$(basename "$SWITCH")"
+    done
+
+    rm _result*
 }
 
 alias TIME=""
@@ -121,7 +157,7 @@ case $1 in
             echo "Creating Namespaces on $DRIVE with size ${SIZE}"
             TIME switchtec-nvme create-ns "$DRIVE" --nsze="$SECTORS" --ncap="$SECTORS" --block-size=4096 --nmic=1
         }
-        execute create_ns "${2:-0}"
+        executeParallel create_ns "${2:-0}"
         ;;
     attach)
         function attach_ns() {
@@ -129,7 +165,7 @@ case $1 in
             echo "Attaching Namespace $NAMESPACE on $DRIVE to Controller $CONTROLLER"
             TIME switchtec-nvme attach-ns "$DRIVE" --namespace-id="$NAMESPACE" --controllers="$CONTROLLER"
         }
-        execute attach_ns "${2:-1}" "${3:-3}"
+        executeParallel attach_ns "${2:-1}" "${3:-3}"
         ;;
     delete)
         function delete_ns() {
@@ -137,7 +173,7 @@ case $1 in
             echo "Deleting Namespaces $NAMESPACE on $DRIVE"
             TIME switchtec-nvme delete-ns "$DRIVE" --namespace-id="$NAMESPACE"
         }
-        execute delete_ns "${2:-1}"
+        executeParallel delete_ns "${2:-1}"
         ;;
     detach)
         function detach_ns() {
@@ -145,7 +181,7 @@ case $1 in
             echo "Detaching Namespace $NAMESPACE on $DRIVE from Controller $CONTROLLER"
             TIME switchtec-nvme detach-ns "$DRIVE" --namespace-id="$NAMESPACE" --controllers="$CONTROLLER"
         }
-        execute detach_ns "${2:-1}" "${3:-3}"
+        executeParallel detach_ns "${2:-1}" "${3:-3}"
         ;;
     list)
         function list_ns() {
@@ -153,14 +189,14 @@ case $1 in
             echo "Namespaces on $DRIVE"
             TIME switchtec-nvme list-ns "$DRIVE" --all
         }
-        execute list_ns
+        executeParallel list_ns
         ;;
     list-pdfid)
         function list_pfid() {
             local DRIVE=$1
             echo "$DRIVE"
         }
-        execute list_pfid
+        executeParallel list_pfid
         ;;
 
     cmd)
@@ -169,7 +205,8 @@ case $1 in
             echo "Execute on $DRIVE $CMD" "${ARGS[@]}"
             TIME switchtec-nvme "$CMD" "$DRIVE" "${ARGS[@]}"
         }
-        execute cmd "${@:2}"
+        # execute cmd "${@:2}"
+        executeParallel cmd "${@:2}"
         ;;
     *)
         usage
