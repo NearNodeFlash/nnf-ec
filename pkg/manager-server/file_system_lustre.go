@@ -152,7 +152,7 @@ func (f *FileSystemLustre) Delete() error {
 		// Query the existence of the pool.
 		_, err = f.run(fmt.Sprintf("zpool list %s", zpool))
 
-		// If no error, delete. Or if the pool still exists, delete it.
+		// If the pool exists, delete it.
 		if err == nil || (err != nil && !strings.Contains(err.Error(), "no such pool")) {
 			_, err = f.run(fmt.Sprintf("zpool destroy %s", zpool))
 			if err != nil {
