@@ -20,7 +20,7 @@
 # set -o xtrace
 
 computeNodes=(
-    x9000c3rbt7b0n0
+    x9000c3j7b0n0
     x9000c3s0b0n0
     x9000c3s0b1n0
     x9000c3s1b0n0

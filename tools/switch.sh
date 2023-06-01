@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2022 Hewlett Packard Enterprise Development LP
+# Copyright 2022-2023 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -180,7 +180,7 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       x9000c?rbt7b0"
+        [24]="Rabbit,       x9000c?j7b0"
         [32]="Compute 0,    x9000c?s0b0n0"
         [34]="Compute 1,    x9000c?s0b1n0"
         [36]="Compute 2,    x9000c?s1b0n0"
@@ -204,7 +204,7 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       x9000c?rbt7b0"
+        [24]="Rabbit,       x9000c?j7b0"
         [32]="Compute 8,    x9000c?s4b0n0"
         [34]="Compute 9,    x9000c?s4b1n0"
         [36]="Compute 10,   x9000c?s5b0n0"

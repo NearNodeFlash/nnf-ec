@@ -36,7 +36,7 @@ computeNodes=(
     x9000c3s6b1n0
     x9000c3s7b0n0
     x9000c3s7b1n0
-    x9000c3rbt7b0n0
+    x9000c3j7b0n0
 )
 
 

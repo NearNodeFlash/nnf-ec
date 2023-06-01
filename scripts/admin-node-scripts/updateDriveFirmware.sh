@@ -36,7 +36,7 @@ Arguments:
 
 Examples:
     ./updateDriveFirmware.sh -h                                                     # Display help message
-    ./updateDriveFirmware.sh x9000c3rbt7b0n0 1TCRS103 /root/KIOXIA/1TCRS103.std     # Rabbit: x9000c3rbt7b0n0, Expected Firmware: "1TCRS103", Firmware File Path: "x9000c3rbt7b0n0:/root/KIOXIA/1TCRS103.std"
+    ./updateDriveFirmware.sh x9000c3j7b0n0 1TCRS103 /root/KIOXIA/1TCRS103.std     # Rabbit: x9000c3j7b0n0, Expected Firmware: "1TCRS103", Firmware File Path: "x9000c3j7b0n0:/root/KIOXIA/1TCRS103.std"
 
     ./updateDriveFirmware.sh root@10.1.1.5 1TCRS103 /root/KIOXIA/1TCRS103.std
 EOF
