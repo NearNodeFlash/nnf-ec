@@ -19,39 +19,51 @@
 
 shopt -s expand_aliases
 
+rabbitP="x1002c0j7b0n0"
+rabbitS="x1002c0j4b0"
+rabbitSlots="x1002c0r[4-7]b0"
+expectedNVMEDeviceCount=18
+
 loopCount=0
 # while ((loopCount < 1));
 while true;
 do
     # Power cycle everything
-    ./powercycle.sh -t x9000c1j*b*n* x9000c1r[4-7]b0
+    ./powercycle.sh -t "$rabbitP" "$rabbitSlots"
 
     # Capture switchtec logs and look for switch hangs
-    ../../tools/rabbit-s.sh enable-logging x9000c1j4b0
-    ../../tools/rabbit-s.sh clear-logs x9000c1j4b0
-    ../../tools/rabbit-s.sh switch-hang-logs x9000c1j4b0
+    ../../tools/rabbit-s.sh enable-logging "$rabbitS"
+    ../../tools/rabbit-s.sh clear-logs "$rabbitS"
+    ../../tools/rabbit-s.sh switch-hang-logs "$rabbitS"
 
     # Start up nnf-ec
-    ssh x9000c1j7b0n0 "./nnf-ec -initializeAndExit" > nnf-ec.log 2>&1
-    ssh x9000c1j7b0n0 "tools/nvme.sh list" > nvme-list.log
+    ssh "$rabbitP" "chmod +x tools/*.sh"
+    ssh "$rabbitP" "./nnf-ec -initializeAndExit" > nnf-ec.log 2>&1
+    ssh "$rabbitP" "tools/nvme.sh list" > nvme-list.log
+    ssh "$rabbitP" "tools/switch.sh status" > switch-status.log
 
-    switchtecDeviceCount=$(ssh x9000c1j7b0n0 "tools/nvme.sh list | wc -l")
-    nvmeDeviceCount=$(ssh x9000c1j7b0n0 "ls /dev/nvme* | wc -l")
+    missingDriveCount=$(cat switch-status.log | grep -e Drive | grep DOWN | wc -l)
+    switchtecDeviceCount=$(ssh "$rabbitP" "tools/nvme.sh list | wc -l")
+    nvmeDeviceCount=$(ssh "$rabbitP" "ls /dev/nvme* | wc -l")
+
+    if ((missingDriveCount > 2));
+    then
+        echo "FAILURE: Expecting 2 missing drives, see" "$missingDriveCount" >> results.out
+        exit 1
+    fi
 
     if ((switchtecDeviceCount != 16));
     then
-        echo "FAILURE: Expecting 16 switchtec devices, see only" "$switchtecDeviceCount" >> results.out
-        break
+        echo "FAILURE: Expecting 16 switchtec devices, see" "$switchtecDeviceCount" >> results.out
+        exit 1
     fi
 
-    if ((nvmeDeviceCount != 21));
+    if ((nvmeDeviceCount != expectedNVMEDeviceCount));
     then
-        echo "FAILURE: Expecting 21 nvme devices, see only" "$nvmeDeviceCount" >> results.out
-        break
+        echo "FAILURE: Expecting $expectedNVMEDeviceCount nvme devices, see" "$nvmeDeviceCount" >> results.out
+        exit 1
     fi
 
     loopCount=$((loopCount + 1))
     echo "PowerCycle count" "$loopCount" >> results.out
 done
-
-exit 1
