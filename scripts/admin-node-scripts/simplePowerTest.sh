@@ -42,8 +42,8 @@ do
     ssh "$rabbitP" "tools/nvme.sh list" > nvme-list.log
     ssh "$rabbitP" "tools/switch.sh status" > switch-status.log
 
-    missingDriveCount=$(cat switch-status.log | grep -e Drive | grep DOWN | wc -l)
-    switchtecDeviceCount=$(ssh "$rabbitP" "tools/nvme.sh list | wc -l")
+    missingDriveCount=$(< switch-status.log grep -e Drive | grep -c DOWN)
+    switchtecDeviceCount=$(< nvme-list.log wc -l)
     nvmeDeviceCount=$(ssh "$rabbitP" "ls /dev/nvme* | wc -l")
 
     if ((missingDriveCount > 2));
