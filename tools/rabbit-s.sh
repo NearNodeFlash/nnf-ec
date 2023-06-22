@@ -83,11 +83,12 @@ case $CMD in
 
             echo "Enabling Logging on $PAX"
             $SSHPASS ssh -T root@$SYSTEM <<-EOF
-            [ "$(screen -ls | grep $PAX)" == "" ] &&
-            screen -dmS $DEVICE 230400 &&
-            screen -S $PAX -X colon "logfile $PAX.log^M" &&
-            screen -S $PAX -X colon "logfile flush 1^M" &&
-            screen -S $PAX -X colon "log on^M"
+            if ! screen -list | grep -q "$PAX"; then
+                screen -dmS $DEVICE 230400 &&
+                screen -S $PAX -X colon "logfile $PAX.log^M" &&
+                screen -S $PAX -X colon "logfile flush 1^M" &&
+                screen -S $PAX -X colon "log on^M"
+            fi
 EOF
         done
         ;;
