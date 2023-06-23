@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+# Copyright 2020-2023 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -145,7 +145,10 @@ EOF
         for SESSION in "${SESSIONS[@]}"
         do
             $SSHPASS ssh root@$SYSTEM <<-EOF
-            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\nlog -m 0x82 -s 3 -p on -t on\n"
+            # screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\nlog -m 0x82 -s 3 -p on -t on\n"
+
+            # New and improved settings based on https://customer-jira.microchip.com/browse/HPECRAY-23
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 5 -p on -t on\nlog -m 0x82 -s 5 -p on -t on\nlog -m 0x83 -s 5 -p on -t on\nlog -m 0x80 -s 5 -p on -t on\n"
 EOF
         done
         ;;

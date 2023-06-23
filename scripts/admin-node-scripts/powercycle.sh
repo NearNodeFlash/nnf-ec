@@ -27,16 +27,15 @@ Powercycle the specified Rabbits.
 Use 'pdsh' style specifiers to specify multiple Rabbit nodes
 See: https://linux.die.net/man/1/pdsh for details
 
-Usage: $0 [-h] [-t] [RABBIT-P-X-NAMES] [RABBIT-S-X-NAMES]
+Usage: $0 [-h] [-t] [RABBIT-P-X-NAMES] [RABBIT-SLOT-X-NAMES]
 
 X-NAMES:
     # Texas TDS systems
-    x9000c[0-7]rbt7b0n0             Chassis 0..7, Rabbit P (rbt7), board 0, node 0
-    x9000c[0-7]rbt4b0               Chassis 0..7, Rabbit S (rbt4), board 0
+    # Rabbit-p names
+    x9000c[0-7]j7b0n0             Chassis 0..7, Rabbit P (j7), board 0, node 0
 
-    # Stoneship TDS systems
-    x1000c[0-7]j7b0n0               Chassis 0..7, Rabbit P (j7), board 0, node 0
-    x1000c[0-7]j4b0                 Chassis 0..7, Rabbit S (j4), board 0
+    # Slot names for Rabbit-p and Rabbit-s
+    x9000c1r[4-7]b0
 
 Arguments:
   -h                display this help
@@ -44,45 +43,40 @@ Arguments:
 
 Examples:
   # Texas TDS
-  ./powercycle.sh -t x9000c[1,3]rbt7b0n0 x9000c[1,3]rbt4b0              # c[1] - tx-peter, c[3] - tx-bugs
-
-  # Stoneship TDS
-  ./powercycle.sh -t x1000c[0-7]j7b0n0 x1000c[0-7]j4b0                  # c[0-7] all Rabbits
+  ./powercycle.sh -t x9000c1j*b*n* x9000c1r[4-7]b0                  # c[1] tx-peter, r[4-7] slots 4-7 (Rabbit-s -> Rabbit-p)
 EOF
 }
 
 
-rabbitPXName="${1:-x9000c3rbt7b0n0}"
-rabbitSXName="${2:-x9000c3rbt4b0}"
-
-paxControl() {
-    local op=$1
-
-    if [ -z "$op" ];
-    then
-        printf "paxControl operation not set\n"
-        exit 1
-    fi
-
-    case "$op" in
-        On)
-            op="on"
+alias TIME=""
+while getopts "th:" OPTION
+do
+    case "${OPTION}" in
+        't')
+            alias TIME=time
+            export TIMEFORMAT='%3lR'
             ;;
-        Off)
-            op="off"
-            ;;
-        *)
-            printf "Invalid power cycle option: %s\n" "$op"
-            exit 1
+        'h',*)
+            usage
+            exit 0
             ;;
     esac
+done
+shift $((OPTIND - 1))
 
-    printf "Pax power: %s\n" "$op"
-    pdsh -w "$rabbitSXName" pax-power "$op"
-}
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
 
-rabbitPControl() {
+rabbitPXName="${1:-x9000c3j7b0n0}"
+rabbitSlotXName="${2:-x9000c3j4b0}"
+
+powerControl() {
     local op=$1
+    local nameToPower=$2
+    local xnameToPower=$3
+    local powerSelector
 
     if [ -z "$op" ];
     then
@@ -90,6 +84,18 @@ rabbitPControl() {
         exit 1
     fi
 
+    if [ -z "$nameToPower" ];
+    then
+        printf "nameToPower not set\n"
+        exit 1
+    fi
+
+    if [ -z "$xnameToPower" ];
+    then
+        printf "xnameToPower not set\n"
+        exit 1
+    fi
+
     case "$op" in
         On)
             op="on"
@@ -103,15 +109,39 @@ rabbitPControl() {
             ;;
     esac
 
-    printf "RabbitP power: %s\n" "$op"
-    cm power "$op" -t node "$rabbitPXName"
+    case "$nameToPower" in
+    rabbit)
+        powerSelector="node"
+        ;;
+    slot)
+        powerSelector="slot"
+        ;;
+    *)
+        printf "Invalid power control object: %s\n" "$nameToPower"
+        exit 1
+        ;;
+    esac
+
+
+    printf "%s power: %s, %s\n" "$nameToPower" "$op" "$xnameToPower"
+    cm power "$op" -t "$powerSelector" "$xnameToPower"
 }
 
-waitRabbitState() {
+waitForState() {
     local desiredState=$1
+    local whatIsWaiting=$2
+    local xnameToWaitFor=$3
+    local powerSelector
+
     if [ -z "$desiredState" ];
     then
-        printf "waitRabbitState desiredState not set\n"
+        printf "waitForState desiredState not set\n"
+        exit 1
+    fi
+
+    if [ -z "$xnameToWaitFor" ];
+    then
+        printf "waitForState xnameToWaitFor not set\n"
         exit 1
     fi
 
@@ -125,12 +155,27 @@ waitRabbitState() {
         BOOTED)
             ;;
         *)
-            printf "Invalid Rabbit power state: %s\n" "$desiredState"
+            printf "Invalid power state: %s\n" "$desiredState"
             exit 1
             ;;
     esac
 
-    local areWeThereYet="$(cm power status -t node $rabbitPXName | grep -v $desiredState)"
+    case "$whatIsWaiting" in
+        rabbit)
+            powerSelector="node"
+            ;;
+        slot)
+            powerSelector="slot"
+            ;;
+        *)
+            printf "Invalid waiter: %s\n" "$whatIsWaiting"
+            exit 1
+            ;;
+    esac
+
+    # Retrieve the list of Rabbits that are not yet in their desired state
+    local areWeThereYet
+    areWeThereYet="$(cm power status -t $powerSelector "$xnameToWaitFor" | grep -v "$desiredState")"
     for ((i=0; ${#areWeThereYet} > 0; i++));
     do
         if (( i > 300 ));
@@ -139,45 +184,31 @@ waitRabbitState() {
             exit 1
         fi
 
-        sleep 1
-        areWeThereYet="$(cm power status -t node $rabbitPXName | grep -v $desiredState)"
-
         if ((i % 10 == 0));
         then
             date
-            printf "Still waiting for:\n"
+            printf "Waiting for %s(s) to transition to %s:\n" "$whatIsWaiting" "$desiredState"
             printf "%s\n" "$areWeThereYet"
         fi
+
+        areWeThereYet="$(cm power status -t $powerSelector "$xnameToWaitFor" | grep -v "$desiredState")"
     done
 
-    printf "Everything %s\n" "$desiredState"
+    printf "All %s(s) %s\n" "$whatIsWaiting" "$desiredState"
 }
 
-rabbitPControl "Off"
-paxControl "Off"
-waitRabbitState "Off"
+TIME powerControl "Off" "rabbit"        "$rabbitPXName"
+TIME waitForState "Off" "rabbit"        "$rabbitPXName"
+TIME powerControl "Off" "slot"          "$rabbitSlotXName"
+TIME waitForState "Off" "slot"          "$rabbitSlotXName"
 
-paxControl "On"
-rabbitPControl "On"
-waitRabbitState "PoweringOn"
+TIME powerControl "On"  "slot"          "$rabbitSlotXName"
+sleep 10
+TIME waitForState "On"  "slot"          "$rabbitSlotXName"
 
-waitRabbitState "BOOTED"
+# Wait until we can successfully retrieve Rabbit-p's state which indicates that the node controller is ready
+TIME waitForState "Off" "rabbit"        "$rabbitPXName"
 
-
-
-
-
-# pdsh -w x1000c[0-7]rbt4b0 pax-power off | grep down
-
-# pdsh -w x1000c[0-7]rbt4b0 pax-power on
-
-# RabbitP power cycling:
-# cm power status -t node x1000c[0-7]rbt7b0n0
-
-# cm power off -t node x1000c[0-7]rbt7b0n0
-
-# cm power status -t node x1000c[0-7]rbt7b0n0
-
-# cm power on -t node x1000c[0-7]rbt7b0n0
-
-# watch 'cm power status -t node x1000c[0-7]rbt7b0n0'
+TIME powerControl "On" "rabbit"         "$rabbitPXName"
+TIME waitForState "PoweringOn" "rabbit" "$rabbitPXName"
+TIME waitForState "BOOTED" "rabbit"     "$rabbitPXName"
