@@ -69,6 +69,9 @@ Examples:
 EOF
 }
 
+# Associative array /dev/nvme names keyed by serial number
+declare -A deviceName
+
 # execute <fn<path>> <args...>
 execute() {
     local FUNCTION=$1 ARGS=( "${@:2}" )
@@ -99,6 +102,17 @@ getPAXID() {
         echo "$PAX_ID not in range 0-1"
         exit 1
     fi
+}
+
+setDeviceName() {
+    DRIVES=()
+    getDriveList
+
+    for DRIVE in "${DRIVES[@]}";
+    do
+        SerialNumber=$(nvme id-ctrl "${DRIVE}" | grep -E "^sn " | awk '{print $3}')
+        deviceName[$SerialNumber]=$DRIVE
+    done
 }
 
 displayDriveSlotStatus() {
@@ -132,6 +146,9 @@ displayDriveSlotStatus() {
 
     getPAXID "$SWITCH_NAME"
 
+    # Associate serial number with its /dev/nvme device
+    setDeviceName
+
     # Grab the attach status of each physical port
     mapfile -t physicalPortStatus < <(switchtec fabric gfms-dump "$SWITCH" | grep " Physical Port ID")
 
@@ -140,6 +157,7 @@ displayDriveSlotStatus() {
     for physicalPortString in "${physicalPortStatus[@]}";
     do
         local PHYSICAL_PORT_ID
+        local MF FW SN Device
         PHYSICAL_PORT_ID=$(echo "$physicalPortString" | awk '{print $4}')
         case $PAX_ID in
             0)
@@ -152,12 +170,32 @@ displayDriveSlotStatus() {
                 exit 1
         esac
 
-        PDFID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "$physicalPortString" -A2 | grep "PDFID" | awk '{print $2}' )
+        PDFID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "$physicalPortString" -A2 | grep "PDFID" | awk '{print $2}')
         if [ -z "$PDFID" ]; then
-            PDFID="======"
+            PDFID=""
+            MF=""
+            FW=""
+            SN=""
+            Device=""
+        else
+            mapfile -t idCtrl < <(switchtec-nvme id-ctrl "$PDFID"@"$SWITCH_NAME" 2>&1)
+            case "${idCtrl[0]}" in
+                "NVME Identify Controller:")
+                    MF="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^mn " | awk '{print $3}')"
+                    FW="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^fr " | awk '{print $3}')"
+                    SN="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^sn " | awk '{print $3}')"
+                    Device="${deviceName["$SN"]}"
+                    ;;
+                *)
+                    MF="$(echo "${idCtrl[0]}" | awk '{print $3}')"
+                    SN=""
+                    FW=""
+                    Device=""
+                    ;;
+            esac
         fi
 
-        printf "PDFID: %s\tSLOT: %2d\t%s\n" "${PDFID//}" "${SLOT//}" "${physicalPortString//}"
+        printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %11.11s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "${physicalPortString//}"
     done
     printf "\n"
 }
@@ -271,8 +309,8 @@ function ep-tunnel-command() {
     local SWITCH=$1 CMD=$2
     echo "Execute switch ep-tunnel $CMD on $SWITCH"
 
-    DRIVES=$(getPDFIDs "$SWITCH")
-    for DRIVE in $DRIVES;
+    Endpoints=$(getPDFIDs "$SWITCH")
+    for DRIVE in $Endpoints;
     do
         case $CMD in
             status)
