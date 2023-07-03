@@ -18,9 +18,18 @@
 # limitations under the License.
 # set -e
 # set -o xtrace
-
-usage() {
-    cat <<EOF
+#=================================================================
+# The following assumtions are made/expected coming into this script:
+#   * The Rabbits are installed in the Cabinet with geo-location "x1002c?j4b0", "x1002c?j7b0", and "x1002c?j7b0n0"
+#   * The Rabbits are in the HPCM database & have had their SSH keys set
+#   * The Rabbits nC's are fully booted
+#
+# ============ This is Ver1.1 of the script, 6/30/2023 ===========
+#  This script expects and/or programs the following FW versions:
+#    E3.s Kioxia Drive FW = ver 1TCRS104
+#===================================================================
+usage() {                                                                          # This function is called if a bad/missing parameter is found - displays proper usage
+    cat <<EOF                                                                      # The 'EOF' is a "Here Tag" - will 'cat' all the text until an EOF is found
 Query drive firmware version for all drives in a Rabbit. Update drives that are out-of-date.
 
 Assumes that the following are installed on the Rabbit:
@@ -28,17 +37,16 @@ Assumes that the following are installed on the Rabbit:
 - /root/tools/nvme.sh
 - <firmware-file-path>
 
-Usage: $0 [-h] [-t] [RABBIT-XNAME] [EXPECTED-FIRMWARE] [FIRMWARE-FILE-PATH]
+Usage: $0 [-h] [RABBIT-XNAME] [EXPECTED-FIRMWARE] [FIRMWARE-FILE-PATH]
 
 Arguments:
   -h                display this help
-  -t                time the operation
 
 Examples:
     ./updateDriveFirmware.sh -h                                                     # Display help message
-    ./updateDriveFirmware.sh x9000c3j7b0n0 1TCRS103 /root/KIOXIA/1TCRS103.std     # Rabbit: x9000c3j7b0n0, Expected Firmware: "1TCRS103", Firmware File Path: "x9000c3j7b0n0:/root/KIOXIA/1TCRS103.std"
+    ./updateDriveFirmware.sh x1002c3rbt7b0n0 1TCRS104 /root/KIOXIA/1TCRS104.std     # Rabbit: x1002c3rbt7b0n0, Expected Firmware: "1TCRS104", Firmware File Path: "x1002c3rbt7b0n0:/root/KIOXIA/1TCRS104.std"
 
-    ./updateDriveFirmware.sh root@10.1.1.5 1TCRS103 /root/KIOXIA/1TCRS103.std
+    ./updateDriveFirmware.sh root@10.1.1.5 1TCRS104 /root/KIOXIA/1TCRS104.std
 EOF
 }
 
@@ -70,26 +78,35 @@ expectedFirmware=$2
 firmwareFile=$3
 
 printf "Validating firmware %s on Rabbit %s\n" "$expectedFirmware" "$rabbit"
+echo -e "     Validating firmware $expectedFirmware is on Rabbit's drives . . ." > "$(pwd)"/logs/"$rabbit".log
 
 # Run nnf-ec to initialize PAX chips and drives
+echo -e "     Initialize PCIe Switch connections to drives first:"  | tee -a "$(pwd)"/logs/"$rabbit".log
 printf "Initialize PCIe Switch connections to drives\n"
 result=$(ssh "$rabbit" ./nnf-ec -initializeAndExit >/dev/null)
 
 if [ $? -ne 0 ]
 then
-    printf "%s\n" "$result"
+    DATE_TIME=$(date '+%Y-%m-%d %H:%M:%S')                            # Date/time stamp for the log file
+    printf "%s\n" "$result" | tee -a "$(pwd)"/logs/"$rabbit".log
+    echo -e "\nBye-bye with an NNF-EC Failure at $DATE_TIME!\n"  | tee -a "$(pwd)"/logs/"$rabbit".log
+    cp "$(pwd)"/logs/"$rabbit".log "$(pwd)"/logs/"$rabbit"_Failure.log
     exit 1
 fi
 
-# Retrieve a list of unique firmware levels
+echo -e "     nnf-ec ran successfully!"  | tee -a "$(pwd)"/logs/"$rabbit".log
+
+# Retrieve a list of unique firmware levelsaa
 firmware=$(ssh "$rabbit" "tools/nvme.sh cmd id-ctrl | grep -e \"^fr \" | uniq")
 firmware=$(echo "$firmware" | awk '{print $3}')
 echo "$firmware"
 
 if [ "$firmware" == "$expectedFirmware" ]; then
     printf "Firmware up to date\n"
+    echo -e "     Drive FW is already up-to-date!"  | tee -a "$(pwd)"/logs/"$rabbit".log
 else
     printf "Firmware mismatch, downloading %s %s\n" "$expectedFirmware" "$firmwareFile"
+    echo -e "Firmware mismatch, downloading $firmwareFile"  | tee -a "$(pwd)"/logs/"$rabbit".log
 
     for (( slot=1; slot <= 3; ++slot ));
     do
@@ -99,4 +116,6 @@ else
         ssh "$rabbit" "tools/nvme.sh cmd fw-activate --slot=$slot --action=1"
     done
 fi
-printf "\n"
+echo -e "\nAll 16 drives have the latest FW!\n"
+echo -e "All 16 drives have the latest FW!\n" | tee -a "$(pwd)"/logs/"$rabbit".log
+exit 0
