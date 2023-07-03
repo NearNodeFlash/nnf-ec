@@ -7,7 +7,7 @@ fi
 i=0
 while [ $i -le 2 ]
 do
-   if [ ! -f $pax0.log ]; then
+   if [ ! -f pax0.log ]; then
       screen -S pax0 -X colon "logfile pax0.log^M" &&
       screen -S pax0 -X colon "logfile flush 1^M" &&
       screen -S pax0 -X colon "log on^M"
@@ -17,13 +17,13 @@ do
 done
 
 if ! screen -list | grep -q "pax1"; then
-   screen -dmS pax1 /dev/ttyS11 230400 
+   screen -dmS pax1 /dev/ttyS11 230400
 fi
 
 i=0
 while [ $i -le 2 ]
 do
-   if [ ! -f $pax1.log ]; then
+   if [ ! -f pax1.log ]; then
       screen -S pax1 -X colon "logfile pax1.log^M" &&
       screen -S pax1 -X colon "logfile flush 1^M" &&
       screen -S pax1 -X colon "log on^M"
