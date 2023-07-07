@@ -19,10 +19,16 @@
 
 shopt -s expand_aliases
 
-rabbitP="x1002c0j7b0n0"
-rabbitS="x1002c0j4b0"
-rabbitSlots="x1002c0r[4-7]b0"
+chassis=1
+rack=x9000
+
+rabbitP="$rack"c"$chassis"j7b0n0
+rabbitS="$rack"c"$chassis"j4b0
+rabbitSlots="$rack"c"$chassis"r[4-7]b0
 expectedNVMEDeviceCount=18
+
+# clear out the results file
+true > results.out
 
 loopCount=0
 # while ((loopCount < 1));

@@ -28,7 +28,7 @@
 #  This script expects and/or programs the following FW versions:
 #    E3.s Kioxia Drive FW = ver 1TCRS104
 #===================================================================
-usage() {                                                                          # This function is called if a bad/missing parameter is found - displays proper usage 
+usage() {                                                                          # This function is called if a bad/missing parameter is found - displays proper usage
     cat <<EOF                                                                      # The 'EOF' is a "Here Tag" - will 'cat' all the text until an EOF is found
 Query drive firmware version for all drives in a Rabbit. Update drives that are out-of-date.
 
@@ -78,22 +78,23 @@ expectedFirmware=$2
 firmwareFile=$3
 
 printf "Validating firmware %s on Rabbit %s\n" "$expectedFirmware" "$rabbit"
-echo -e "     Validating firmware $expectedFirmware is on Rabbit's drives . . ." > $(pwd)/logs/$rabbit.log
+echo -e "     Validating firmware $expectedFirmware is on Rabbit's drives . . ." > "$(pwd)"/logs/"$rabbit".log
 
 # Run nnf-ec to initialize PAX chips and drives
-echo -e "     Initialize PCIe Switch connections to drives first:"  | tee -a $(pwd)/logs/$rabbit.log
+echo -e "     Initialize PCIe Switch connections to drives first:"  | tee -a "$(pwd)"/logs/"$rabbit".log
 printf "Initialize PCIe Switch connections to drives\n"
 result=$(ssh "$rabbit" ./nnf-ec -initializeAndExit >/dev/null)
 
 if [ $? -ne 0 ]
 then
-     DATE_TIME=$(date '+%Y-%m-%d %H:%M:%S')                            # Date/time stamp for the log file
-     echo -e "\nBye-bye with an NNF-EC Failure at $DATE_TIME!\n"  | tee -a $(pwd)/logs/$rabbit.log
-     cp $(pwd)/logs/$rabbit.log $(pwd)/logs/$rabbit_Failure.log
-     exit -1
+    DATE_TIME=$(date '+%Y-%m-%d %H:%M:%S')                            # Date/time stamp for the log file
+    printf "%s\n" "$result" | tee -a "$(pwd)"/logs/"$rabbit".log
+    echo -e "\nBye-bye with an NNF-EC Failure at $DATE_TIME!\n"  | tee -a "$(pwd)"/logs/"$rabbit".log
+    cp "$(pwd)"/logs/"$rabbit".log "$(pwd)"/logs/"$rabbit"_Failure.log
+    exit 1
 fi
 
-echo -e "     nnf-ec ran successfully!"  | tee -a $(pwd)/logs/$rabbit.log
+echo -e "     nnf-ec ran successfully!"  | tee -a "$(pwd)"/logs/"$rabbit".log
 
 # Retrieve a list of unique firmware levelsaa
 firmware=$(ssh "$rabbit" "tools/nvme.sh cmd id-ctrl | grep -e \"^fr \" | uniq")
@@ -102,32 +103,19 @@ echo "$firmware"
 
 if [ "$firmware" == "$expectedFirmware" ]; then
     printf "Firmware up to date\n"
-     echo -e "     Drive FW is already up-to-date!"  | tee -a $(pwd)/logs/$rabbit.log
+    echo -e "     Drive FW is already up-to-date!"  | tee -a "$(pwd)"/logs/"$rabbit".log
 else
     printf "Firmware mismatch, downloading %s %s\n" "$expectedFirmware" "$firmwareFile"
-     echo -e "Firmware mismatch, downloading $firmwareFile"  | tee -a $(pwd)/logs/$rabbit.log
+    echo -e "Firmware mismatch, downloading $firmwareFile"  | tee -a "$(pwd)"/logs/"$rabbit".log
 
     for (( slot=1; slot <= 3; ++slot ));
     do
         # shellcheck disable=SC2029
         ssh "$rabbit" "tools/nvme.sh cmd fw-download --fw=$firmwareFile --xfer=256"
         # shellcheck disable=SC2029
-        ssh "$rabbit" "tools/nvme.sh cmd fw-activate --slot=$slot ==action=1"
+        ssh "$rabbit" "tools/nvme.sh cmd fw-activate --slot=$slot --action=1"
     done
 fi
-
-#NumGudFWs=$(ssh "$rabbit" "tools/nvme.sh cmd id-ctrl | grep -e "$expectedFirmware")
-declare -i NumGudFWs=$(ssh $rabbit tools/nvme.sh cmd id-ctrl | grep -c $expectedFirmware)
-
-#   echo -e "Number of drives found with latest FW is $NumGudFWs "  | tee -a $(pwd)/logs/$rabbit.log
-if (($NumGudFWs != 16 )); then                                                            # Should find 16 Drives
-   DATE_TIME=$(date '+%Y-%m-%d %H:%M:%S')                                                 # Date/time stamp for the log file
-   echo -e "\nNot all drives were successfully flashed to $expectedFirmware at $DATE_TIME!\n" | tee -a $(pwd)/logs/$rabbit.log
-   cp $(pwd)/logs/$rabbit.log $(pwd)/logs/$rabbit_Failure.log
-   exit -1
-fi
 echo -e "\nAll 16 drives have the latest FW!\n"
-echo -e "All 16 drives have the latest FW!\n" | tee -a $(pwd)/logs/$rabbit.log
+echo -e "All 16 drives have the latest FW!\n" | tee -a "$(pwd)"/logs/"$rabbit".log
 exit 0
-
-

@@ -96,7 +96,7 @@ else
         # shellcheck disable=SC2029
         ssh "$rabbit" "tools/nvme.sh cmd fw-download --fw=$firmwareFile --xfer=256"
         # shellcheck disable=SC2029
-        ssh "$rabbit" "tools/nvme.sh cmd fw-activate --slot=$slot ==action=1"
+        ssh "$rabbit" "tools/nvme.sh cmd fw-activate --slot=$slot --action=1"
     done
 fi
 printf "\n"
