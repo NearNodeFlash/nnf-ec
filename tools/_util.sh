@@ -27,7 +27,8 @@ function getPDFIDs() {
 function getDriveList() {
     # DRIVES=$1
     # for DRIVE in $(ls /dev/nvme* | grep -E "nvme[[:digit:]]+$");
-    for DRIVE in /dev/nvme[0-9]*;
+    # for DRIVE in /dev/nvme[0-9]*;
+    for DRIVE in $(echo /dev/nvme[0-9]* | tr ' ' \\n | grep -E "nvme[[:digit:]]+$")
     do
         # shellcheck disable=SC2086
         if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
