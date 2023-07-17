@@ -44,7 +44,11 @@ do
 
     # Start up nnf-ec
     ssh "$rabbitP" "chmod +x tools/*.sh"
+
+    printf "nnf-ec start\n"
     ssh "$rabbitP" "./nnf-ec -initializeAndExit" > nnf-ec.log 2>&1
+    printf "nnf-ec finish\n"
+
     ssh "$rabbitP" "tools/nvme.sh list" > nvme-list.log
     ssh "$rabbitP" "tools/switch.sh status" > switch-status.log
 
@@ -71,5 +75,5 @@ do
     fi
 
     loopCount=$((loopCount + 1))
-    echo "PowerCycle count" "$loopCount" >> results.out
+    echo "PowerCycle count" "$loopCount" | tee -a results.out
 done
