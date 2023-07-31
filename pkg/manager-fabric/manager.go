@@ -950,7 +950,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 	//
 	//       Endpoint         Port           Switch
 	// [0  ] Rabbit           Mgmt           0, 1              One endpoint per mgmt (one mgmt port per switch)
-	// [1  ] Compute 0        USP0			 0                 One endpoint per compuete
+	// [1  ] Compute 0        USP0			 0                 One endpoint per compute
 	// [2  ] Compute 1        USP1           0
 	//   ...
 	// [N-1] Compute N        USPN           1
@@ -1033,7 +1033,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 
 	// create the endpoint groups & connections
 
-	// An Endpoint Groups is created for each managment and upstream endpoints, with
+	// An Endpoint Group is created for each managment and upstream endpoint, with
 	// the associated target endpoints linked to form the group. This is conceptually
 	// equivalent to the Host Virtualization Domains that exist in the PAX Switch.
 

@@ -45,8 +45,14 @@ const (
 	// TODO: The ALL_CAPS name in nvme package should be renamed to a valid Go name
 	CommonNamespaceIdentifier = nvme.COMMON_NAMESPACE_IDENTIFIER
 
-	// Physical Function controller index
+	// PhysicalFunctionControllerIndex is the index of the Physical Function
 	PhysicalFunctionControllerIndex = 0
+
+	// InitializeDeviceRetryCount is the number of times to retry initialization process for a drive before giving up in error
+	InitializeDeviceRetryCount = 2
+
+	// RecoverVolumesRetryCount is the number of times to retry volume recovery process for a drive before giving up in error
+	RecoverVolumesRetryCount = 2
 )
 
 const (
@@ -345,7 +351,7 @@ func (s *Storage) initialize() error {
 
 	ctrl, err := s.device.IdentifyController(0)
 	if err != nil {
-		return fmt.Errorf("Initialize Storage %s: Failed to indentify common controller: Error: %w", s.id, err)
+		return fmt.Errorf("Initialize Storage %s: Failed to identify common controller: Error: %w", s.id, err)
 	}
 
 	s.physicalFunctionControllerId = ctrl.ControllerId
@@ -394,20 +400,9 @@ func (s *Storage) initialize() error {
 		"unallocatedBytes", s.unallocatedBytes,
 		"virtualizationManagement", s.virtManagementEnabled)
 
-	var ns *nvme.IdNs
-	identifySuccess := false
-	for retryCount := 0; !identifySuccess; retryCount++ {
-		var err error
-		ns, err = s.device.IdentifyNamespace(CommonNamespaceIdentifier)
-		if err != nil {
-			if retryCount >= 2 {
-				return fmt.Errorf("Initialize Storage %s: Failed to identify common namespace, retried %d times: Error: %w", s.id, retryCount, err)
-			}
-
-			s.log.Info("identify common namespace attempt failed, retrying", "retryCount", retryCount)
-		} else {
-			identifySuccess = true
-		}
+	ns, err := s.device.IdentifyNamespace(CommonNamespaceIdentifier)
+	if err != nil {
+		return fmt.Errorf("Initialize Storage %s: Failed to identify common namespace: Error: %w", s.id, err)
 	}
 
 	// Workaround for SSST drives that improperly report only one NumberOfLBAFormats, but actually
@@ -904,9 +899,21 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 
 	s.device = device
 
-	if err := s.initialize(); err != nil {
-		log.Error(err, "Failed to initialize storage device")
-		return err
+	// Initialization can fail at various stages due to timeouts
+	// waiting for command completion, or bugs in PAX/drive firmware.
+	// Retry initialization to attempt to bring devices online
+	initializeSuccess := false
+	for retryCount := 0; !initializeSuccess; retryCount++ {
+		if err := s.initialize(); err != nil {
+			if retryCount >= InitializeDeviceRetryCount {
+				log.Error(err, "Failed to initialize storage device, retries exhausted", "retryCount", retryCount)
+				return err
+			}
+
+			log.Info("Failed to initialize storage device, retrying", "retryCount", retryCount)
+		} else {
+			initializeSuccess = true
+		}
 	}
 
 	log = s.log // switch to using the storage logger
@@ -1043,9 +1050,22 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 
 	// Recover existing volumes
 	log.V(2).Info("Recovering volumes")
-	if err := s.recoverVolumes(); err != nil {
-		log.Error(err, "Failed to recover existing volumes")
-		return err
+
+	// Recovery can fail at various stages due to timeouts
+	// waiting for command completion, or bugs in PAX/drive firmware.
+	// Retry initialization to attempt to bring devices online
+	recoverVolumesSuccess := false
+	for retryCount := 0; !recoverVolumesSuccess; retryCount++ {
+		if err := s.recoverVolumes(); err != nil {
+			if retryCount >= RecoverVolumesRetryCount {
+				log.Error(err, "Failed to recover existing volumes, retries exhausted", "retryCount", retryCount)
+				return err
+			}
+
+			log.Info("Failed to recover volumes, retrying", "retryCount", retryCount)
+		} else {
+			recoverVolumesSuccess = true
+		}
 	}
 
 	log.Info("Storage Ready")

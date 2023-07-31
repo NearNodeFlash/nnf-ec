@@ -24,8 +24,9 @@ rack=x9000
 
 rabbitP="$rack"c"$chassis"j7b0n0
 rabbitS="$rack"c"$chassis"j4b0
-rabbitSlots="$rack"c"$chassis"r[4-7]b0
-expectedNVMEDeviceCount=18
+rabbitSlots="$rack"c"$chassis""r[4-7]b0"
+# expectedNVMEDeviceCount=18
+expectedNVMEDeviceCount=21
 
 # clear out the results file
 true > results.out
@@ -44,9 +45,23 @@ do
 
     # Start up nnf-ec
     ssh "$rabbitP" "chmod +x tools/*.sh"
+
+    printf "nnf-ec start\n"
     ssh "$rabbitP" "./nnf-ec -initializeAndExit" > nnf-ec.log 2>&1
+    # Filter out the expected device not present errors
+    errorLineCount=$(cat nnf-ec.log | grep -Fv "Device not present" | grep -i error | wc -l)
+    if ((errorLineCount > 0));
+    then
+        echo "nnf-ec errors detected" | tee -a results.out
+        grep -Fv "Device not present" < nnf-ec.log | grep -i error | tee -a results.out
+        exit 1
+    fi
+    printf "nnf-ec finished successfully\n"
+
+    grep -Fv "retrying" < nnf-ec.log | tee -a results.out
     ssh "$rabbitP" "tools/nvme.sh list" > nvme-list.log
     ssh "$rabbitP" "tools/switch.sh status" > switch-status.log
+    ssh "$rabbitP" "tools/switch.sh slot-info" > switcht-slot-info.log
 
     missingDriveCount=$(< switch-status.log grep -e Drive | grep -c DOWN)
     switchtecDeviceCount=$(< nvme-list.log wc -l)
@@ -71,5 +86,6 @@ do
     fi
 
     loopCount=$((loopCount + 1))
-    echo "PowerCycle count" "$loopCount" >> results.out
+
+    echo "PowerCycle count" "$loopCount" | tee -a results.out
 done

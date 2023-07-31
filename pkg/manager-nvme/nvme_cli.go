@@ -222,7 +222,7 @@ func (d *cliDevice) ListAttachedControllers(namespaceId nvme.NamespaceIdentifier
 
 func (d *cliDevice) CreateNamespace(sizeInSectors uint64, sectorSizeIndex uint8) (nvme.NamespaceIdentifier, nvme.NamespaceGloballyUniqueIdentifier, error) {
 	// Example Command
-	//    # nvme create-ns /dev/nvme2 --nsze=468843606 --ncap=468843606 --flbas=3 --nmic=1 
+	//    # nvme create-ns /dev/nvme2 --nsze=468843606 --ncap=468843606 --flbas=3 --nmic=1
 	//    create-ns: Success, created nsid:1
 
 	rsp, err := d.run(fmt.Sprintf("create-ns %s --nsze=%d --ncap=%d --flbas=%d --nmic=1", d.dev(), sizeInSectors, sizeInSectors, sectorSizeIndex))
