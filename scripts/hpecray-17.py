@@ -49,6 +49,9 @@ if __name__ == '__main__':
 
     endpoint_id = args.endpoint
 
+    createCount = 0
+    deleteCount = 0
+
     print(f'Beginning Storage Group Create/Delete Loop: Pool: {pool_id} Endpoint: {endpoint_id}')
     while True:
         # Storage Group - Create
@@ -66,7 +69,8 @@ if __name__ == '__main__':
             sys.exit(0)
 
         group_id = response.json()['Id']
-        print(f'Created: Id: {group_id}')
+        createCount+=1
+        print(f'Created: Id: {group_id} count: {createCount}')
 
         print(f'Pause 5 seconds for Storage Group to come ready')
         time.sleep(5.0)
@@ -77,7 +81,8 @@ if __name__ == '__main__':
         if not response.ok:
             print(f'Storage Group Delete: Error: {response.status_code}')
             sys.exit(0)
-        print(f'Deleted: Id: {group_id}')
+        deleteCount+=1
+        print(f'Deleted: Id: {group_id} count: {deleteCount}')
 
         print(f'Pause 5 seconds for Storage Group to delete')
         time.sleep(5.0)

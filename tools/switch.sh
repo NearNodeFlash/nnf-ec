@@ -195,7 +195,7 @@ displayDriveSlotStatus() {
             esac
         fi
 
-        printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %11.11s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "${physicalPortString//}"
+        printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %15.15s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "${physicalPortString//}"
     done
     printf "\n"
 }
