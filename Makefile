@@ -45,7 +45,7 @@ linux:
 	env GOOS=linux GOARCH=amd64 go build -o ${DEV_IMGNAME} ./cmd/nnf_ec.go
 
 image:
-	docker build --rm --file Dockerfile --label $(DTR_IMGPATH):$(PROD_VERSION) --tag $(DTR_IMGPATH):$(PROD_VERSION) .
+	docker build --file Dockerfile --label $(DTR_IMGPATH):$(PROD_VERSION) --tag $(DTR_IMGPATH):$(PROD_VERSION) .
 
 container-unit-test:
 	docker build -f Dockerfile --label $(DTR_IMGPATH)-$@:$(PROD_VERSION)-$@ -t $(DTR_IMGPATH)-$@:$(PROD_VERSION) --target $@ .
