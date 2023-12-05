@@ -32,6 +32,7 @@ Commands:
   additional-logs-off   turn off additional logs
   slow-drive-logs       turn on logs for slow drives (0x82827 response code)
   switch-hang-logs      turn on logs to find switch hang
+  pcie-error-logs       turn on logs to look for info about pcie fatal error
   quit-sessions         terminate any active screen sessions
   lnkstat               retrieve link state
 
@@ -149,6 +150,34 @@ EOF
 
             # New and improved settings based on https://customer-jira.microchip.com/browse/HPECRAY-23
             screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 5 -p on -t on\nlog -m 0x82 -s 5 -p on -t on\nlog -m 0x83 -s 5 -p on -t on\nlog -m 0x80 -s 5 -p on -t on\n"
+EOF
+        done
+        ;;
+    pcie-error-logs)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            # per email from Jackson Nguyen:
+            # For the PAX logs, please capture the following modules on the UART command line.
+            #
+            # NVME_MI - 0x81
+            # FABIOV - 0x82
+            # NVME - 0x84
+            # PSC - 0x54
+            #
+            # These are relevant modules for PAX. Here's an example of activating logs for PSC:
+            #
+            # > log -m 0x54 -s 5
+            # > log -m 0x54 -s 5 -p on
+            #
+            # You will need to run both commands. You can check the module IDs by typing the `log -l` command.
+            # Please also run the following:
+            #
+            # > fabdbg -s pax
+            # > fabdbg -s fio
+            # > fabdbg -s gfms
+
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s fio\nfabdbg -s gfms\nlog -m 0x81 -s 5\nlog -m 0x81 -s 5 -p on\nlog -m 0x82 -s 5\nlog -m 0x82 -s 5 -p on\nlog -m 0x84 -s 5\nlog -m 0x84 -s 5 -p on\nlog -m 0x54 -s 5\nlog -m 0x54 -s 5 -p on\n"
 EOF
         done
         ;;
