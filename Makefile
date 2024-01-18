@@ -1,4 +1,4 @@
-# Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+# Copyright 2020-2024 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -18,14 +18,13 @@
 USER=$(shell id -un)
 
 PROD_VERSION=$(shell sed 1q .version)
-DEV_REPONAME=nnf-ec
 DEV_IMGNAME=nnf-ec
-DTR_IMGPATH=arti.dev.cray.com/$(DEV_REPONAME)/$(DEV_IMGNAME)
+DTR_IMGPATH=ghcr.io/nearnodeflash/$(DEV_IMGNAME)
 
 all: image
 
 vendor:
-	GOPRIVATE=github.hpe.com go mod vendor
+	go mod vendor
 
 vet:
 	go vet `go list -f {{.Dir}} ./...`
@@ -42,7 +41,7 @@ test:
 	go test -v ./...
 
 linux:
-	env GOOS=linux GOARCH=amd64 go build -o ${DEV_IMGNAME} ./cmd/nnf_ec.go
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${DEV_IMGNAME} ./cmd/nnf_ec.go
 
 image:
 	docker build --file Dockerfile --label $(DTR_IMGPATH):$(PROD_VERSION) --tag $(DTR_IMGPATH):$(PROD_VERSION) .
