@@ -27,7 +27,7 @@ import (
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
-// The Fabric Monitor is responsible for ensuring that the fabriic and related sub-resource
+// The Fabric Monitor is responsible for ensuring that the fabric and related sub-resource
 // are updated with the latest information from the switch. This runs as a background
 // thread, and periodically queries the fabric.
 func NewFabricMonitor(f *Fabric) *monitor {
@@ -38,7 +38,7 @@ type monitor struct {
 	fabric *Fabric
 }
 
-// Run will run the Fabirc Monitor forever
+// Run will run the Fabric Monitor forever
 func (m *monitor) Run() {
 
 	for {
@@ -77,7 +77,7 @@ func (m *monitor) Run() {
 
 func (*monitor) checkSwitchStatus(s *Switch) {
 
-	// Check if the switch path changed by trying to re-identifying the switch.
+	// Check if the switch path changed by trying to re-identify the switch.
 	// If the switch is found, it's likely the switch path has changed and we
 	// need to re-open the switch.
 	if err := s.identify(); err != nil {
