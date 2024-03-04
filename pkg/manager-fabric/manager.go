@@ -386,17 +386,17 @@ func (s *Switch) identify() error {
 			return err
 		}
 
-		paxId, err := dev.Identify()
+		paxID, err := dev.Identify()
 		if err != nil {
 			log.Error(err, "Identify error")
 			return err
 		}
 
-		log.V(2).Info("Identified switch device", "pax", paxId)
-		if id := strconv.Itoa(int(paxId)); id == s.id {
+		log.V(2).Info("Identified switch device", "pax", paxID)
+		if id := strconv.Itoa(int(paxID)); id == s.id {
 			s.dev = dev
 			s.path = path
-			s.paxId = paxId
+			s.paxId = paxID
 
 			s.model = s.getModel()
 			s.manufacturer = s.getManufacturer()
@@ -919,8 +919,6 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 		if err := s.identify(); err != nil {
 			log.Error(err, "Failed to identify switch")
 		}
-
-		log.Info("Switch identified", "pax", s.paxId)
 
 		for portIdx, portConf := range switchConf.Ports {
 			portType := portConf.getPortType()
