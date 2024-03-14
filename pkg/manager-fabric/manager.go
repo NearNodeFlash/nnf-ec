@@ -945,30 +945,34 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 	// create the endpoints
 
 	// Endpoint and Port relation
+	// USP - upstream port, includes computes and Rabbit
+	// DSP - downstream port, nvme drives
 	//
 	//       Endpoint         Port           Switch
-	// [0  ] Rabbit           Mgmt           0, 1              One endpoint per mgmt (one mgmt port per switch)
-	// [1  ] Compute 0        USP0			 0                 One endpoint per compuete
-	// [2  ] Compute 1        USP1           0
+	// [0   ] Rabbit           Mgmt           0, 1              One endpoint per mgmt (one mgmt port per switch)
+	// [1   ] Compute 0        USP0			  0                 One endpoint per compute
+	// [2   ] Compute 1        USP1           0
 	//   ...
-	// [N-1] Compute N        USPN           1
-	// [N  ] Drive 0 PF       DSP0           0 ---------------|
-	// [N+1] Drive 0 VF0      DSP0           0                | Each drive is enumerated out to M endpoints
-	// [N+2] Drive 0 VF1      DSP0           0                |   1 for the physical function (unused)
-	//   ...                                                  |   1 for the rabbit
-	// [N+M] Drive 0 VFM-1    DSP0           0 ---------------|   1 per compute
+	// [N   ] Compute N        USPN           1                  Total of N+1 endpoints
+	//
+	//                                                           Each drive is enumerated out to N+2 endpoints
+	// [N+1 ] Drive 0 PF       DSP0           0 ---------------|    1 for the physical function (unused)
+	// [N+2 ] Drive 0 VF0      DSP0           0                |    1 for the rabbit
+	// [N+3 ] Drive 0 VF1      DSP0           0                |    1 per compute
+	//   ...                                                   |
+	// [2N+2] Drive 0 VFN      DSP0           0 ---------------|    Total of: (N+2) + (N+1) = 2N+3
 	//
 
 	m.managementEndpointCount = 1
 	m.upstreamEndpointCount = m.config.UpstreamPortCount
 
-	mangementAndUpstreamEndpointCount := m.managementEndpointCount + m.upstreamEndpointCount
+	managementAndUpstreamEndpointCount := m.managementEndpointCount + m.upstreamEndpointCount
 	m.downstreamEndpointCount = (1 + // PF
-		mangementAndUpstreamEndpointCount) * m.config.DownstreamPortCount
+		managementAndUpstreamEndpointCount) * m.config.DownstreamPortCount
+
+	m.endpoints = make([]Endpoint, managementAndUpstreamEndpointCount+m.downstreamEndpointCount)
 
 	log.V(2).Info("Creating endpoints")
-
-	m.endpoints = make([]Endpoint, mangementAndUpstreamEndpointCount+m.downstreamEndpointCount)
 
 	for endpointIdx := range m.endpoints {
 		e := &m.endpoints[endpointIdx]
@@ -1015,7 +1019,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 
 			if len(port.endpoints) == 0 {
 				port.endpoints = make([]*Endpoint, 1+ // PF
-					mangementAndUpstreamEndpointCount)
+					managementAndUpstreamEndpointCount)
 				port.endpoints[0] = e
 			} else {
 				port.endpoints[endpointIdx-port.GetBaseEndpointIndex()] = e
@@ -1031,14 +1035,15 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 
 	// create the endpoint groups & connections
 
-	// An Endpoint Groups is created for each managment and upstream endpoints, with
+	// An Endpoint Groups is created for each managment and upstream endpoint, with
 	// the associated target endpoints linked to form the group. This is conceptually
 	// equivalent to the Host Virtualization Domains that exist in the PAX Switch.
 
-	// A Connection is made for every endpoint (also representing the HVD). Connections
-	// contain the attached volumes. The two are linked.
-	m.endpointGroups = make([]EndpointGroup, mangementAndUpstreamEndpointCount)
-	m.connections = make([]Connection, mangementAndUpstreamEndpointCount)
+	// A Connection is made for every endpoint (also representing the Host Virtual Device (HVD)).
+	// Connections contain the attached volumes.
+	// The two are linked.
+	m.endpointGroups = make([]EndpointGroup, managementAndUpstreamEndpointCount)
+	m.connections = make([]Connection, managementAndUpstreamEndpointCount)
 	for endpointGroupIdx := range m.endpointGroups {
 		endpointGroup := &m.endpointGroups[endpointGroupIdx]
 		connection := &m.connections[endpointGroupIdx]
@@ -1055,7 +1060,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 
 		for idx := range endpointGroup.endpoints[1:] {
 			endpointGroup.endpoints[1+idx] =
-				&m.endpoints[mangementAndUpstreamEndpointCount+idx*(1 /*PF*/ +mangementAndUpstreamEndpointCount)+endpointGroupIdx+1]
+				&m.endpoints[managementAndUpstreamEndpointCount+idx*(1 /*PF*/ +managementAndUpstreamEndpointCount)+endpointGroupIdx+1]
 		}
 
 		endpointGroup.connection = connection
@@ -1099,8 +1104,8 @@ func Start() error {
 			if err := p.Initialize(); err != nil {
 				m.log.Error(err, "Port initialization failed")
 
-				// Port initialization is not fatal - the manager can continue
-				// to operate with down ports.
+				// Port initialization failure is not fatal -
+				// the manager continues to operate with down ports.
 			}
 		}
 
