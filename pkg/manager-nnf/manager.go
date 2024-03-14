@@ -396,7 +396,7 @@ func (s *StorageService) cleanupVolumes() {
 }
 
 // Initialize is responsible for initializing the NNF Storage Service; the
-// Storage Service must complete initialization without error prior any
+// Storage Service must complete initialization without error prior to any
 // access to the Storage Service. Failure to initialize will cause the
 // storage service to misbehave.
 func (s *StorageService) Initialize(log ec.Logger, ctrl NnfControllerInterface) error {
@@ -529,7 +529,7 @@ func (s *StorageService) EventHandler(e event.Event) error {
 	}
 
 	// Check if the fabric is ready; that is all devices are enumerated and discovery
-	// is complete. We
+	// is complete.
 	if e.Is(msgreg.FabricReadyNnf("")) {
 		log.V(1).Info("Fabric ready")
 

@@ -61,8 +61,8 @@ import (
 //					"EventType": "Alert",
 //					"EventId": "ABCD123",
 //					"Severity": "Warning",
-//					"Message": "Fabric switch port is down",
-//					"MessageId": "Alert.1.0.FabricSwitchPortDown",
+//					"Message": "Fabirc switch port is down",
+//					"MessageId": "Alert.1.0.FabircSwitchPortDown",
 //					"MessageArgs": [
 //						"Rabbit", "0", "Port 0"
 //					],
@@ -73,7 +73,7 @@ import (
 //			]
 //		}
 //
-// There should always be a Message Registry that is paired with a Message ID. In this case
+// There should always be a Message Registry that is paried with a Message ID. In this case
 // there would be a Message Registry with the following
 //
 //		{
@@ -81,8 +81,8 @@ import (
 //			"RegistryPrefix": "Alert",
 //			"RegistryVersion": "1.0.0",
 //			"Messages": {
-//				"FabricSwitchPortDown": {
-//					"Description": "A Port is down on Fabric %1 Switch %2 Port %3",
+//				"FabircSwitchPortDown": {
+//					"Description": "A Port is down on Fabirc %1 Switch %2 Port %3",
 //					"Message": "Port connectivity was lost on Fabric %1 Switch %2 Port %3",
 //					"Severity": "Critical",
 //					"NumberOfArgs": 3,
@@ -97,14 +97,14 @@ import (
 //
 // When a client receives an event (by creating a subscription with the event service), they
 // first use the MessageId to find the corresponding registry, version, and message.
-// In the above example, the MessageId is "Alert.1.0.FabricSwitchPortDown".  This is broken
+// In the above example, the MessageId is "Alert.1.0.FabircSwitchPortDown".  This is broken
 // down by the client into three parts
 // 		- Registry Prefix: 			"Alert"
 //		- Major / Minor Version: 	"1.0"
-//		- Message Identifier:		"FabricSwitchPortDown"
+//		- Message Identifier:		"FabircSwitchPortDown"
 //
 // The client must then use that information to scan the available registries and locate the
-// correct Message Registry. The Event Service contains a link of the registries in use, so
+// correct Message Registry. The Event Service contains a link of the registires in use, so
 // the client can scan those registries and do a lookup.
 //
 // There are a bunch of registries already created by DMTF: https://redfish.dmtf.org/registries/

@@ -51,7 +51,7 @@ func (cmd *BandwidthCmd) Run() error {
 		return err
 	}
 
-	// Resetting the bandwidth counter takes about 1s
+	// Resetting the bandwidht counter takes about 1s
 	time.Sleep(time.Second)
 
 	// Record the bandwidth counters

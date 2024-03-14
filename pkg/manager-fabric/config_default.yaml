@@ -15,7 +15,6 @@ switches:
       - name: Rabbit
         type: ManagementPort
         port: 24
-        slot: -1
         width: 16
       - name: Compute 0
         type: UpstreamPort

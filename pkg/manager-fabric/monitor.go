@@ -27,7 +27,7 @@ import (
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
 )
 
-// The Fabric Monitor is responsible for ensuring that the fabric and related sub-resource
+// The Fabric Monitor is responsible for ensuring that the fabriic and related sub-resource
 // are updated with the latest information from the switch. This runs as a background
 // thread, and periodically queries the fabric.
 func NewFabricMonitor(f *Fabric) *monitor {
@@ -38,7 +38,7 @@ type monitor struct {
 	fabric *Fabric
 }
 
-// Run will run the Fabric Monitor forever
+// Run Fabric Monitor forever
 func (m *monitor) Run() {
 
 	for {
@@ -49,10 +49,18 @@ func (m *monitor) Run() {
 			s := &m.fabric.switches[idx]
 
 			// The normal path is when the switch is operating without issue and we can
-			// poll the switch for any events, and process those events
+			// poll the switch for any events then process those events
 			if s.isReady() {
 
 				if events, err := s.dev.GetEvents(); err == nil {
+
+					// In the steady state there will be no events.
+					// Refresh the port status to ensure we're up to date.
+					if len(events) == 0 {
+						s.refreshPortStatus()
+						continue
+					}
+
 					for _, event := range events {
 						physPortId, isDown := m.getEventInfo(event)
 
@@ -96,7 +104,7 @@ func (*monitor) checkSwitchStatus(s *Switch) {
 
 const invalidPhysicalPortId = math.MaxUint8
 
-func (m *monitor) getEventInfo(e switchtec.GfmsEvent) (uint8, bool) {
+func (m *monitor) getEventInfo(e switchtec.GfmsEvent) (uint8, bool /* is down event? */) {
 
 	switch e.Id {
 	case switchtec.FabricLinkUp_GfmsEvent, switchtec.FabricLinkDown_GfmsEvent:
