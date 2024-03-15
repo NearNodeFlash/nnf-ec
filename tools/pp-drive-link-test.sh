@@ -25,22 +25,32 @@ Usage: $0
 EOF
 }
 
-while getopts "h" OPTION
+while getopts "hv" OPTION
 do
     case "${OPTION}" in
         'h')
             usage
             exit 0
             ;;
+        'v')
+            verbose="true"
     esac
 done
 shift $((OPTIND - 1))
 
-driveCount=$(lspci | grep KIOXIA | wc -l);
 
-if [ "$driveCount" == "16" ]
+drivePhysicalPortConnectedCount=$(lspci -PP -vvv 2>nul | grep -e "^.*\/.*\/.*4200" -A50 | grep -e 4200 -e LnkSta: -e LnkCap: | grep -e "16GT.*Width x4" | wc -l)
+drivePhysicalPortDisConnectedCount=$(lspci -PP -vvv 2>nul | grep -e "^.*\/.*\/.*4200" -A50 | grep -e 4200 -e LnkSta: -e LnkCap: | grep -e "Width x0" | wc -l)
+
+if [ "$verbose" == "true" ]
 then
-    printf "PASS - %d drives\n" "$driveCount"
+    printf "physical port connected count: %d\n" "$drivePhysicalPortConnectedCount"
+    printf "physical port disconnected count: %d\n" "$drivePhysicalPortDisConnectedCount"
+fi
+
+if [ "$drivePhysicalPortConnectedCount" == "16" ] && [ "$drivePhysicalPortDisConnectedCount" == "2" ]
+then
+    printf "PASS - %d drives, %d empty slots\n" "$drivePhysicalPortConnectedCount" "$drivePhysicalPortDisConnectedCount"
 else
-    printf "FAIL - %d drives\n" "$driveCount"
+    printf "FAIL - %d drives, %d empty slots\n" "$drivePhysicalPortConnectedCount" "$drivePhysicalPortDisConnectedCount"
 fi
