@@ -20,7 +20,7 @@
 usage() {
     cat <<EOF
 Simple pass/fail test to determine if Rabbit links are available
-Usage: $0
+Usage: $0 -v
 
 EOF
 }
@@ -38,18 +38,19 @@ do
 done
 shift $((OPTIND - 1))
 
-
+# The PAX connections are defined by the 4200 specifier with a 3 part pcie identifier for the drives
+# Grab the next 50 lines of the lspci output
+# Next stage looks for the indication that the lnk is running at GEN 4 speed, with a x4 link
+# Next stage count the resulting lines.
 drivePhysicalPortConnectedCount=$(lspci -PP -vvv 2>nul | grep -e "^.*\/.*\/.*4200" -A50 | grep -e 4200 -e LnkSta: -e LnkCap: | grep -e "16GT.*Width x4" | wc -l)
 drivePhysicalPortDisConnectedCount=$(lspci -PP -vvv 2>nul | grep -e "^.*\/.*\/.*4200" -A50 | grep -e 4200 -e LnkSta: -e LnkCap: | grep -e "Width x0" | wc -l)
 
-if [ "$verbose" == "true" ]
-then
+if [ "$verbose" == "true" ]; then
     printf "physical port connected count: %d\n" "$drivePhysicalPortConnectedCount"
     printf "physical port disconnected count: %d\n" "$drivePhysicalPortDisConnectedCount"
 fi
 
-if [ "$drivePhysicalPortConnectedCount" == "16" ] && [ "$drivePhysicalPortDisConnectedCount" == "2" ]
-then
+if [ "$drivePhysicalPortConnectedCount" == "16" ] && [ "$drivePhysicalPortDisConnectedCount" == "2" ]; then
     printf "PASS - %d drives, %d empty slots\n" "$drivePhysicalPortConnectedCount" "$drivePhysicalPortDisConnectedCount"
 else
     printf "FAIL - %d drives, %d empty slots\n" "$drivePhysicalPortConnectedCount" "$drivePhysicalPortDisConnectedCount"
