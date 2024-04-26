@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+# Copyright 2024 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -21,9 +21,9 @@ shopt -s expand_aliases
 
 usage() {
     cat <<EOF
-Powercycle the compute nodes in the specified chassis
+Powercycle the compute nodes in the specified cabinet
 
-Usage: $0 [-h] [-t] [X-NAME]
+Usage: $0 [-h] [-t] [compute-node-node-controllers]
 
 X-NAMES:
     # Texas TDS systems
@@ -61,27 +61,24 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-chassis="${1:-x9000c1}"
-rabbitS="$chassis"j4b0
-computeNodes="$chassis"s[0-7]b[0-1]n0
+cabinet="${1:-x1606}"
+NODES="8681-8808"
+computeNodes="elcap"["$NODES"]
+rabbitS="pelcap[681-688]-s"
 
-
-
-rabbitS="x9000c1j4b0"
-computeNodes="x9000c1s[0-7]b[0-1]n0"
 
 # clear out the results file
 true > results.out
 true > assertCheck
 
+delay=60
 loopCount=0
-# while ((loopCount < 1));
 while true;
 do
     # Power cycle compute nodes
-    ./powercycle.sh -t "$computeNodes"
+    ./powercycleElcap.sh -t "$computeNodes"
 
-    ssh "$rabbitS" grep -e WDG -e ASSERT pax[0-1].log >> assertCheck
+    pdsh -w "$rabbitS" "grep -e WDG -e ASSERT pax[0-1].log" >> assertCheck
 
     assertlines=$(wc -l assertCheck | awk '{print $1}')
     if [ "$assertlines" -ne 0 ]

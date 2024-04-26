@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2023-2024 Hewlett Packard Enterprise Development LP
+# Copyright 2024 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -23,24 +23,18 @@ shopt -s expand_aliases
 
 usage() {
     cat <<EOF
-Powercycle the specified Rabbits.
-Use 'pdsh' style specifiers to specify multiple Rabbit nodes
+Powercycle the specified compute nodes.
+Use 'pdsh' style specifiers to specify the compute nodes
 See: https://linux.die.net/man/1/pdsh for details
 
-Usage: $0 [-h] [-t] [X-NAME(s)]
-
-X-NAMES:
-    # Texas TDS systems
-    # Rabbit-p names
-    x9000c[0-7]s[0-7]b[0-1]n0             Chassis 0..7, compute slots 0..7, boards 0..1, node 0
+Usage: $0 [-h] [-t] [compute-node-names]
 
 Arguments:
   -h                display this help
   -t                time each command
 
 Examples:
-  # Texas TDS
-  ./powercycle.sh -t x9000c1s[0-7]b[0-1]n0
+  ./powercycle.sh -t elcap[8681-8808]
 EOF
 }
 
@@ -66,11 +60,11 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-nodeName="${1:-x9000c1s0b0n0}"
+nodeName="${1:-elcap[8681-8808]}"
 
 powerControl() {
     local op=$1
-    local xnameToPower=$2
+    local nameToPower=$2
 
     if [ -z "$op" ];
     then
@@ -78,9 +72,9 @@ powerControl() {
         exit 1
     fi
 
-    if [ -z "$xnameToPower" ];
+    if [ -z "$nameToPower" ];
     then
-        printf "xnameToPower not set\n"
+        printf "nameToPower not set\n"
         exit 1
     fi
 
@@ -97,47 +91,17 @@ powerControl() {
             ;;
     esac
 
-    printf "%s power: %s\n" "$xnameToPower" "$op"
-    cm power "$op" -t node "$xnameToPower"
+    printf "%s power: %s\n" "$nameToPower" "$op"
+    pdsh -f 128 -w "p$nameToPower" "redfish node 0 $op"
 }
 
-waitForState() {
-    local desiredState=$1
-    local xnameToWaitFor=$2
+waitForBooted() {
 
-    if [ -z "$desiredState" ];
-    then
-        printf "waitForState desiredState not set\n"
-        exit 1
-    fi
-
-    if [ -z "$xnameToWaitFor" ];
-    then
-        printf "waitForState xnameToWaitFor not set\n"
-        exit 1
-    fi
-
-    case "$desiredState" in
-        On)
-            ;;
-        Off)
-            ;;
-        PoweringOn)
-            ;;
-        BOOTED)
-            ;;
-        *)
-            printf "Invalid power state: %s\n" "$desiredState"
-            exit 1
-            ;;
-    esac
-
-    # Retrieve the list of Rabbits that are not yet in their desired state
-    local areWeThereYet
-    areWeThereYet="$(cm power status -t node "$xnameToWaitFor" | grep -v "\s$desiredState$")"
-    for ((i=0; ${#areWeThereYet} > 0; i++));
+    local nameToWaitFor=$1
+    waitingFor="$(pdsh -f 128 -w "e$nameToWaitFor" "tail -1 /var/log/ansible.log" 2>&1 | grep "timed out" | awk '{print $1}' | sed 's|:||g')"
+    for (( i=0; ${#waitingFor} > 0; i++ ));
     do
-        if (( i > 150 ));
+        if ((i > 3000));
         then
             printf "Waited too long\n"
             exit 1
@@ -146,20 +110,23 @@ waitForState() {
         if ((i % 10 == 0));
         then
             date
-            printf "Waiting to transition to %s:\n" "$desiredState"
-            printf "%s\n" "$areWeThereYet"
+            printf "Waiting for\n"
+            printf "%s\n" "$waitingFor"
         fi
 
         sleep 2
-        areWeThereYet="$(cm power status -t node "$xnameToWaitFor" | grep -v "\s$desiredState$")"
+        waitingFor="$(pdsh -f 128 -w "e$nameToWaitFor" "tail -1 /var/log/ansible.log" 2>&1 | grep "timed out" | awk '{print $1}' | sed 's|:||g')"
     done
 
-    printf "All %s\n" "$desiredState"
+    printf "All %s\n" "booted"
 }
 
 TIME powerControl "Off"         "$nodeName"
-TIME waitForState "Off"         "$nodeName"
+
+sleep 30
 
 TIME powerControl "On"          "$nodeName"
-TIME waitForState "On"          "$nodeName"
-TIME waitForState "BOOTED"      "$nodeName"
+
+sleep 30
+
+TIME waitForBooted              "$nodeName"
