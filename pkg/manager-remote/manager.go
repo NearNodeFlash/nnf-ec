@@ -337,7 +337,7 @@ func (*ServerStorageService) StorageServiceIdStoragePoolIdCapacitySourceIdProvid
 	return ec.NewErrNotAcceptable()
 }
 
-func (*ServerStorageService) StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
+func (*ServerStorageService) StorageServiceIdStoragePoolIdAllocatedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
 	return nil
 }
 
