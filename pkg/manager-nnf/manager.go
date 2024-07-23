@@ -752,7 +752,7 @@ func (*StorageService) StorageServiceIdStoragePoolIdGet(storageServiceId, storag
 
 	model.Id = p.id
 	model.OdataId = p.OdataId()
-	model.AllocatedVolumes = p.OdataIdRef("/AlloctedVolumes")
+	model.AllocatedVolumes = p.OdataIdRef("/AllocatedVolumes")
 
 	model.BlockSizeBytes = 4096 // TODO
 	model.Capacity = sf.CapacityV100Capacity{
@@ -901,8 +901,8 @@ func (*StorageService) StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVol
 	return nil
 }
 
-// StorageServiceIdStoragePoolIdAlloctedVolumesGet -
-func (*StorageService) StorageServiceIdStoragePoolIdAlloctedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
+// StorageServiceIdStoragePoolIdAllocatedVolumesGet -
+func (*StorageService) StorageServiceIdStoragePoolIdAllocatedVolumesGet(storageServiceId, storagePoolId string, model *sf.VolumeCollectionVolumeCollection) error {
 	_, p := findStoragePool(storageServiceId, storagePoolId)
 	if p == nil {
 		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolId))
