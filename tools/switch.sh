@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2022-2023 Hewlett Packard Enterprise Development LP
+# Copyright 2022-2024 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -28,7 +28,7 @@ usage() {
     cat <<EOF
 Run various switch command over all switches.
 
-Usage: $0 [-h] [-t] COMMAND [ARGS...]
+Usage: $0 [-hv] [-t] COMMAND [ARGS...]
 
 Commands:
     slot-info                            display slot status for each physical port
@@ -44,6 +44,7 @@ Commands:
 
 Arguments:
   -h                display this help
+  -v                verbose mode
   -t                time each command
 
 Examples:
@@ -88,6 +89,20 @@ execute() {
     done
 }
 
+getChassis() {
+    if [ "$VERBOSE" != "true" ]; then
+        CHASSIS="       "
+        return
+    fi
+
+    COMMAND=xhost-query.py
+    if command -v $COMMAND &> /dev/null; then
+        CHASSIS=$("$COMMAND" $(hostname) | cut -c -7)
+    else
+        CHASSIS="x****c*"
+    fi
+}
+
 getPAXID() {
     local SWITCH_NAME=$1
 
@@ -104,6 +119,18 @@ getPAXID() {
     fi
 }
 
+getPAXTemperature() {
+    local SWITCH_NAME=$1
+
+    # Make sure we can get the PAX ID
+    if [ ! "$(switchtec temp "$SWITCH_NAME")" ]; then
+        echo "Unable to retrieve PAX Temperature"
+        exit $?
+    fi
+
+    PAX_TEMPERATURE=$(switchtec temp "$SWITCH_NAME")
+}
+
 setDeviceName() {
     DRIVES=()
     getDriveList
@@ -117,6 +144,8 @@ setDeviceName() {
 
 displayDriveSlotStatus() {
     local SWITCH_NAME=$1
+
+    getChassis
 
     # Physical slot ids are set into the hardware. These are the mappings
     declare -a PAX0_DriveSlotFromPhysicalPort=(
@@ -203,6 +232,8 @@ displayDriveSlotStatus() {
 displayStatus() {
     local SWITCH_NAME=$1
 
+    getChassis
+
     # Physical slot ids are set into the hardware. These are the mappings
     declare -a PAX0_ConnectedEPToPhysicalPort=(
         # Drives
@@ -218,15 +249,15 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       x9000c?j7b0"
-        [32]="Compute 0,    x9000c?s0b0n0"
-        [34]="Compute 1,    x9000c?s0b1n0"
-        [36]="Compute 2,    x9000c?s1b0n0"
-        [38]="Compute 3,    x9000c?s1b1n0"
-        [40]="Compute 4,    x9000c?s2b0n0"
-        [42]="Compute 5,    x9000c?s2b1n0"
-        [44]="Compute 6,    x9000c?s3b0n0"
-        [46]="Compute 7,    x9000c?s3b1n0"
+        [24]="Rabbit,       ${CHASSIS}r7b0n0"
+        [32]="Compute 0,    ${CHASSIS}s0b0n0"
+        [34]="Compute 1,    ${CHASSIS}s0b1n0"
+        [36]="Compute 2,    ${CHASSIS}s1b0n0"
+        [38]="Compute 3,    ${CHASSIS}s1b1n0"
+        [40]="Compute 4,    ${CHASSIS}s2b0n0"
+        [42]="Compute 5,    ${CHASSIS}s2b1n0"
+        [44]="Compute 6,    ${CHASSIS}s3b0n0"
+        [46]="Compute 7,    ${CHASSIS}s3b1n0"
     )
     declare -a PAX1_ConnectedEPToPhysicalPort=(
         # Drives
@@ -242,15 +273,15 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       x9000c?j7b0"
-        [32]="Compute 8,    x9000c?s4b0n0"
-        [34]="Compute 9,    x9000c?s4b1n0"
-        [36]="Compute 10,   x9000c?s5b0n0"
-        [38]="Compute 11,   x9000c?s5b1n0"
-        [40]="Compute 12,   x9000c?s6b0n0"
-        [42]="Compute 13,   x9000c?s6b1n0"
-        [44]="Compute 14,   x9000c?s7b0n0"
-        [46]="Compute 15,   x9000c?s7b1n0"
+        [24]="Rabbit,       ${CHASSIS}r7b0n0"
+        [32]="Compute 8,    ${CHASSIS}s4b0n0"
+        [34]="Compute 9,    ${CHASSIS}s4b1n0"
+        [36]="Compute 10,   ${CHASSIS}s5b0n0"
+        [38]="Compute 11,   ${CHASSIS}s5b1n0"
+        [40]="Compute 12,   ${CHASSIS}s6b0n0"
+        [42]="Compute 13,   ${CHASSIS}s6b1n0"
+        [44]="Compute 14,   ${CHASSIS}s7b0n0"
+        [46]="Compute 15,   ${CHASSIS}s7b1n0"
     )
 
     getPAXID "$SWITCH_NAME"
@@ -258,7 +289,12 @@ displayStatus() {
     mapfile -t physicalPortIdStrings < <(switchtec status "$SWITCH_NAME" | grep "Phys Port ID:")
 
     local physicalPortString
-    printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
+    if [ "$VERBOSE" == "true" ]; then
+        getPAXTemperature "$SWITCH_NAME"
+        printf "DEVICE: %s PAX_ID: %d  TEMP: %s\n\n" "$SWITCH_NAME" "$PAX_ID" "$PAX_TEMPERATURE"
+    else
+        printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
+    fi
     printf "Switch Connection        \tStatus\n"
     printf "===========================\t======\n"
     for physicalPortString in "${physicalPortIdStrings[@]}";
@@ -285,12 +321,15 @@ displayStatus() {
 
 
 alias TIME=""
-while getopts "th:" OPTION
+while getopts "tvh:" OPTION
 do
     case "${OPTION}" in
         't')
             alias TIME=time
             export TIMEFORMAT='%3lR'
+            ;;
+        'v')
+            export VERBOSE="true"
             ;;
         'h',*)
             usage
