@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020-2023 Hewlett Packard Enterprise Development LP
+# Copyright 2020-2024 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -181,6 +181,46 @@ EOF
 EOF
         done
         ;;
+    hpecray-29)
+        for SESSION in "${SESSIONS[@]}"
+        do
+
+            # For this run, we want to enable some logging settings that we have been leaving off for a while.
+            # FABIOV - 0x82
+            #     log -m 0x82 -s 3
+            #     log -m 0x82 -s 3 -p on
+            # PTD - 0x53
+            #     log -m 0x53 -s 3
+            #     log -m 0x53 -s 3 -p on
+            # fabdbg -s pax
+            # fabdbg -s fio
+            # fabdbg -s gfms
+
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s fio\nfabdbg -s gfms\nlog -m 0x82 -s 3\nlog -m 0x82 -s 3 -p on\nlog -m 0x53 -s 3\nlog -m 0x53 -s 3 -p on\n"
+EOF
+        done
+        ;;
+    hpecray-32)
+        for SESSION in "${SESSIONS[@]}"
+        do
+            # Enables medium severity and turns on logging for the PSC module
+            # log -m 0x54 -s 3
+            # log -m 0x54 -s 3 -p on
+
+            # Enables logs for the fabric debug modules
+            # fabdbg -s pax
+            # fabdbg -s fio
+            # fabdbg -s gfms
+
+            # Turn on the logging for all modules
+            # log -p on
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s fio\nfabdbg -s gfms\nlog -m 0x54 -s 3\nlog -m 0x54 -s 3 -p on\nlog -p on\n"
+EOF
+        done
+        ;;
+
     quit-sessions)
         for SESSION in "${SESSIONS[@]}"
         do
