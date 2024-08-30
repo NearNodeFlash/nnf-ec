@@ -110,7 +110,7 @@ type Storage struct {
 	// the life of the object.
 	capacityBytes uint64
 
-	// Unallocted capacity in bytes. This value is updated for any namespaces create or
+	// Unallocated capacity in bytes. This value is updated for any namespaces create or
 	// delete operation that might shrink or grow the byte count as expected.
 	unallocatedBytes uint64
 
@@ -1137,7 +1137,12 @@ func (mgr *Manager) StorageIdStoragePoolsStoragePoolIdGet(storageId, storagePool
 		},
 	}
 
-	model.RemainingCapacityPercent = int64(float64(s.unallocatedBytes/s.capacityBytes) * 100.0)
+	if s.capacityBytes == 0 {
+		// If a drive could not be found, don't divide by zero.
+		model.RemainingCapacityPercent = 0
+	} else {
+		model.RemainingCapacityPercent = int64(float64(s.unallocatedBytes/s.capacityBytes) * 100.0)
+	}
 
 	return nil
 }
