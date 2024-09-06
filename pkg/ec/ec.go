@@ -109,7 +109,7 @@ type Options struct {
 }
 
 func NewDefaultOptions() *Options {
-	return &Options{Http: true, Port: 8080, Log: false, Verbose: false}
+	return &Options{Http: false, Port: 8080, Log: false, Verbose: false}
 }
 
 func NewDefaultTestOptions() *Options {

@@ -58,7 +58,7 @@ type Options struct {
 	json                 string // Initialize the element controller with the provided json file
 	direct               string // Enable direct management of NVMe devices matching this regexp pattern
 	InitializeAndExit    bool   // Initialize all controllers then exit without starting the http server (mfg use)
-	DeleteUnknownVolumes bool   // Delete volumes not represented by a storage pool at the end of initialization
+	deleteUnknownVolumes bool   // Delete volumes not represented by a storage pool at the end of initialization
 }
 
 func newDefaultOptions() *Options {
@@ -78,7 +78,7 @@ func BindFlags(fs *flag.FlagSet) *Options {
 	fs.StringVar(&opts.json, "json", "", "Initialize database with provided json file")
 	fs.StringVar(&opts.direct, "direct", opts.direct, "Enable direct management of NVMe block devices matching this regexp pattern. Implies Mock.")
 	fs.BoolVar(&opts.InitializeAndExit, "initializeAndExit", opts.InitializeAndExit, "Initialize all hardware controllers, then exit without starting the http server. Useful in hardware bringup")
-	fs.BoolVar(&opts.DeleteUnknownVolumes, "deleteUnknownVolumes", opts.DeleteUnknownVolumes, "Delete volumes not represented by storage pools")
+	fs.BoolVar(&opts.deleteUnknownVolumes, "deleteUnknownVolumes", opts.deleteUnknownVolumes, "Delete volumes not represented by storage pools")
 
 	nvme.BindFlags(fs)
 
@@ -119,16 +119,16 @@ func NewController(opts *Options) *ec.Controller {
 		persistent.StorageProvider = persistent.NewJsonFilePersistentStorageProvider(opts.json)
 	}
 
-	return ec.NewController(Name, Port, Version, NewDefaultApiRouters(switchCtrl, nvmeCtrl, nnfCtrl))
+	return ec.NewController(Name, Port, Version, NewDefaultApiRouters(switchCtrl, nvmeCtrl, nnfCtrl, opts.deleteUnknownVolumes))
 }
 
 // NewDefaultApiRouters -
-func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface, nvmeCtrl nvme.NvmeController, nnfCtrl nnf.NnfControllerInterface) ec.Routers {
+func NewDefaultApiRouters(switchCtrl fabric.SwitchtecControllerInterface, nvmeCtrl nvme.NvmeController, nnfCtrl nnf.NnfControllerInterface, nnfUnknownVolumes bool) ec.Routers {
 
 	routers := []ec.Router{
 		fabric.NewDefaultApiRouter(fabric.NewDefaultApiService(), switchCtrl),
 		nvme.NewDefaultApiRouter(nvme.NewDefaultApiService(), nvmeCtrl),
-		nnf.NewDefaultApiRouter(nnf.NewDefaultApiService(nnf.NewDefaultStorageService()), nnfCtrl),
+		nnf.NewDefaultApiRouter(nnf.NewDefaultApiService(nnf.NewDefaultStorageService(nnfUnknownVolumes)), nnfCtrl),
 		telemetry.NewDefaultApiRouter(telemetry.NewDefaultApiService()),
 		event.NewDefaultApiRouter(event.NewDefaultApiService()),
 		msgreg.NewDefaultApiRouter(msgreg.NewDefaultApiService()),
