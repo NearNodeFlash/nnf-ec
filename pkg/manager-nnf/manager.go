@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2024 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -528,8 +528,8 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		return nil
 	}
 
-	// Check if the fabric is ready; that is all devices are enumerated and discovery
-	// is complete.
+	// Check if the fabric is ready;
+	// that is all devices are enumerated and discovery is complete.
 	if e.Is(msgreg.FabricReadyNnf("")) {
 		log.V(1).Info("Fabric ready")
 
@@ -539,7 +539,7 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		}
 
 		// Remove any namespaces that are not part of a Storage Pool
-		log.V(2).Info("Cleanup obsolete volumes")
+		log.V(2).Info("Cleanup unknown volumes")
 		s.cleanupVolumes()
 
 		s.state = sf.ENABLED_RST
