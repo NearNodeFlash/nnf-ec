@@ -39,7 +39,7 @@ func TestStoragePools(t *testing.T) {
 		t.Fatalf("Failed to start nnf controller")
 	}
 
-	ss := nnf.NewDefaultStorageService()
+	ss := nnf.NewDefaultStorageService(true /* deleteUnknownVolumes */)
 
 	cs := &sf.CapacityCapacitySource{}
 	if err := ss.StorageServiceIdCapacitySourceGet(ss.Id(), cs); err != nil {
