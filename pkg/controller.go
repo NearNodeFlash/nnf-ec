@@ -61,6 +61,10 @@ type Options struct {
 	deleteUnknownVolumes bool   // Delete volumes not represented by a storage pool at the end of initialization
 }
 
+func (o *Options) DeleteUnknownVolumes() bool {
+	return o.deleteUnknownVolumes
+}
+
 func newDefaultOptions() *Options {
 	return &Options{mock: false, cli: false, persistence: true}
 }
