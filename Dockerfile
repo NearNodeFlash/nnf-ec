@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.19 as builder
+FROM golang:1.21 AS builder
 
 WORKDIR /workspace
 
@@ -38,12 +38,12 @@ ENTRYPOINT ["sh", "runContainerTest.sh"]
 
 # Setup Static Analysis
 # TODO: These should move to pre-commit check
-FROM builder as codestyle
+FROM builder AS codestyle
 COPY static-analysis/docker_codestyle_entry.sh static-analysis/docker_codestyle_entry.sh
 ENTRYPOINT ["sh", "static-analysis/docker_codestyle_entry.sh"]
 
 # the static-analysis-lint-container
-FROM builder as lint
+FROM builder AS lint
 COPY static-analysis/docker_lint_entry.sh static-analysis/docker_lint_entry.sh
 ENTRYPOINT ["sh", "static-analysis/docker_lint_entry.sh"]
 

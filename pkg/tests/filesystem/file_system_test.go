@@ -43,7 +43,7 @@ func TestFileSystem(t *testing.T) {
 	server.FileSystemRegistry.RegisterFileSystem(testFs)
 	// TODO: defer server.FileSystemRegistry.UnregisterFileSystem(testFs)
 
-	ss := nnf.NewDefaultStorageService()
+	ss := nnf.NewDefaultStorageService(true /* deleteUnknownVolumes */)
 
 	sp := &sf.StoragePoolV150StoragePool{
 		CapacityBytes: 1024 * 1024,
