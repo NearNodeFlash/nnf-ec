@@ -37,6 +37,7 @@ Commands:
     info                                 display switch hardware information
     ep-tunnel-status                     display endpoint tunnel status for each drive
     ep-tunnel-enable                     enable the endpoint tunnel for each drive
+    ep-tunnel-disable                    disable the endpoint tunnel for each drive
     fabric [COMMAND] [ARG [ARG]...]      execute the fabric COMMAND (default is gfms-dump)
 
     cmd [COMMAND] [ARG [ARG]...]         execute COMMAND on each switchtec device in the system.
@@ -97,9 +98,9 @@ getChassis() {
 
     COMMAND=xhost-query.py
     if command -v $COMMAND &> /dev/null; then
-        CHASSIS=$("$COMMAND" $(hostname) | cut -c -7)
+        CHASSIS=$("$COMMAND" "$(hostname)" | cut -c -7)
     else
-        CHASSIS="x****c*"
+        CHASSIS=$(hostname | cut -c -8)
     fi
 }
 
@@ -410,6 +411,13 @@ case $1 in
             ep-tunnel-command "$SWITCH" "enable"
         }
         execute ep-tunnel-enable
+        ;;
+    ep-tunnel-disable)
+        function ep-tunnel-disable() {
+            local SWITCH=$1
+            ep-tunnel-command "$SWITCH" "disable"
+        }
+        execute ep-tunnel-disable
         ;;
     fabric)
         function fabric() {

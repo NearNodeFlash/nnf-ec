@@ -181,6 +181,21 @@ EOF
 EOF
         done
         ;;
+    hpecray-23)
+        for SESSION in "${SESSIONS[@]}"
+        do
+
+            # For this run, we want to enable some logging settings that we have been leaving off for a while.
+            # FABIOV - 0x82
+            # log -m 0x82 -s 3
+            # log -m 0x82 -s 3 -p on
+            # fabdbg -s fio
+            # fabdbg -s gfms
+            $SSHPASS ssh root@$SYSTEM <<-EOF
+            screen -S $SESSION -X stuff "log -m 0x82 -s 3\nlog -m 0x82 -s 3 -p on\nlog -m 0x84 -s 3\nlog -m 0x84 -s 3 -p on\nfabdbg -s gfms\nfabdbg -c rule"
+EOF
+        done
+        ;;
     hpecray-29)
         for SESSION in "${SESSIONS[@]}"
         do

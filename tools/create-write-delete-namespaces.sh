@@ -17,61 +17,78 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DURATION=${1:-"30s"}
+OP=${2:-"randread"}
+
 usage() {
     cat <<EOF
-Create a namespace on every drive, create a logical volume from those namespaces, write the logical volume, then delete everything
-Usage: $0 [NAMESPACE-SIZE-IN-BYTES]
+Create a namespace on every drive, create a logical volume from those namespaces, operate over that logical volume, then delete everything
 
-NAMESPACE-SIZE-IN-BYTES: 0 -> (Allocate entire drive)
+Usage: $0 [duration: default 30s] [operation: randread|randwrite: default randread]
+Examples:
+   $0 60s  randread                 # random read test for 60 seconds
+   $0 60m  randread                 # random read test for 60 minutes
+   $0 300s randwrite                # random write test for 300 seconds
 EOF
 }
 
-SIZE=${1:-0}
+while getopts "h" OPTION
+do
+    case "${OPTION}" in
+        'h')
+            usage
+            exit 0
+            ;;
+        *)
+            ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+SIZE=0
 DELAY_FOR_DEVICES=2
-DELAY_TO_COOL_CPU=0
 
-case "$SIZE" in
-    ''|*[!0-9]*)
-        usage
-        exit 1
-    ;;
-    *)
-        # Create and attach a namespace on each drive to the RABBIT's processor
-        ./nvme.sh create "$SIZE"
-        ./nvme.sh attach
+printf "duration %s\n" $DURATION
+printf "operation %s\n" $OP
 
-        printf "Sleeping %d seconds to allow all devices to be available for logical volume\n" "$DELAY_FOR_DEVICES"
-	    sleep "$DELAY_FOR_DEVICES"
+# Ensure lvm.conf doesn't get in the way
+sed -i 's/use_lvmlockd = 1/use_lvmlockd = 0/g' /etc/lvm/lvm.conf
 
-        # Create a logical volume spanning all the namespaces
-        ./lvm.sh create
+# Ensure the /dev/rabbit directory doesn't already exist
+rm -rf /dev/rabbit
 
-        # Write a little something to the logical volume to give the drives some work to do on delete-ns operation
-        fio --direct=1 --rw=randwrite --bs=32M --ioengine=libaio --iodepth=128 --numjobs=4 --runtime=5m --time_based --group_reporting --name=rabbit --eta-newline=1 --filename=/dev/rabbit/rabbit
+# Run nnf-ec just to be sure
+./nnf-ec
 
-        if [ $DELAY_TO_COOL_CPU != 0 ]
-        then
-            printf "Sleeping %d seconds to cool the CPU\n" "$DELAY_TO_COOL_CPU"
-            sleep "$DELAY_TO_COOL_CPU"
-        fi
-        # Delete the logical volume to tidy up
-        ./lvm.sh delete
+# Create and attach a namespace on each drive to the RABBIT's processor
+./nvme.sh create "$SIZE"
+./nvme.sh attach
 
-    	# Format the namespace to speed up deletion
-	    ./nvme.sh cmd format --force --namspace-id=1
+printf "Sleeping %d seconds to allow all devices to be available for logical volume\n" "$DELAY_FOR_DEVICES"
+sleep "$DELAY_FOR_DEVICES"
 
-        # Wait for the format to finish
-        areWeDone=$(nvme list | grep KIO | awk '{if ($6 > 0) { print "wait" } else { print "done" }}')
-        while [ "$areWeDone" != "done" ]; do
-            sleep 1
-            printf "Formatting, space left %f\n" "$(nvme list | grep KIO | awk '{print $6}')"
-            areWeDone=$(nvme list | grep KIO | awk '{if ($6 > 0) { print "wait" } else { print "done" }}')
-        done
+# Create a logical volume spanning all the namespaces
+./lvm.sh create
 
-        # Show the nvme namespaces for the record
-        nvme list | grep KIO
+# Write a little something to the logical volume to give the drives some work to do on delete-ns operation
+fio --direct=1 --rw="$OP" --bs=32M --ioengine=libaio --iodepth=128 --numjobs=4 --runtime="$DURATION" --time_based --group_reporting --name=rabbit --eta-newline=1 --filename=/dev/rabbit/rabbit
 
-        # Finally, delete the namespaces
-        ./nvme.sh -t delete
-    ;;
-esac
+# Delete the logical volume to tidy up
+./lvm.sh delete
+
+# Format the namespace to speed up deletion
+./nvme.sh cmd format --force --namespace-id=1
+
+# Wait for the format to finish
+gbToFormat=$(nvme list | grep KIO | awk '{print $6}' | tr ' ' '\n' | paste -sd+ - | bc | awk '{print ($1 == int($1)) ? int($1) : int($1) + 1}')
+while (("$gbToFormat" > 0)); do
+    sleep 1
+    printf "Formatting, space left %d\n" "$(nvme list | grep KIO | awk '{print $6}' | tr ' ' '\n' | paste -sd+ - | bc | awk '{print ($1 == int($1)) ? $1 : int($1) + 1}')"
+    gbToFormat=$(nvme list | grep KIO | awk '{print $6}' | tr ' ' '\n' | paste -sd+ - | bc | awk '{print ($1 == int($1)) ? int($1) : int($1) + 1}')
+done
+
+# Show the nvme namespaces for the record
+nvme list | grep KIO
+
+# Finally, delete the namespaces
+./nvme.sh -t delete
