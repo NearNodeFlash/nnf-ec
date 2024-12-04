@@ -16,6 +16,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -euo pipefail
 
 DURATION=${1:-"30s"}
 OP=${2:-"randread"}
@@ -48,8 +49,8 @@ shift $((OPTIND - 1))
 SIZE=0
 DELAY_FOR_DEVICES=2
 
-printf "duration %s\n" $DURATION
-printf "operation %s\n" $OP
+printf "duration %s\n" "$DURATION"
+printf "operation %s\n" "$OP"
 
 # Ensure lvm.conf doesn't get in the way
 sed -i 's/use_lvmlockd = 1/use_lvmlockd = 0/g' /etc/lvm/lvm.conf

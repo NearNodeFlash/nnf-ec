@@ -16,13 +16,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+set -eo pipefail
 shopt -s expand_aliases
-
-# Pull in common utility functions
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-# shellcheck source="$SCRIPT_DIR"/_util.sh
-source "$SCRIPT_DIR"/_util.sh
 
 usage() {
     cat <<EOF
@@ -121,6 +116,38 @@ executeParallel() {
 
     rm _result*
 }
+
+# Retrieve the Physical Device Fabric IDs used to iterate through a list of nvme drives
+function getPDFIDs() {
+    local SWITCH=$1 FUNCTION="${2:-0}"
+
+    switchtec fabric gfms-dump "$SWITCH" | grep "Function $FUNCTION " -A2 | grep PDFID | awk '{print $2}'
+}
+
+function getDriveList() {
+    # DRIVES=$1
+    # for DRIVE in $(ls /dev/nvme* | grep -E "nvme[[:digit:]]+$");
+    for DRIVE in /dev/nvme[0-9]*;
+    do
+        # shellcheck disable=SC2086
+        if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
+        then
+            # SerialNumber=$(nvme id-ctrl ${DRIVE} | grep -E "^sn " | awk '{print $3}')
+            # Mfg=$(nvme id-ctrl ${DRIVE} | grep -E "^mn " | awk '{print $3}')
+            # FW=$(nvme id-ctrl ${DRIVE} | grep -E "^fr " | awk '{print $3}')
+            # printf "%s\t%s\t%s\t%s\n" "$DRIVE" "$Mfg" "$SerialNumber" "$FW"
+
+            DRIVES+=("${DRIVE}")
+        fi
+    done
+
+    DriveCount="${#DRIVES[@]}"
+    if ((DriveCount == 0));
+    then
+        printf "No drives found: Did you run nnf-ec?\n"
+    fi
+}
+
 
 alias TIME=""
 while getopts "th:" OPTION

@@ -16,13 +16,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+set -eo pipefail
 shopt -s expand_aliases
-
-# Pull in common utility functions
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-# shellcheck source="$SCRIPT_DIR"/_util.sh
-source "$SCRIPT_DIR"/_util.sh
 
 usage() {
     cat <<EOF
@@ -90,6 +85,37 @@ execute() {
     done
 }
 
+# Retrieve the Physical Device Fabric IDs used to iterate through a list of nvme drives
+function getPDFIDs() {
+    local SWITCH=$1 FUNCTION="${2:-0}"
+
+    switchtec fabric gfms-dump "$SWITCH" | grep "Function $FUNCTION " -A2 | grep PDFID | awk '{print $2}'
+}
+
+function getDriveList() {
+    # DRIVES=$1
+    # for DRIVE in $(ls /dev/nvme* | grep -E "nvme[[:digit:]]+$");
+    for DRIVE in /dev/nvme[0-9]*;
+    do
+        # shellcheck disable=SC2086
+        if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
+        then
+            # SerialNumber=$(nvme id-ctrl ${DRIVE} | grep -E "^sn " | awk '{print $3}')
+            # Mfg=$(nvme id-ctrl ${DRIVE} | grep -E "^mn " | awk '{print $3}')
+            # FW=$(nvme id-ctrl ${DRIVE} | grep -E "^fr " | awk '{print $3}')
+            # printf "%s\t%s\t%s\t%s\n" "$DRIVE" "$Mfg" "$SerialNumber" "$FW"
+
+            DRIVES+=("${DRIVE}")
+        fi
+    done
+
+    DriveCount="${#DRIVES[@]}"
+    if ((DriveCount == 0));
+    then
+        printf "No drives found: Did you run nnf-ec?\n"
+    fi
+}
+
 getChassis() {
     if [ "$VERBOSE" != "true" ]; then
         CHASSIS="       "
@@ -107,13 +133,13 @@ getChassis() {
 getPAXID() {
     local SWITCH_NAME=$1
 
-    # Make sure we can get the PAX ID
-    if [ ! "$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "^PAX ID:" | awk '{print $3}')" ]; then
+    PAX_ID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "^PAX ID:" | awk '{print $3}')
+    ret=$?
+    if [ ! $ret ]; then
         echo "Unable to retrieve PAX ID"
-        exit $?
+        exit $ret
     fi
 
-    PAX_ID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "^PAX ID:" | awk '{print $3}')
     if ! (( PAX_ID >= 0 && PAX_ID <= 1 )); then
         echo "$PAX_ID not in range 0-1"
         exit 1
@@ -123,13 +149,24 @@ getPAXID() {
 getPAXTemperature() {
     local SWITCH_NAME=$1
 
-    # Make sure we can get the PAX ID
-    if [ ! "$(switchtec temp "$SWITCH_NAME")" ]; then
-        echo "Unable to retrieve PAX Temperature"
-        exit $?
-    fi
-
     PAX_TEMPERATURE=$(switchtec temp "$SWITCH_NAME")
+    ret=$?
+    if [ ! $ret ]; then
+        echo "Unable to retrieve PAX Temperature"
+        exit $ret
+    fi
+}
+
+displayPAX() {
+    local SWITCH_NAME=$1
+    getPAXID "$SWITCH_NAME"
+
+    if [ "$VERBOSE" == "true" ]; then
+        getPAXTemperature "$SWITCH_NAME"
+        printf "DEVICE: %s PAX_ID: %d  TEMP: %s\n\n" "$SWITCH_NAME" "$PAX_ID" "$PAX_TEMPERATURE"
+    else
+        printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
+    fi
 }
 
 setDeviceName() {
@@ -158,7 +195,7 @@ displayDriveSlotStatus() {
         [16]=17
         [18]=18
         [20]=14
-        [22]=13
+        # [22]=13         SLOT 13 is not supported
         [48]=12
     )
     declare -a PAX1_DriveSlotFromPhysicalPort=(
@@ -167,14 +204,12 @@ displayDriveSlotStatus() {
         [10]=5
         [12]=6
         [14]=2
-        [16]=1
+        # [16]=1          SLOT 1 is not supported
         [18]=9
         [20]=10
         [22]=11
         [48]=3
     )
-
-    getPAXID "$SWITCH_NAME"
 
     # Associate serial number with its /dev/nvme device
     setDeviceName
@@ -183,7 +218,6 @@ displayDriveSlotStatus() {
     mapfile -t physicalPortStatus < <(switchtec fabric gfms-dump "$SWITCH" | grep " Physical Port ID")
 
     local physicalPortString
-    printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
     for physicalPortString in "${physicalPortStatus[@]}";
     do
         local PHYSICAL_PORT_ID
@@ -200,32 +234,35 @@ displayDriveSlotStatus() {
                 exit 1
         esac
 
-        PDFID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "$physicalPortString" -A2 | grep "PDFID" | awk '{print $2}')
-        if [ -z "$PDFID" ]; then
-            PDFID=""
-            MF=""
-            FW=""
-            SN=""
-            Device=""
-        else
-            mapfile -t idCtrl < <(switchtec-nvme id-ctrl "$PDFID"@"$SWITCH_NAME" 2>&1)
-            case "${idCtrl[0]}" in
-                "NVME Identify Controller:")
-                    MF="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^mn " | awk '{print $3}')"
-                    FW="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^fr " | awk '{print $3}')"
-                    SN="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^sn " | awk '{print $3}')"
-                    Device="${deviceName["$SN"]}"
-                    ;;
-                *)
-                    MF="$(echo "${idCtrl[0]}" | awk '{print $3}')"
-                    SN=""
-                    FW=""
-                    Device=""
-                    ;;
-            esac
-        fi
+        if [ -n "$SLOT" ]
+        then
+            PDFID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "$physicalPortString" -A2 | grep "PDFID" | awk '{print $2}')
+            if [ -z "$PDFID" ]; then
+                PDFID=""
+                MF=""
+                FW=""
+                SN=""
+                Device=""
+            else
+                mapfile -t idCtrl < <(switchtec-nvme id-ctrl "$PDFID"@"$SWITCH_NAME" 2>&1)
+                case "${idCtrl[0]}" in
+                    "NVME Identify Controller:")
+                        MF="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^mn " | awk '{print $3}')"
+                        FW="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^fr " | awk '{print $3}')"
+                        SN="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^sn " | awk '{print $3}')"
+                        Device="${deviceName["$SN"]}"
+                        ;;
+                    *)
+                        MF="$(echo "${idCtrl[0]}" | awk '{print $3}')"
+                        SN=""
+                        FW=""
+                        Device=""
+                        ;;
+                esac
+            fi
 
-        printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %15.15s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "${physicalPortString//}"
+            printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %15.15s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "${physicalPortString//}"
+        fi
     done
     printf "\n"
 }
@@ -245,7 +282,7 @@ displayStatus() {
         [16]="Drive Slot 17              "
         [18]="Drive Slot 18              "
         [20]="Drive Slot 14              "
-        [22]="Drive Slot 13              "
+        # [22]="Drive Slot 13              "        SLOT 13 is not supported
         [48]="Drive Slot 12              "
 
         # Other Links
@@ -266,7 +303,7 @@ displayStatus() {
         [10]="Drive Slot 5               "
         [12]="Drive Slot 6               "
         [14]="Drive Slot 2               "
-        [16]="Drive Slot 1               "
+        # [16]="Drive Slot 1               "        SLOT 1 is not supported
         [18]="Drive Slot 9               "
         [20]="Drive Slot 10              "
         [22]="Drive Slot 11              "
@@ -285,39 +322,94 @@ displayStatus() {
         [46]="Compute 15,   ${CHASSIS}s7b1n0"
     )
 
-    getPAXID "$SWITCH_NAME"
+    # Example switchtec status in table format
+    #
+    #       [root@x9000c3j7b0n0 tools]# ./switch.sh cmd status --format=table
+    #       DEVICE: /dev/switchtec0 PAX_ID: 1
+    #
+    #       [00] part:00.01 w:cfg[x16]-neg[x16] stk:0.0 lanes:0123456789abcdef rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [08] part:00.02 w:cfg[x04]-neg[x04] stk:1.0 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [10] part:00.03 w:cfg[x04]-neg[x04] stk:1.2 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [12] part:00.04 w:cfg[x04]-neg[x04] stk:1.4 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [14] part:00.05 w:cfg[x04]-neg[x04] stk:1.6 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [16] part:00.06 w:cfg[x04]-neg[x00] stk:2.0 lanes:xxxx             rev:0 dsp link:0 rate:G1 LTSSM:Detect (QUIET)
+    #       [18] part:00.07 w:cfg[x04]-neg[x04] stk:2.2 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [20] part:00.08 w:cfg[x04]-neg[x04] stk:2.4 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [22] part:00.09 w:cfg[x04]-neg[x04] stk:2.6 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [24] part:01.00 w:cfg[x16]-neg[x16] stk:3.0 lanes:fedcba9876543210 rev:1 usp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [32] part:02.00 w:cfg[x04]-neg[x00] stk:4.0 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [34] part:03.00 w:cfg[x04]-neg[x00] stk:4.2 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [36] part:04.00 w:cfg[x04]-neg[x00] stk:4.4 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [38] part:05.00 w:cfg[x04]-neg[x00] stk:4.6 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [40] part:06.00 w:cfg[x04]-neg[x00] stk:5.0 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Detect (QUIET)
+    #       [42] part:07.00 w:cfg[x04]-neg[x00] stk:5.2 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [44] part:08.00 w:cfg[x04]-neg[x00] stk:5.4 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [46] part:09.00 w:cfg[x04]-neg[x00] stk:5.6 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [48] part:00.10 w:cfg[x04]-neg[x04] stk:6.0 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       DEVICE: /dev/switchtec1 PAX_ID: 0
+    #
+    #       [00] part:00.01 w:cfg[x16]-neg[x16] stk:0.0 lanes:fedcba9876543210 rev:1 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [08] part:00.02 w:cfg[x04]-neg[x04] stk:1.0 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [10] part:00.03 w:cfg[x04]-neg[x04] stk:1.2 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [12] part:00.04 w:cfg[x04]-neg[x04] stk:1.4 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [14] part:00.05 w:cfg[x04]-neg[x04] stk:1.6 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [16] part:00.06 w:cfg[x04]-neg[x04] stk:2.0 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [18] part:00.07 w:cfg[x04]-neg[x04] stk:2.2 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [20] part:00.08 w:cfg[x04]-neg[x04] stk:2.4 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [22] part:00.09 w:cfg[x04]-neg[x00] stk:2.6 lanes:xxxx             rev:0 dsp link:0 rate:G1 LTSSM:Detect (QUIET)
+    #       [24] part:01.00 w:cfg[x16]-neg[x16] stk:3.0 lanes:fedcba9876543210 rev:1 usp link:1 rate:G4 LTSSM:L0 (L0)
+    #       [32] part:02.00 w:cfg[x04]-neg[x00] stk:4.0 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [34] part:03.00 w:cfg[x04]-neg[x00] stk:4.2 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [36] part:04.00 w:cfg[x04]-neg[x00] stk:4.4 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [38] part:05.00 w:cfg[x04]-neg[x00] stk:4.6 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [40] part:06.00 w:cfg[x04]-neg[x00] stk:5.0 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [42] part:07.00 w:cfg[x04]-neg[x00] stk:5.2 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [44] part:08.00 w:cfg[x04]-neg[x00] stk:5.4 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [46] part:09.00 w:cfg[x04]-neg[x00] stk:5.6 lanes:xxxx             rev:0 usp link:0 rate:G1 LTSSM:Polling (COMP)
+    #       [48] part:00.10 w:cfg[x04]-neg[x04] stk:6.0 lanes:0123             rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
 
-    mapfile -t physicalPortIdStrings < <(switchtec status "$SWITCH_NAME" | grep "Phys Port ID:")
+    mapfile -t statusTableLines < <(switchtec status --format=table "$SWITCH_NAME")
 
-    local physicalPortString
-    if [ "$VERBOSE" == "true" ]; then
-        getPAXTemperature "$SWITCH_NAME"
-        printf "DEVICE: %s PAX_ID: %d  TEMP: %s\n\n" "$SWITCH_NAME" "$PAX_ID" "$PAX_TEMPERATURE"
-    else
-        printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
-    fi
-    printf "Switch Connection        \tStatus\n"
-    printf "===========================\t======\n"
-    for physicalPortString in "${physicalPortIdStrings[@]}";
+    printf "Switch Connection        \tStatus\tRate\tWidth\n"
+    printf "===========================\t======\t====\t=================\n"
+
+    # Show the downstream ports (drives) before the upstream (computes and Rabbit-p)
+    local PORT_DIRECTION=("dsp" "usp")
+    for PD in "${PORT_DIRECTION[@]}";
     do
-        local PHYSICAL_PORT_ID
-        PHYSICAL_PORT_ID=$(echo "$physicalPortString" | awk '{print $4}')
-        case $PAX_ID in
-            0)
-                ENDPOINT=${PAX0_ConnectedEPToPhysicalPort[$PHYSICAL_PORT_ID]}
-                ;;
-            1)
-                ENDPOINT=${PAX1_ConnectedEPToPhysicalPort[$PHYSICAL_PORT_ID]}
-                ;;
-            *)
-                exit 1
-        esac
+        for line in "${statusTableLines[@]}";
+        do
+            linePortDirection=$(echo "$line" | awk '{print $7}')
+            if [ "$PD" = "$linePortDirection" ]
+            then
+                PHYSICAL_PORT_ID=$(echo "$line" | awk '{gsub(/\[|\]/, "", $1); num=sprintf("%d", $1); print num}')
+                case $PAX_ID in
+                    0)
+                        ENDPOINT=${PAX0_ConnectedEPToPhysicalPort[$PHYSICAL_PORT_ID]}
+                        ;;
+                    1)
+                        ENDPOINT=${PAX1_ConnectedEPToPhysicalPort[$PHYSICAL_PORT_ID]}
+                        ;;
+                    *)
+                        exit 1
+                esac
 
-        OPER_STATUS=$(switchtec status "$SWITCH_NAME" | grep "$physicalPortString" -A4 | grep "Status" | awk '{print $2}' )
-
-        printf "%s\t%s\n" "$ENDPOINT" "$OPER_STATUS"
+                if [ -n "$ENDPOINT" ]
+                then
+                    # Add an asterix "*" for PCI WIDTHs or RATEs not matching the expected values
+                    WIDTH=$(echo "$line" | awk '{gsub(/w:/, "", $3); if (match($3, /cfg\[x([0-9]+)\]-neg\[x([0-9]+)\]/, arr)) {
+                                var1 = arr[1];
+                                var2 = arr[2];
+                            }
+                            if (var1 == var2) print $3; else print $3"*";}')
+                    LINK=$(echo "$line" | awk '{gsub(/link:/, "", $8); if ($8 == 1) print "UP"; else if ($8 == 0) print "DOWN"; }')
+                    RATE=$(echo "$line" | awk '{gsub(/rate:/, "", $9); if ($9 == "G4") print $9; else print $9"*"; }')
+                    printf "%s\t%s\t%s\t%s\n" "$ENDPOINT" "$LINK" "$RATE" "$WIDTH"
+                fi
+            fi
+        done
+        printf "\n"
     done
-    printf "\n"
 }
 
 
@@ -369,7 +461,7 @@ case $1 in
     slot-info)
         function slot-info() {
             local SWITCH=$1
-            echo "Execute slot-info on $SWITCH"
+            displayPAX "$SWITCH"
             TIME displayDriveSlotStatus "$SWITCH"
         }
         execute slot-info
@@ -377,7 +469,7 @@ case $1 in
     info)
         function info() {
             local SWITCH=$1
-            echo "Execute switch info on $SWITCH"
+            displayPAX "$SWITCH"
             TIME switchtec info "$SWITCH"
         }
         execute info
@@ -385,7 +477,8 @@ case $1 in
     status)
         function status() {
             local SWITCH=$1
-            echo "Execute switch status on $SWITCH"
+            # echo "Execute switch status on $SWITCH"
+            displayPAX "$SWITCH"
             TIME displayStatus "$SWITCH"
         }
         execute status
@@ -393,7 +486,8 @@ case $1 in
     switchtec-status)
         function switchtec-status() {
             local SWITCH=$1
-            echo "Execute switchtec status on $SWITCH"
+            # echo "Execute switchtec status on $SWITCH"
+            displayPAX "$SWITCH"
             TIME switchtec status "$SWITCH"
         }
         execute switchtec-status
@@ -401,6 +495,7 @@ case $1 in
     ep-tunnel-status)
         function ep-tunnel-status() {
             local SWITCH=$1
+            displayPAX "$SWITCH"
             ep-tunnel-command "$SWITCH" "status"
         }
         execute ep-tunnel-status
@@ -408,6 +503,7 @@ case $1 in
     ep-tunnel-enable)
         function ep-tunnel-enable() {
             local SWITCH=$1
+            displayPAX "$SWITCH"
             ep-tunnel-command "$SWITCH" "enable"
         }
         execute ep-tunnel-enable
@@ -415,6 +511,7 @@ case $1 in
     ep-tunnel-disable)
         function ep-tunnel-disable() {
             local SWITCH=$1
+            displayPAX "$SWITCH"
             ep-tunnel-command "$SWITCH" "disable"
         }
         execute ep-tunnel-disable
@@ -422,7 +519,8 @@ case $1 in
     fabric)
         function fabric() {
             local SWITCH=$1 FABRIC_CMD=$2 ARGS=( "${@:3}" )
-            echo "Execute switch fabric $FABRIC_CMD on $SWITCH"
+            if [ "$VERBOSE" == "true" ]; then echo "Execute switch fabric $FABRIC_CMD"; fi
+            displayPAX "$SWITCH"
             TIME switchtec fabric "$FABRIC_CMD" "$SWITCH" "${ARGS[@]}"
         }
         execute fabric "${2:-gfms-dump}" "${@:3}"
@@ -430,7 +528,7 @@ case $1 in
     cmd)
         function cmd() {
             local SWITCH=$1 CMD=$2 ARGS=( "${@:3}" )
-            echo "Execute on $SWITCH $CMD" "${ARGS[@]}"
+            displayPAX "$SWITCH"
             TIME switchtec "$CMD" "$SWITCH" "${ARGS[@]}"
         }
         execute cmd "${@:2}"
