@@ -80,10 +80,10 @@ case $CMD in
         declare -a DEVICES=("pax0 /dev/ttyS9" "pax1 /dev/ttyS11")
         for DEVICE in "${DEVICES[@]}"
         do
-            PAX=$(echo $DEVICE | cut -d' ' -f1)
+            PAX=$(echo "$DEVICE" | cut -d' ' -f1)
 
             echo "Enabling Logging on $PAX"
-            $SSHPASS ssh -T root@$SYSTEM <<-EOF
+            $SSHPASS ssh -T root@"$SYSTEM" <<-EOF
             if ! screen -list | grep -q "$PAX"; then
                 screen -dmS $DEVICE 230400 &&
                 screen -S $PAX -X colon "logfile $PAX.log^M" &&
@@ -96,16 +96,16 @@ EOF
     clear-logs)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM "> $SESSION.log"
+            $SSHPASS ssh root@"$SYSTEM" "> $SESSION.log"
         done
         ;;
     get-logs)
-        $SSHPASS scp root@$SYSTEM:~/*.log ./
+        $SSHPASS scp root@"$SYSTEM":~/*.log ./
         ;;
     fabdbg-on)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "fabdbg -s info\nfabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nfabdbg -s fio\nfabdbg -s rule\n"
 EOF
         done
@@ -113,7 +113,7 @@ EOF
     fabdbg-off)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "fabdbg -c info\nfabdbg -c pax\nfabdbg -c gfms\nfabdbg -c hvm\nfabdbg -c sfm\nfabdbg -c fio\nfabdbg -c rule\n"
 EOF
         done
@@ -121,7 +121,7 @@ EOF
     additional-logs)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "log -t on\nlog -m 0x82 -s3\nlog -m 0x84 -s3\nlog -m 0x82 -s3 -p on\nlog -m 0x84 -s3 -p on\n"
 EOF
         done
@@ -129,7 +129,7 @@ EOF
     additional-logs-off)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "log -p off\nlog -m 0x84 -s3 -p off\nlog -m 0x82 -s3 -p off\nlog -m 0x84 -s3 -p off\n"
 EOF
         done
@@ -137,7 +137,7 @@ EOF
     slow-drive-logs)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\nlog -m 0x82 -s 3 -p on -t on\n"
 EOF
         done
@@ -145,7 +145,7 @@ EOF
     switch-hang-logs)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             # screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s gfms\nfabdbg -s hvm\nfabdbg -s sfm\nlog -m 0x84 -s 3 -p on -t on\nlog -m 0x82 -s 3 -p on -t on\n"
 
             # New and improved settings based on https://customer-jira.microchip.com/browse/HPECRAY-23
@@ -176,8 +176,23 @@ EOF
             # > fabdbg -s fio
             # > fabdbg -s gfms
 
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s fio\nfabdbg -s gfms\nlog -m 0x81 -s 5\nlog -m 0x81 -s 5 -p on\nlog -m 0x82 -s 5\nlog -m 0x82 -s 5 -p on\nlog -m 0x84 -s 5\nlog -m 0x84 -s 5 -p on\nlog -m 0x54 -s 5\nlog -m 0x54 -s 5 -p on\n"
+EOF
+        done
+        ;;
+    hpecray-23)
+        for SESSION in "${SESSIONS[@]}"
+        do
+
+            # For this run, we want to enable some logging settings that we have been leaving off for a while.
+            # FABIOV - 0x82
+            # log -m 0x82 -s 3
+            # log -m 0x82 -s 3 -p on
+            # fabdbg -s fio
+            # fabdbg -s gfms
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
+            screen -S $SESSION -X stuff "log -m 0x82 -s 3\nlog -m 0x82 -s 3 -p on\nlog -m 0x84 -s 3\nlog -m 0x84 -s 3 -p on\nfabdbg -s gfms\nfabdbg -c rule"
 EOF
         done
         ;;
@@ -196,7 +211,7 @@ EOF
             # fabdbg -s fio
             # fabdbg -s gfms
 
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s fio\nfabdbg -s gfms\nlog -m 0x82 -s 3\nlog -m 0x82 -s 3 -p on\nlog -m 0x53 -s 3\nlog -m 0x53 -s 3 -p on\n"
 EOF
         done
@@ -215,7 +230,7 @@ EOF
 
             # Turn on the logging for all modules
             # log -p on
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X stuff "fabdbg -s pax\nfabdbg -s fio\nfabdbg -s gfms\nlog -m 0x54 -s 3\nlog -m 0x54 -s 3 -p on\nlog -p on\n"
 EOF
         done
@@ -224,13 +239,13 @@ EOF
     quit-sessions)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh -T root@$SYSTEM "screen -S $SESSION -X quit"
+            $SSHPASS ssh -T root@"$SYSTEM" "screen -S $SESSION -X quit"
         done
         ;;
     lnkstat)
         for SESSION in "${SESSIONS[@]}"
         do
-            $SSHPASS ssh root@$SYSTEM <<-EOF
+            $SSHPASS ssh root@"$SYSTEM" <<-EOF
             screen -S $SESSION -X colon "wrap off^M" &&
             screen -S $SESSION -X stuff "lnkstat\\n" &&
             sleep 1 &&
