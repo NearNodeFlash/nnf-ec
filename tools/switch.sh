@@ -253,10 +253,10 @@ displayDriveSlotStatus() {
                         Device="${deviceName["$SN"]}"
                         ;;
                     *)
-                        MF="$(echo "${idCtrl[0]}" | awk '{print $3}')"
-                        SN=""
-                        FW=""
-                        Device=""
+                        MF="Unavail"
+                        SN="Unavail"
+                        FW="Unavail"
+                        Device="Unavail"
                         ;;
                 esac
             fi
