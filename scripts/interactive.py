@@ -55,7 +55,7 @@ class StoragePool(Command):
             size = ByteSizeStringToIntegerBytes(size)
             payload = {
                 'Capacity': {'Data': {'AllocatedBytes': int(size)}},
-                'Oem': {'Compliance': 'relaxed'}
+                'Oem': {'Compliance': 'strict'}
             }
             return payload
         except ValueError:

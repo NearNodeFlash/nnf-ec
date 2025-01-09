@@ -287,7 +287,7 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       ${CHASSIS}r7b0n0"
+        [24]="Rabbit-p,     ${CHASSIS}r7b0n0"
         [32]="Compute 0,    ${CHASSIS}s0b0n0"
         [34]="Compute 1,    ${CHASSIS}s0b1n0"
         [36]="Compute 2,    ${CHASSIS}s1b0n0"
@@ -311,7 +311,7 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       ${CHASSIS}r7b0n0"
+        [24]="Rabbit-p,     ${CHASSIS}r7b0n0"
         [32]="Compute 8,    ${CHASSIS}s4b0n0"
         [34]="Compute 9,    ${CHASSIS}s4b1n0"
         [36]="Compute 10,   ${CHASSIS}s5b0n0"
@@ -370,8 +370,8 @@ displayStatus() {
 
     mapfile -t statusTableLines < <(switchtec status --format=table "$SWITCH_NAME")
 
-    printf "Switch Connection        \tStatus\tRate\tWidth\n"
-    printf "===========================\t======\t====\t=================\n"
+    printf "Port\tSwitch Connection        \tStatus\tRate\tWidth\n"
+    printf "====\t===========================\t======\t====\t=================\n"
 
     # Show the downstream ports (drives) before the upstream (computes and Rabbit-p)
     local PORT_DIRECTION=("dsp" "usp")
@@ -404,7 +404,7 @@ displayStatus() {
                             if (var1 == var2) print $3; else print $3"*";}')
                     LINK=$(echo "$line" | awk '{gsub(/link:/, "", $8); if ($8 == 1) print "UP"; else if ($8 == 0) print "DOWN"; }')
                     RATE=$(echo "$line" | awk '{gsub(/rate:/, "", $9); if ($9 == "G4") print $9; else print $9"*"; }')
-                    printf "%s\t%s\t%s\t%s\n" "$ENDPOINT" "$LINK" "$RATE" "$WIDTH"
+                    printf "%s\t%s\t%s\t%s\t%s\n" "$PHYSICAL_PORT_ID" "$ENDPOINT" "$LINK" "$RATE" "$WIDTH"
                 fi
             fi
         done
@@ -524,6 +524,15 @@ case $1 in
             TIME switchtec fabric "$FABRIC_CMD" "$SWITCH" "${ARGS[@]}"
         }
         execute fabric "${2:-gfms-dump}" "${@:3}"
+        ;;
+    diag)
+        function diag() {
+            local SWITCH=$1 DIAG_CMD=$2 ARGS=( "${@:3}" )
+            if [ "$VERBOSE" == "true" ]; then echo "Execute switch diag $DIAG_CMD"; fi
+            displayPAX "$SWITCH"
+            TIME switchtec diag "$DIAG_CMD" "$SWITCH" "${ARGS[@]}"
+        }
+        execute diag "${2:ltssm-log}" "${@:3}"
         ;;
     cmd)
         function cmd() {
