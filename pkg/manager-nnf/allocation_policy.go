@@ -181,7 +181,7 @@ func (p *SpareAllocationPolicy) CheckAndAdjustCapacity() error {
 			}
 		}
 
-		// Adjust the pool's capacity
+		// Adjust the pool's capacity such namespaces are uniformly sized on each storage
 		p.capacityBytes = driveCapacityBytes * uint64(len(p.storage))
 	}
 
