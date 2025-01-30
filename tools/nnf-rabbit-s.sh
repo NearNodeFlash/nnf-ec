@@ -87,8 +87,8 @@ case $CMD in
             if ! screen -list | grep -q "$PAX"; then
                 screen -dmS $DEVICE 230400 &&
                 screen -S $PAX -X colon "logfile $PAX.log^M" &&
-                screen -S $PAX -X colon "logfile flush 1^M" &&
-                screen -S $PAX -X colon "log on^M"
+                screen -S $PAX -X colon "log on^M"           &&
+                screen -S $PAX -X colon "logfile flush 1^M"
             fi
 EOF
         done

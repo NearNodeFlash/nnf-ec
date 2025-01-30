@@ -73,7 +73,7 @@ executeOnSwitch() {
     mapfile -t PDFIDS < <(getPDFIDs "$SWITCH")
     for INDEX in "${!PDFIDS[@]}";
     do
-        "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}"
+        "$FUNCTION" "${PDFIDS[$INDEX]}@$SWITCH" "${ARGS[@]}" || echo "Error occurred for $SWITCH, continuing"
     done
 }
 
