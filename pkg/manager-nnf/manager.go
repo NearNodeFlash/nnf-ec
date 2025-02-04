@@ -451,8 +451,10 @@ func (s *StorageService) Initialize(log ec.Logger, ctrl NnfControllerInterface) 
 
 	// Create the key-value storage database
 	{
-		s.store, err = persistent.Open("nnf.db", false)
+		path := "nnf.db"
+		s.store, err = persistent.Open(path, false)
 		if err != nil {
+			log.Error(err, "Unable to open database", "path", path)
 			return err
 		}
 
