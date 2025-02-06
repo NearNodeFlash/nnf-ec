@@ -13,4 +13,3 @@ A variety of managers exist for interacting with hardware through Redfish/Swordf
 - The [Server Manager](./pkg/manager-server/) provides controls for managing a server node, including discovering attached storage and establishing a file system.
 
 A number of [interactive scripts](./scripts/) exist to exercise functionality manually on a running system
-
