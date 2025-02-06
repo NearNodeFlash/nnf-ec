@@ -81,7 +81,7 @@ execute() {
     local SWITCHES=("/dev/switchtec0" "/dev/switchtec1")
     for SWITCH in "${SWITCHES[@]}";
     do
-        "$FUNCTION" "$SWITCH" "${ARGS[@]}"
+        "$FUNCTION" "$SWITCH" "${ARGS[@]}" || echo "Error occurred for $SWITCH, continuing"
     done
 }
 
@@ -132,41 +132,43 @@ getChassis() {
 
 getPAXID() {
     local SWITCH_NAME=$1
+    bogusPAXID=9999
 
-    PAX_ID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "^PAX ID:" | awk '{print $3}')
-    ret=$?
-    if [ ! $ret ]; then
-        echo "Unable to retrieve PAX ID"
-        exit $ret
-    fi
-
-    if ! (( PAX_ID >= 0 && PAX_ID <= 1 )); then
-        echo "$PAX_ID not in range 0-1"
-        exit 1
+    PAX_ID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "^PAX ID:" | awk '{print $3}' || echo "$bogusPAXID")
+    if (( PAX_ID == "$bogusPAXID" ));
+    then
+        return 1
     fi
 }
 
 getPAXTemperature() {
     local SWITCH_NAME=$1
+    bogusTemperature="9999"
 
-    PAX_TEMPERATURE=$(switchtec temp "$SWITCH_NAME")
-    ret=$?
-    if [ ! $ret ]; then
-        echo "Unable to retrieve PAX Temperature"
-        exit $ret
+    PAX_TEMPERATURE=$(switchtec temp "$SWITCH_NAME" || echo "$bogusTemperature")
+    if [[ $PAX_TEMPERATURE == "$bogusPAXID" ]];
+    then
+        return 1
     fi
 }
 
 displayPAX() {
     local SWITCH_NAME=$1
     getPAXID "$SWITCH_NAME"
-
-    if [ "$VERBOSE" == "true" ]; then
-        getPAXTemperature "$SWITCH_NAME"
-        printf "DEVICE: %s PAX_ID: %d  TEMP: %s\n\n" "$SWITCH_NAME" "$PAX_ID" "$PAX_TEMPERATURE"
+    retval=$?
+    if [[ $retval -ne 0 ]];
+    then
+        printf "DEVICE: %s PAX_ID: Unknown\n\n" "$SWITCH_NAME"
+        return 1
     else
-        printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
+        if [ "$VERBOSE" == "true" ]; then
+            getPAXTemperature "$SWITCH_NAME"
+            printf "DEVICE: %s PAX_ID: %d  TEMP: %s\n\n" "$SWITCH_NAME" "$PAX_ID" "$PAX_TEMPERATURE"
+        else
+            printf "DEVICE: %s PAX_ID: %d\n\n" "$SWITCH_NAME" "$PAX_ID"
+        fi
     fi
+    return 0
 }
 
 setDeviceName() {
@@ -287,7 +289,7 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       ${CHASSIS}r7b0n0"
+        [24]="Rabbit-p,     ${CHASSIS}r7b0n0"
         [32]="Compute 0,    ${CHASSIS}s0b0n0"
         [34]="Compute 1,    ${CHASSIS}s0b1n0"
         [36]="Compute 2,    ${CHASSIS}s1b0n0"
@@ -311,7 +313,7 @@ displayStatus() {
 
         # Other Links
         [0]="Interswitch Link           "
-        [24]="Rabbit,       ${CHASSIS}r7b0n0"
+        [24]="Rabbit-p,     ${CHASSIS}r7b0n0"
         [32]="Compute 8,    ${CHASSIS}s4b0n0"
         [34]="Compute 9,    ${CHASSIS}s4b1n0"
         [36]="Compute 10,   ${CHASSIS}s5b0n0"
@@ -370,8 +372,8 @@ displayStatus() {
 
     mapfile -t statusTableLines < <(switchtec status --format=table "$SWITCH_NAME")
 
-    printf "Switch Connection        \tStatus\tRate\tWidth\n"
-    printf "===========================\t======\t====\t=================\n"
+    printf "Port\tSwitch Connection        \tStatus\tRate\tWidth\n"
+    printf "====\t===========================\t======\t====\t=================\n"
 
     # Show the downstream ports (drives) before the upstream (computes and Rabbit-p)
     local PORT_DIRECTION=("dsp" "usp")
@@ -404,7 +406,7 @@ displayStatus() {
                             if (var1 == var2) print $3; else print $3"*";}')
                     LINK=$(echo "$line" | awk '{gsub(/link:/, "", $8); if ($8 == 1) print "UP"; else if ($8 == 0) print "DOWN"; }')
                     RATE=$(echo "$line" | awk '{gsub(/rate:/, "", $9); if ($9 == "G4") print $9; else print $9"*"; }')
-                    printf "%s\t%s\t%s\t%s\n" "$ENDPOINT" "$LINK" "$RATE" "$WIDTH"
+                    printf "%s\t%s\t%s\t%s\t%s\n" "$PHYSICAL_PORT_ID" "$ENDPOINT" "$LINK" "$RATE" "$WIDTH"
                 fi
             fi
         done
@@ -462,7 +464,10 @@ case $1 in
         function slot-info() {
             local SWITCH=$1
             displayPAX "$SWITCH"
-            TIME displayDriveSlotStatus "$SWITCH"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME displayDriveSlotStatus "$SWITCH"
+            fi
         }
         execute slot-info
         ;;
@@ -470,7 +475,10 @@ case $1 in
         function info() {
             local SWITCH=$1
             displayPAX "$SWITCH"
-            TIME switchtec info "$SWITCH"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME switchtec info "$SWITCH"
+            fi
         }
         execute info
         ;;
@@ -479,7 +487,10 @@ case $1 in
             local SWITCH=$1
             # echo "Execute switch status on $SWITCH"
             displayPAX "$SWITCH"
-            TIME displayStatus "$SWITCH"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME displayStatus "$SWITCH"
+            fi
         }
         execute status
         ;;
@@ -488,7 +499,10 @@ case $1 in
             local SWITCH=$1
             # echo "Execute switchtec status on $SWITCH"
             displayPAX "$SWITCH"
-            TIME switchtec status "$SWITCH"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME switchtec status "$SWITCH"
+            fi
         }
         execute switchtec-status
         ;;
@@ -496,7 +510,10 @@ case $1 in
         function ep-tunnel-status() {
             local SWITCH=$1
             displayPAX "$SWITCH"
-            ep-tunnel-command "$SWITCH" "status"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                ep-tunnel-command "$SWITCH" "status"
+            fi
         }
         execute ep-tunnel-status
         ;;
@@ -504,7 +521,10 @@ case $1 in
         function ep-tunnel-enable() {
             local SWITCH=$1
             displayPAX "$SWITCH"
-            ep-tunnel-command "$SWITCH" "enable"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                ep-tunnel-command "$SWITCH" "enable"
+            fi
         }
         execute ep-tunnel-enable
         ;;
@@ -512,7 +532,10 @@ case $1 in
         function ep-tunnel-disable() {
             local SWITCH=$1
             displayPAX "$SWITCH"
-            ep-tunnel-command "$SWITCH" "disable"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                ep-tunnel-command "$SWITCH" "disable"
+            fi
         }
         execute ep-tunnel-disable
         ;;
@@ -521,15 +544,33 @@ case $1 in
             local SWITCH=$1 FABRIC_CMD=$2 ARGS=( "${@:3}" )
             if [ "$VERBOSE" == "true" ]; then echo "Execute switch fabric $FABRIC_CMD"; fi
             displayPAX "$SWITCH"
-            TIME switchtec fabric "$FABRIC_CMD" "$SWITCH" "${ARGS[@]}"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME switchtec fabric "$FABRIC_CMD" "$SWITCH" "${ARGS[@]}"
+            fi
         }
         execute fabric "${2:-gfms-dump}" "${@:3}"
+        ;;
+    diag)
+        function diag() {
+            local SWITCH=$1 DIAG_CMD=$2 ARGS=( "${@:3}" )
+            if [ "$VERBOSE" == "true" ]; then echo "Execute switch diag $DIAG_CMD"; fi
+            displayPAX "$SWITCH"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME switchtec diag "$DIAG_CMD" "$SWITCH" "${ARGS[@]}"
+            fi
+        }
+        execute diag "${2:ltssm-log}" "${@:3}"
         ;;
     cmd)
         function cmd() {
             local SWITCH=$1 CMD=$2 ARGS=( "${@:3}" )
             displayPAX "$SWITCH"
-            TIME switchtec "$CMD" "$SWITCH" "${ARGS[@]}"
+            retval=$?
+            if [[ $retval -eq 0 ]]; then
+                TIME switchtec "$CMD" "$SWITCH" "${ARGS[@]}"
+            fi
         }
         execute cmd "${@:2}"
         ;;
