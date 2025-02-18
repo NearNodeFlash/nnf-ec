@@ -436,12 +436,16 @@ func (s *StorageService) Initialize(log ec.Logger, ctrl NnfControllerInterface) 
 
 	s.endpoints = make([]Endpoint, len(conf.RemoteConfig.Servers))
 	for endpointIdx := range s.endpoints {
+		opts := server.ServerControllerOptions{
+			Local:   true,
+			Address: "",
+		}
 		s.endpoints[endpointIdx] = Endpoint{
 			id:             strconv.Itoa(endpointIdx),
 			state:          sf.UNAVAILABLE_OFFLINE_RST,
 			config:         &conf.RemoteConfig.Servers[endpointIdx],
 			storageService: s,
-			serverCtrl:     server.NewDisabledServerController(),
+			serverCtrl:     s.serverControllerProvider.NewServerController(opts),
 		}
 	}
 
@@ -527,7 +531,6 @@ func (s *StorageService) EventHandler(e event.Event) error {
 
 		} else if linkDropped {
 			log.Info("Link dropped")
-			endpoint.serverCtrl = server.NewDisabledServerController()
 			endpoint.state = sf.UNAVAILABLE_OFFLINE_RST
 		}
 
