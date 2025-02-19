@@ -42,20 +42,20 @@ Arguments:
   -t                time each command
 
 Examples:
-  ./nvme.sh -t delete 1                                                 # delete namespace 1
+  ./nnf-nvme.sh -t delete 1                                                 # delete namespace 1
 
-  ./nvme.sh cmd id-ctrl | grep -E "^fr "                                # display firmware level
-  ./nvme.sh cmd id-ctrl | grep -E "^mn "                                # display model name
-  ./nvme.sh cmd id-ctrl | grep -e "Execute" -e "^fr " -e "^sn "         # display the drive's PDFID, firmware version, and serial number
+  ./nnf-nvme.sh cmd id-ctrl | grep -E "^fr "                                # display firmware level
+  ./nnf-nvme.sh cmd id-ctrl | grep -E "^mn "                                # display model name
+  ./nnf-nvme.sh cmd id-ctrl | grep -e "Execute" -e "^fr " -e "^sn "         # display the drive's PDFID, firmware version, and serial number
 
-  ./nvme.sh cmd format --force --ses=0 --namespace-id=<namespace id>    # format specified namespace
-  ./nvme.sh cmd list-ctrl --namespace-id=<ns-id>                        # list the controller attached to namespace "ns-id"
+  ./nnf-nvme.sh cmd format --force --ses=0 --namespace-id=<namespace id>    # format specified namespace
+  ./nnf-nvme.sh cmd list-ctrl --namespace-id=<ns-id>                        # list the controller attached to namespace "ns-id"
 
-  ./nvme.sh cmd virt-mgmt --cntlid=3 --act=9                            # enable virtual functions for Rabbit
+  ./nnf-nvme.sh cmd virt-mgmt --cntlid=3 --act=9                            # enable virtual functions for Rabbit
 
 Drive Firmware upgrade:
-  ./nvme.sh cmd fw-download --fw=<filename>.ftd                         # download firmware
-  ./nvme.sh cmd fw-activate --action=3                                  # activate latest firmware download
+  ./nnf-nvme.sh cmd fw-download --fw=<filename>.ftd                         # download firmware
+  ./nnf-nvme.sh cmd fw-activate --action=3                                  # activate latest firmware download
 
 EOF
 }

@@ -44,25 +44,25 @@ Arguments:
   -t                time each command
 
 Examples:
-  ./switch.sh slot-info                                                         # display physical slot -> switch physical port status
-  ./switch.sh slot-info | grep 'Not attached'                                   # display slots without a working drive
+  ./nnf-switch.sh slot-info                                                         # display physical slot -> switch physical port status
+  ./nnf-switch.sh slot-info | grep 'Not attached'                                   # display slots without a working drive
 
-  ./switch.sh status                                                            # display connected endpoint status
-  ./switch.sh switchtec-status                                                  # display switchtec port status
-  ./switch.sh info                                                              # display switch information
+  ./nnf-switch.sh status                                                            # display connected endpoint status
+  ./nnf-switch.sh switchtec-status                                                  # display switchtec port status
+  ./nnf-switch.sh info                                                              # display switch information
 
-  ./switch.sh fabric                                                            # defaults to 'gfms-dump' command to dump the GFMS database
-  ./switch.sh fabric | grep '^PAX ID:' -A4                                      # display the number of endpoints attached to each PAX
-  ./switch.sh fabric | grep -e "Physical Port ID " -A2 -e "^PAX ID:"            # display the drive physical ports along with their PDFIDs
+  ./nnf-switch.sh fabric                                                            # defaults to 'gfms-dump' command to dump the GFMS database
+  ./nnf-switch.sh fabric | grep '^PAX ID:' -A4                                      # display the number of endpoints attached to each PAX
+  ./nnf-switch.sh fabric | grep -e "Physical Port ID " -A2 -e "^PAX ID:"            # display the drive physical ports along with their PDFIDs
 
-  ./switch.sh fabric gfms-dump                                                  # dump GFMS database (same as ./switch.sh fabric)
-  ./switch.sh fabric gfms-dump | grep -e "Execute" -e "^PAX ID:"                # display PAX ID associated with each /dev/switchtec device
-  ./switch.sh fabric gfms-dump | grep "Function 0 (SRIOV-PF)" -A1 | grep PDFID  # display the list of physical device fabric IDs for the drives attached
+  ./nnf-switch.sh fabric gfms-dump                                                  # dump GFMS database (same as ./nnf-switch.sh fabric)
+  ./nnf-switch.sh fabric gfms-dump | grep -e "Execute" -e "^PAX ID:"                # display PAX ID associated with each /dev/switchtec device
+  ./nnf-switch.sh fabric gfms-dump | grep "Function 0 (SRIOV-PF)" -A1 | grep PDFID  # display the list of physical device fabric IDs for the drives attached
 
-  ./switch.sh fabric topo-info                                                  # show topology info including PCIe rates
+  ./nnf-switch.sh fabric topo-info                                                  # show topology info including PCIe rates
 
-  ./switch.sh cmd fw-info                                                       # return information on the currently flashed firmware
-  ./switch.sh cmd fw-info | grep -A1 'Currently Running'                        # display currently running firmware
+  ./nnf-switch.sh cmd fw-info                                                       # return information on the currently flashed firmware
+  ./nnf-switch.sh cmd fw-info | grep -A1 'Currently Running'                        # display currently running firmware
 EOF
 }
 
@@ -326,7 +326,7 @@ displayStatus() {
 
     # Example switchtec status in table format
     #
-    #       [root@x9000c3j7b0n0 tools]# ./switch.sh cmd status --format=table
+    #       [root@x9000c3j7b0n0 tools]# ./nnf-switch.sh cmd status --format=table
     #       DEVICE: /dev/switchtec0 PAX_ID: 1
     #
     #       [00] part:00.01 w:cfg[x16]-neg[x16] stk:0.0 lanes:0123456789abcdef rev:0 dsp link:1 rate:G4 LTSSM:L0 (L0)
