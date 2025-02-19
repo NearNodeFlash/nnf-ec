@@ -241,7 +241,7 @@ displayDriveSlotStatus() {
             PDFID=$(switchtec fabric gfms-dump "$SWITCH_NAME" | grep "$physicalPortString" -A2 | grep "PDFID" | awk '{print $2}')
             if [ -z "$PDFID" ]; then
                 PDFID=""
-                MF=""
+                MF="$(echo "${idCtrl[0]}" | awk '{print $3}')"
                 FW=""
                 SN=""
                 Device=""
@@ -255,10 +255,10 @@ displayDriveSlotStatus() {
                         Device="${deviceName["$SN"]}"
                         ;;
                     *)
-                        MF="$(echo "${idCtrl[0]}" | awk '{print $3}')"
-                        SN=""
-                        FW=""
-                        Device=""
+                        MF="Unavail"
+                        SN="Unavail"
+                        FW="Unavail"
+                        Device="Unavail"
                         ;;
                 esac
             fi
