@@ -212,11 +212,9 @@ case $1 in
         ;;
     list)
         function list_ns() {
-            local DRIVE=$1
-            echo "Namespaces on $DRIVE"
-            TIME switchtec-nvme list-ns "$DRIVE" --all
+            TIME switchtec-nvme switchtec list
         }
-        executeParallel list_ns
+        list_ns
         ;;
     list-pdfid)
         function list_pfid() {

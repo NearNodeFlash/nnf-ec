@@ -18,6 +18,7 @@
 # limitations under the License.
 set -eo pipefail
 shopt -s expand_aliases
+shopt -s extglob
 
 usage() {
     cat <<EOF
@@ -93,9 +94,7 @@ function getPDFIDs() {
 }
 
 function getDriveList() {
-    # DRIVES=$1
-    # for DRIVE in $(ls /dev/nvme* | grep -E "nvme[[:digit:]]+$");
-    for DRIVE in /dev/nvme[0-9]*;
+    for DRIVE in /dev/nvme+([0-9]);
     do
         # shellcheck disable=SC2086
         if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
