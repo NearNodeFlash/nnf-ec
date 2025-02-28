@@ -306,6 +306,7 @@ func CreateVolume(s *Storage, capacityBytes uint64) (*Volume, error) {
 func (s *Storage) UnallocatedBytes() uint64 { return s.unallocatedBytes }
 func (s *Storage) IsEnabled() bool          { return s.state == sf.ENABLED_RST }
 func (s *Storage) SerialNumber() string     { return s.serialNumber }
+func (s *Storage) Slot() int64              { return s.slot }
 
 func (s *Storage) IsKioxiaDualPortConfiguration() bool {
 	return false ||
