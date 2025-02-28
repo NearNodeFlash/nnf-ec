@@ -88,6 +88,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsPost,
 		},
 		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch",
+			Method:      ec.PATCH_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch,
+		},
+		{
 			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPut",
 			Method:      ec.PUT_METHOD,
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}",

@@ -43,7 +43,7 @@ class Command(cmd.Cmd):
         return sys.exit(0)
 
 class StoragePool(Command):
-    intro = 'Create/Put/Get/List/Delete Storage Pools'
+    intro = 'Create/Put/Get/List/Delete/Patch Storage Pools'
     prompt = '(nnf)' + '(storage pool)'
 
     def create_payload(self, size):
@@ -102,6 +102,20 @@ class StoragePool(Command):
     def do_delete(self, arg):
         'Delete a Storage Pool by POOL ID'
         self.handle_response(self.conn.delete(f'/StoragePools/{arg}'))
+
+    def patch_payload(self):
+        payload = {
+        }
+        return payload
+
+    def do_patch(self, arg):
+        'Patch Storage Pools'
+
+        payload = self.patch_payload()
+        if payload is None:
+            return
+
+        self.handle_response(self.conn.patch(f'/StoragePools', payload))
 
     def do_storage(self, arg):
         'List Storage for provided POOL ID'

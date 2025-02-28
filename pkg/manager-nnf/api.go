@@ -43,6 +43,7 @@ type Api interface {
 
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsPost(w http.ResponseWriter, r *http.Request)
+	RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPut(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request)
 	RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete(w http.ResponseWriter, r *http.Request)
@@ -89,6 +90,7 @@ type StorageServiceApi interface {
 
 	StorageServiceIdStoragePoolsGet(string, *sf.StoragePoolCollectionStoragePoolCollection) error
 	StorageServiceIdStoragePoolsPost(string, *sf.StoragePoolV150StoragePool) error
+	StorageServiceIdStoragePoolsPatch(string, *sf.StoragePoolCollectionStoragePoolCollection) error
 	StorageServiceIdStoragePoolIdGet(string, string, *sf.StoragePoolV150StoragePool) error
 	StorageServiceIdStoragePoolIdPut(string, string, *sf.StoragePoolV150StoragePool) error
 	StorageServiceIdStoragePoolIdDelete(string, string) error

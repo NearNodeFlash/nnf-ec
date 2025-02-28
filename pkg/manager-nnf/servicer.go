@@ -147,6 +147,29 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePools
 	EncodeResponse(model, nil, w)
 }
 
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch -
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch(w http.ResponseWriter, r *http.Request) {
+	params := Params(r)
+	storageServiceId := params["StorageServiceId"]
+
+	var model sf.StoragePoolCollectionStoragePoolCollection
+
+	if err := UnmarshalRequest(r, &model); err != nil {
+		EncodeResponse(model, err, w)
+		return
+	}
+
+	if err := s.ss.StorageServiceIdStoragePoolsPatch(storageServiceId, &model); err != nil {
+		EncodeResponse(model, err, w)
+		return
+	}
+
+	model.OdataId = fmt.Sprintf("/redfish/v1/StorageServices/%s/StoragePools", storageServiceId)
+	model.OdataType = StoragePoolOdataType
+
+	EncodeResponse(model, nil, w)
+}
+
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet -
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdGet(w http.ResponseWriter, r *http.Request) {
 	params := Params(r)

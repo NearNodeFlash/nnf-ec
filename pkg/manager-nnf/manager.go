@@ -739,6 +739,30 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
 }
 
+// StorageServiceIdStoragePoolsPatch -
+func (*StorageService) StorageServiceIdStoragePoolsPatch(storageServiceId string, model *sf.StoragePoolCollectionStoragePoolCollection) (err error) {
+	s := findStorageService(storageServiceId)
+	if s == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
+	}
+
+	log := s.log
+	log.V(2).Info("Patching storage pools")
+	defer func() {
+		if err != nil {
+			log.Error(err, "Patch storage pool failed")
+		}
+	}()
+
+	model.MembersodataCount = int64(len(s.pools))
+	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
+	for poolIdx, pool := range s.pools {
+		model.Members[poolIdx] = sf.OdataV4IdRef{OdataId: pool.OdataId()}
+	}
+
+	return nil
+}
+
 // StorageServiceIdStoragePoolIdPut -
 func (*StorageService) StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
 	s, p := findStoragePool(storageServiceId, storagePoolId)
