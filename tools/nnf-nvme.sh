@@ -44,6 +44,7 @@ Arguments:
 Examples:
   ./nnf-nvme.sh -t delete 1                                                 # delete namespace 1
 
+  ./nnf-nvme.sh cmd list-ns --all                                           # list the namespaces on each drive (formerly "nnf-nvme.sh list" command)
   ./nnf-nvme.sh cmd id-ctrl | grep -E "^fr "                                # display firmware level
   ./nnf-nvme.sh cmd id-ctrl | grep -E "^mn "                                # display model name
   ./nnf-nvme.sh cmd id-ctrl | grep -e "Execute" -e "^fr " -e "^sn "         # display the drive's PDFID, firmware version, and serial number
