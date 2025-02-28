@@ -104,7 +104,7 @@ func (p *StoragePool) findStorageGroupByEndpoint(endpoint *Endpoint) *StorageGro
 	return nil
 }
 
-func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, ignoreErrors bool) error {
+func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) error {
 	log := p.storageService.log
 
 	log.WithValues(storagePoolIdKey, p.id)
@@ -124,11 +124,6 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo, 
 		volume, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
 		if err != nil {
 			log.Error(err, "namespace not found")
-			if ignoreErrors {
-				continue
-			}
-
-			return err
 		}
 
 		p.providingVolumes = append(p.providingVolumes, nvme.ProvidingVolume{
@@ -355,7 +350,7 @@ func (rh *storagePoolRecoveryReplayHandler) Done() (bool, error) {
 		// will delete any remaining volumes
 
 		// Recover the namespaces that make up this storage pool
-		if err := rh.storagePool.recoverVolumes(rh.volumes, true /* ignore errors */); err != nil {
+		if err := rh.storagePool.recoverVolumes(rh.volumes); err != nil {
 			return false, err
 		}
 
