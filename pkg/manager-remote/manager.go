@@ -270,10 +270,6 @@ func (s *ServerStorageService) StorageServiceIdStoragePoolsPost(storageServiceId
 	return nil
 }
 
-func (s *ServerStorageService) StorageServiceIdStoragePoolsPatch(storageServiceId string, model *sf.StoragePoolV150StoragePool) error {
-	return nil
-}
-
 func (s *ServerStorageService) StorageServiceIdStoragePoolIdPut(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) error {
 	return ec.NewErrNotAcceptable()
 }
