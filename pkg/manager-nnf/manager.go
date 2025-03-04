@@ -678,7 +678,6 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
 	}
 
-	// TODO: Check the model for valid RAID configurations
 	log := s.log.WithValues(modelIdKey, model.Id)
 	log.V(2).Info("Creating storage pool")
 	defer func() {
@@ -737,6 +736,30 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 	log.Info("Created storage pool", storagePoolIdKey, p.id, "volumes", len(p.providingVolumes), "capacityInBytes", p.allocatedVolume.capacityBytes)
 
 	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
+}
+
+// StorageServiceIdStoragePoolsPatch -
+func (*StorageService) StorageServiceIdStoragePoolsPatch(storageServiceId string, model *sf.StoragePoolCollectionStoragePoolCollection) (err error) {
+	s := findStorageService(storageServiceId)
+	if s == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StorageServiceOdataType, storageServiceId))
+	}
+
+	log := s.log
+	log.V(2).Info("Patching storage pools")
+	defer func() {
+		if err != nil {
+			log.Error(err, "Patch storage pool failed")
+		}
+	}()
+
+	model.MembersodataCount = int64(len(s.pools))
+	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
+	for poolIdx, pool := range s.pools {
+		model.Members[poolIdx] = sf.OdataV4IdRef{OdataId: pool.OdataId()}
+	}
+
+	return nil
 }
 
 // StorageServiceIdStoragePoolIdPut -
@@ -865,6 +888,49 @@ func (*StorageService) StorageServiceIdStoragePoolIdDelete(storageServiceId, sto
 	s.deleteStoragePool(p)
 
 	log.Info("Deleted storage pool")
+
+	return nil
+}
+
+// StorageServiceIdStoragePoolIdPatch -
+func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) (err error) {
+	s, p := findStoragePool(storageServiceId, storagePoolId)
+	if p == nil {
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolId))
+	}
+
+	log := s.log.WithValues(storagePoolIdKey, p.id)
+	log.V(2).Info("Patching storage pool")
+	defer func() {
+		if err != nil {
+			log.Error(err, "Patch storage pool failed")
+		}
+	}()
+
+	err = s.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, model)
+	// deleteFunc := func() error {
+	// 	err := p.deallocateVolumes()
+	// 	if err != nil {
+	// 		log.Error(err, "deallocateVolumes failed, but returning success anyway")
+	// 	}
+
+	// 	return nil
+	// }
+
+	// if err := s.persistentController.DeletePersistentObject(p, deleteFunc, storagePoolStorageDeleteStartLogEntryType, storagePoolStorageDeleteCompleteLogEntryType); err != nil {
+	// 	err := ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause(fmt.Sprintf("Failed to delete storage pool"))
+	// 	if err != nil {
+	// 		log.Error(err, "DeletePersistentObject failed, but returning success anyway")
+	// 	}
+
+	// 	return nil
+	// }
+
+	// event.EventManager.PublishResourceEvent(msgreg.ResourceRemovedResourceEvent(), p)
+
+	// s.deleteStoragePool(p)
+
+	log.Info("Patched storage pool")
 
 	return nil
 }
