@@ -112,6 +112,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete,
 		},
 		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPatch",
+			Method:      ec.PATCH_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPatch,
+		},
+		{
 			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet",
 			Method:      ec.GET_METHOD,
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/CapacitySources",
