@@ -165,9 +165,11 @@ type Volume struct {
 	log     ec.Logger
 }
 
+// ProvidingVolume - volume as part of a storage pool
 type ProvidingVolume struct {
 	Storage  *Storage
 	VolumeId string
+	State    sf.ResourceState
 }
 
 // TODO: We may want to put this manager under a resource block
@@ -587,8 +589,8 @@ func (s *Storage) formatVolume(volumeID string) error {
 	return ec.NewErrNotFound()
 }
 
-func (s *Storage) recoverVolumes() error {
-	s.log.V(1).Info("Recovering volumes")
+func (s *Storage) recoverStorageVolumes() error {
+	s.log.V(1).Info("Recovering storage volumes")
 
 	namespaces, err := s.device.ListNamespaces(0)
 	if err != nil {
@@ -1053,7 +1055,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 
 	// Recover existing volumes
 	log.V(2).Info("Recovering volumes")
-	if err := s.recoverVolumes(); err != nil {
+	if err := s.recoverStorageVolumes(); err != nil {
 		log.Error(err, "Failed to recover existing volumes")
 		return err
 	}
@@ -1219,7 +1221,7 @@ func (mgr *Manager) StorageIdControllersControllerIdGet(storageId, controllerId 
 		}
 	*/
 
-	model.NVMeControllerProperties = sf.StorageControllerV100NvMeControllerProperties{
+	model.NVMeControllerProperties = sf.StorageControllerV100NVMeControllerProperties{
 		ControllerType:           sf.IO_SCV100NVMCT, // OR ADMIN IF PF
 		NVMeSMARTPercentageUsage: percentageUsage,
 	}

@@ -22,6 +22,7 @@ package nnf
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -55,7 +56,11 @@ type AllocatedVolume struct {
 
 func (p *StoragePool) GetCapacityBytes() (capacityBytes uint64) {
 	for _, pv := range p.providingVolumes {
-		capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapacityBytes()
+		// NOTE: Skipping absent volumes has the downside that the storage pool's capacity
+		// will not match the capacity as originally created.
+		if pv.State != sf.ABSENT_RST {
+			capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapacityBytes()
+		}
 	}
 	return capacityBytes
 }
@@ -105,9 +110,7 @@ func (p *StoragePool) findStorageGroupByEndpoint(endpoint *Endpoint) *StorageGro
 }
 
 func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) error {
-	log := p.storageService.log
-
-	log.WithValues(storagePoolIdKey, p.id)
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
 	log.Info("recover volumes")
 
 	for _, volumeInfo := range volumes {
@@ -121,17 +124,19 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 		}
 
 		// Locate the Volume by Namespace ID
-		volume, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
+		state := sf.ENABLED_RST
+		volumeID := uint32(volumeInfo.NamespaceId)
+		_, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
 		if err != nil {
 			log.Error(err, "namespace not found", "slot", storage.Slot())
-			continue
+			state = sf.ABSENT_RST
 		}
 
 		p.providingVolumes = append(p.providingVolumes, nvme.ProvidingVolume{
 			Storage:  storage,
-			VolumeId: volume.Id(),
+			VolumeId: fmt.Sprintf("%d", volumeID),
+			State:    state,
 		})
-
 	}
 
 	p.allocatedVolume = AllocatedVolume{
@@ -140,6 +145,25 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 	}
 
 	return nil
+}
+
+func (p *StoragePool) checkVolumes() error {
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
+	log.Info("check volumes")
+
+	var err error
+
+	for _, volumeInfo := range p.providingVolumes {
+		log := log.WithValues("volumeID", volumeInfo.VolumeId)
+
+		namespaceID, _ := strconv.Atoi(volumeInfo.VolumeId)
+		_, err = volumeInfo.Storage.FindVolumeByNamespaceId(nvme2.NamespaceIdentifier(namespaceID))
+		if err != nil {
+			log.Error(err, "volume missing", "serialNumber", volumeInfo.Storage.SerialNumber(), "slot", volumeInfo.Storage.Slot())
+		}
+	}
+
+	return err
 }
 
 func (p *StoragePool) deallocateVolumes() error {

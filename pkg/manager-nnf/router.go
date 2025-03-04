@@ -88,6 +88,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsPost,
 		},
 		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch",
+			Method:      ec.PATCH_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch,
+		},
+		{
 			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPut",
 			Method:      ec.PUT_METHOD,
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}",
@@ -104,6 +110,12 @@ func (r *DefaultApiRouter) Routes() ec.Routes {
 			Method:      ec.DELETE_METHOD,
 			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}",
 			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdDelete,
+		},
+		{
+			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPatch",
+			Method:      ec.PATCH_METHOD,
+			Path:        "/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}",
+			HandlerFunc: s.RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdPatch,
 		},
 		{
 			Name:        "RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdCapacitySourcesGet",

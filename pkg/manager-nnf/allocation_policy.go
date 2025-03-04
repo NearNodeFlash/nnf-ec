@@ -28,6 +28,7 @@ import (
 	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
 
 	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // AllocationPolicy -
@@ -217,7 +218,7 @@ func (p *SpareAllocationPolicy) Allocate(pid uuid.UUID) ([]nvme.ProvidingVolume,
 		}
 
 		remainingCapacityBytes = remainingCapacityBytes - volume.GetCapacityBytes()
-		volumes = append(volumes, nvme.ProvidingVolume{Storage: storage, VolumeId: volume.Id()})
+		volumes = append(volumes, nvme.ProvidingVolume{Storage: storage, VolumeId: volume.Id(), State: sf.ENABLED_RST})
 	}
 
 	return volumes, nil
