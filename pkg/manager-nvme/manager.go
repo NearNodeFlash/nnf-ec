@@ -1219,7 +1219,7 @@ func (mgr *Manager) StorageIdControllersControllerIdGet(storageId, controllerId 
 		}
 	*/
 
-	model.NVMeControllerProperties = sf.StorageControllerV100NvMeControllerProperties{
+	model.NVMeControllerProperties = sf.StorageControllerV100NVMeControllerProperties{
 		ControllerType:           sf.IO_SCV100NVMCT, // OR ADMIN IF PF
 		NVMeSMARTPercentageUsage: percentageUsage,
 	}
