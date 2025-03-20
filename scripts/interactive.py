@@ -125,8 +125,9 @@ class StoragePool(Command):
 
             nqn = storage.json()['Identifiers'][0]['DurableName']
             nsid = volume.json()['Identifiers'][0]['DurableName']
+            capacityBytes = volume.json()['CapacityBytes']
 
-            print(f'{nqn} {nsid}')
+            print(f'{nqn} {nsid} {capacityBytes}')
 
         self.conn.pop_path()
 
