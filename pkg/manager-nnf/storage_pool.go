@@ -109,10 +109,8 @@ func (p *StoragePool) findStorageGroupByEndpoint(endpoint *Endpoint) *StorageGro
 }
 
 func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) error {
-	log := p.storageService.log
-
-	log.WithValues(storagePoolIdKey, p.id)
-	log.Info("recover volumes", "pool", p)
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
+	log.Info("recover volumes")
 
 	for _, volumeInfo := range volumes {
 		log := log.WithValues("serialNumber", volumeInfo.SerialNumber, "namespaceId", volumeInfo.NamespaceId)
@@ -138,7 +136,6 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 			VolumeId: fmt.Sprintf("%d", volumeID),
 			State:    state,
 		})
-
 	}
 
 	p.allocatedVolume = AllocatedVolume{
