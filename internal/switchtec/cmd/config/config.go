@@ -200,7 +200,7 @@ func (cmd *ConfigCmd) Run() error {
 						}
 
 						if function.Bound != 0 {
-							fmt.Printf("Alread Bound: PAX: %d PhyPort: %d LogPort %d\n", function.BoundPAXID, function.BoundHVDPhyPID, function.BoundHVDLogPID)
+							fmt.Printf("Already Bound: PAX: %d PhyPort: %d LogPort %d\n", function.BoundPAXID, function.BoundHVDPhyPID, function.BoundHVDLogPID)
 							continue
 						}
 
@@ -252,7 +252,7 @@ func validateConfig(conf ConfigFile) error {
 
 	for _, device := range conf.Devices {
 		if len(device.Domains) == 0 {
-			return configError("Atleast one domain needed for device %s", device.Metadata.Name)
+			return configError("At least one domain needed for device %s", device.Metadata.Name)
 		}
 	}
 
@@ -404,7 +404,6 @@ var (
 	}
 )
 
-//
 // The Virtualization Management Controller provides an abstraction into
 // Virtualization Management command.
 //
