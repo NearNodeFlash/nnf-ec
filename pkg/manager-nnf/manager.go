@@ -219,6 +219,12 @@ func (s *StorageService) createStorageGroup(id string, sp *StoragePool, endpoint
 	expectedNamespaces := make([]server.StorageNamespace, len(sp.providingVolumes))
 	for idx, pv := range sp.providingVolumes {
 		volume := pv.Storage.FindVolume(pv.VolumeId)
+		if volume == nil {
+			err := fmt.Errorf("Volume not found")
+			s.log.Error(err, "Storage pool createStorageGroup volume not found", "volumeid", pv.VolumeId)
+			continue
+		}
+
 		expectedNamespaces[idx] = server.StorageNamespace{
 			SerialNumber: pv.Storage.SerialNumber(),
 			Id:           volume.GetNamespaceId(),
@@ -982,7 +988,10 @@ func (*StorageService) StorageServiceIdStoragePoolIdCapacitySourceIdProvidingVol
 	model.MembersodataCount = int64(len(p.providingVolumes))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
 	for idx, pv := range p.providingVolumes {
-		model.Members[idx] = sf.OdataV4IdRef{OdataId: pv.Storage.FindVolume(pv.VolumeId).GetOdataId()}
+		volume := pv.Storage.FindVolume(pv.VolumeId)
+		if volume != nil {
+			model.Members[idx] = sf.OdataV4IdRef{OdataId: volume.GetOdataId()}
+		}
 	}
 
 	return nil

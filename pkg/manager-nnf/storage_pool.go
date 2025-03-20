@@ -55,7 +55,11 @@ type AllocatedVolume struct {
 
 func (p *StoragePool) GetCapacityBytes() (capacityBytes uint64) {
 	for _, pv := range p.providingVolumes {
-		capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapacityBytes()
+		// NOTE: Skipping absent volumes has the downside that the storage pool's capacity
+		// will not match the capacity as originally created.
+		if pv.State != sf.ABSENT_RST {
+			capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapacityBytes()
+		}
 	}
 	return capacityBytes
 }
@@ -108,7 +112,7 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 	log := p.storageService.log
 
 	log.WithValues(storagePoolIdKey, p.id)
-	log.Info("recover volumes")
+	log.Info("recover volumes", "pool", p)
 
 	for _, volumeInfo := range volumes {
 		log := log.WithValues("serialNumber", volumeInfo.SerialNumber, "namespaceId", volumeInfo.NamespaceId)
@@ -121,15 +125,18 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 		}
 
 		// Locate the Volume by Namespace ID
-		volume, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
+		state := sf.ENABLED_RST
+		volumeID := uint32(volumeInfo.NamespaceId)
+		_, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
 		if err != nil {
 			log.Error(err, "namespace not found", "slot", storage.Slot())
-			continue
+			state = sf.ABSENT_RST
 		}
 
 		p.providingVolumes = append(p.providingVolumes, nvme.ProvidingVolume{
 			Storage:  storage,
-			VolumeId: volume.Id(),
+			VolumeId: fmt.Sprintf("%d", volumeID),
+			State:    state,
 		})
 
 	}
