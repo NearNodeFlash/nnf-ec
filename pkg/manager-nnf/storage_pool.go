@@ -22,6 +22,7 @@ package nnf
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -144,6 +145,25 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 	}
 
 	return nil
+}
+
+func (p *StoragePool) checkVolumes() error {
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
+	log.Info("check volumes")
+
+	var err error
+
+	for _, volumeInfo := range p.providingVolumes {
+		log := log.WithValues("volumeID", volumeInfo.VolumeId)
+
+		namespaceID, _ := strconv.Atoi(volumeInfo.VolumeId)
+		_, err = volumeInfo.Storage.FindVolumeByNamespaceId(nvme2.NamespaceIdentifier(namespaceID))
+		if err != nil {
+			log.Error(err, "volume missing", "serialNumber", volumeInfo.Storage.SerialNumber(), "slot", volumeInfo.Storage.Slot())
+		}
+	}
+
+	return err
 }
 
 func (p *StoragePool) deallocateVolumes() error {

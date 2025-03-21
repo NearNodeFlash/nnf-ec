@@ -54,6 +54,8 @@ class StoragePool(Command):
         try:
             size = ByteSizeStringToIntegerBytes(size)
             payload = {
+                'Name': "storage pool",
+                'Description': "Pretty good storage group",
                 'Capacity': {'Data': {'AllocatedBytes': int(size)}},
                 'Oem': {'Compliance': 'strict'}
             }
@@ -109,13 +111,17 @@ class StoragePool(Command):
         return payload
 
     def do_patch(self, arg):
-        'Patch Storage Pools'
+        'Patch Storage Pool'
+
+        if arg is None or arg == '':
+            print('*** POOL ID is required parameter')
+            return
 
         payload = self.patch_payload()
         if payload is None:
             return
 
-        self.handle_response(self.conn.patch(f'/StoragePools', payload))
+        self.handle_response(self.conn.patch(f'/StoragePools/{arg}', payload))
 
     def do_storage(self, arg):
         'List Storage for provided POOL ID'

@@ -185,6 +185,12 @@ func (s *StorageService) deleteStoragePool(sp *StoragePool) {
 
 }
 
+func (s *StorageService) patchStoragePool(sp *StoragePool) error {
+	err := sp.checkVolumes()
+
+	return err
+}
+
 func (s *StorageService) findStorage(sn string) *nvme.Storage {
 	for _, storage := range nvme.GetStorage() {
 		if storage.SerialNumber() == sn {
@@ -677,7 +683,7 @@ func (*StorageService) StorageServiceIdStoragePoolsGet(storageServiceId string, 
 	return nil
 }
 
-// StorageServiceIdStoragePoolsPost -
+// StorageServiceIdStoragePoolsPost - create a storage pool
 func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string, model *sf.StoragePoolV150StoragePool) (err error) {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -913,6 +919,7 @@ func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceId, stor
 		}
 	}()
 
+	s.patchStoragePool(p)
 	err = s.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, model)
 	// deleteFunc := func() error {
 	// 	err := p.deallocateVolumes()
