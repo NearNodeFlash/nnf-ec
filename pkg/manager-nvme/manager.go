@@ -169,7 +169,6 @@ type Volume struct {
 type ProvidingVolume struct {
 	Storage  *Storage
 	VolumeId string
-	State    sf.ResourceState
 }
 
 // TODO: We may want to put this manager under a resource block
@@ -309,6 +308,7 @@ func (s *Storage) UnallocatedBytes() uint64 { return s.unallocatedBytes }
 func (s *Storage) IsEnabled() bool          { return s.state == sf.ENABLED_RST }
 func (s *Storage) SerialNumber() string     { return s.serialNumber }
 func (s *Storage) Slot() int64              { return s.slot }
+func (s *Storage) Rescan() error            { return s.recoverStorageVolumes() }
 
 func (s *Storage) IsKioxiaDualPortConfiguration() bool {
 	return false ||
@@ -965,10 +965,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 			return err
 		}
 
-		count := ls.Count
-		if count > uint8(s.config.Functions) {
-			count = uint8(s.config.Functions)
-		}
+		count := min(ls.Count, uint8(s.config.Functions))
 
 		s.controllers = make([]StorageController, 1 /*PF*/ +count)
 
@@ -1056,7 +1053,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 	// Recover existing volumes
 	log.V(2).Info("Recovering volumes")
 	if err := s.recoverStorageVolumes(); err != nil {
-		log.Error(err, "Failed to recover existing volumes")
+		log.Error(err, "Failed to recover existing storage volumes")
 		return err
 	}
 

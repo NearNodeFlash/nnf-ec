@@ -186,7 +186,14 @@ func (s *StorageService) deleteStoragePool(sp *StoragePool) {
 }
 
 func (s *StorageService) patchStoragePool(sp *StoragePool) error {
+	log := s.log
+
+	// Look for missing volumes
 	err := sp.checkVolumes()
+	if err != nil {
+		log.Error(err, "Unable to rescan volumes")
+		return err
+	}
 
 	return err
 }
@@ -725,7 +732,7 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 	p := s.createStoragePool(model.Id, model.Name, model.Description, uuid.UUID{}, policy)
 
 	updateFunc := func() (err error) {
-		p.providingVolumes, err = policy.Allocate(p.uid)
+		p.providingVolumes, err = policy.Allocate()
 		if err != nil {
 			return err
 		}

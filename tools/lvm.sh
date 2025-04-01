@@ -31,7 +31,8 @@ Commands:
     list-drives                                         list the drives used in create/delete
     create [NAME] [NAMESPACE-ID] [striped|raid5|raid6]  create an LVM volume all drives, optionally configuring RAID
     delete [NAME] [NAMESPACE-ID]                        delete an LVM volume
-    status                                              status of LVM volumes
+    status                                              raid sync status of LVM volume
+    devices                                             devices in LVM volume
 EOF
 }
 
@@ -91,7 +92,7 @@ case $1 in
         # shellcheck disable=2046
         vgcreate "${NAME}" $(join " " "${DRIVES[@]}")
 
-        echo "Activating Volume Group '${NAME}'"
+        echo "Activate Volume Group '${NAME}'"
         vgchange --activate y "${NAME}"
 
         TOTAL_STRIPES=$(( ${#DRIVES[@]} ))
@@ -111,8 +112,9 @@ case $1 in
         esac
         STRIPES=$(( "$TOTAL_STRIPES" - "$PARITY_STRIPES" ))
 
+        # NOTE: --nosync is not allowed for RAID6 devices.
         echo "Creating '$RAID_LEVEL' Logical Volume '${NAME}' with '${STRIPES}' stripes"
-        lvcreate --zero n --activate n --extents 100%VG -i "$STRIPES" --stripesize 32KiB --type "$RAID_LEVEL" --name "${NAME}" --noudevsync "${NAME}"
+        lvcreate --zero y --activate y --extents 100%VG -i "$STRIPES" --stripesize 32KiB --type "$RAID_LEVEL" --noudevsync --name "${NAME}" "${NAME}"
 
         echo "Activate Volume Group '${NAME}'"
         vgchange --activate y "${NAME}"
@@ -141,7 +143,11 @@ case $1 in
         ;;
     status)
         echo "Status of '${NAME}'"
-        lvs -a -o +devices,raid_sync_action
+        lvs -a -o +raid_sync_action "${NAME}"
+        ;;
+    devices)
+        echo "Devices in '${NAME}'"
+        lvs -a -o +devices "${NAME}"
         ;;
     *)
         usage

@@ -22,7 +22,6 @@ package nnf
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/google/uuid"
 
@@ -37,11 +36,13 @@ type StoragePool struct {
 	name        string
 	description string
 
-	uid    uuid.UUID
-	policy AllocationPolicy
+	uid            uuid.UUID
+	policy         AllocationPolicy
+	volumeCapacity uint64
 
 	allocatedVolume  AllocatedVolume
 	providingVolumes []nvme.ProvidingVolume
+	missingVolumes   []storagePoolPersistentVolumeInfo
 
 	storageGroupIds []string
 	fileSystemId    string
@@ -54,14 +55,19 @@ type AllocatedVolume struct {
 	capacityBytes uint64
 }
 
+// GetCapacityBytes - sum up the capacity of the volume recording the maximum volume size in the process
 func (p *StoragePool) GetCapacityBytes() (capacityBytes uint64) {
+	p.volumeCapacity = uint64(0)
 	for _, pv := range p.providingVolumes {
-		// NOTE: Skipping absent volumes has the downside that the storage pool's capacity
-		// will not match the capacity as originally created.
-		if pv.State != sf.ABSENT_RST {
-			capacityBytes += pv.Storage.FindVolume(pv.VolumeId).GetCapacityBytes()
-		}
+		capacity := pv.Storage.FindVolume(pv.VolumeId).GetCapacityBytes()
+		capacityBytes += capacity
+
+		// Missing volumes will be allocated with the maximum volume capacity of the providing volumes
+		p.volumeCapacity = max(p.volumeCapacity, capacity)
 	}
+
+	// Add on the capacity of the missing volumes
+	capacityBytes += p.volumeCapacity * uint64(len(p.missingVolumes))
 	return capacityBytes
 }
 
@@ -120,22 +126,25 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 		storage := p.storageService.findStorage(volumeInfo.SerialNumber)
 		if storage == nil {
 			log.Info("storage device not found")
+			p.missingVolumes = append(p.missingVolumes, volumeInfo)
 			continue
 		}
 
+		// Ensure namespace information is current
+		storage.Rescan()
+
 		// Locate the Volume by Namespace ID
-		state := sf.ENABLED_RST
 		volumeID := uint32(volumeInfo.NamespaceId)
 		_, err := storage.FindVolumeByNamespaceId(volumeInfo.NamespaceId)
 		if err != nil {
 			log.Error(err, "namespace not found", "slot", storage.Slot())
-			state = sf.ABSENT_RST
+			p.missingVolumes = append(p.missingVolumes, volumeInfo)
+			continue
 		}
 
 		p.providingVolumes = append(p.providingVolumes, nvme.ProvidingVolume{
 			Storage:  storage,
 			VolumeId: fmt.Sprintf("%d", volumeID),
-			State:    state,
 		})
 	}
 
@@ -147,23 +156,35 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 	return nil
 }
 
+// Rescan namespaces associated to set the missing volumes list
 func (p *StoragePool) checkVolumes() error {
 	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
 	log.Info("check volumes")
 
-	var err error
+	// Recreate the persistent storages list which we expect
+	// to me stored in nnf.db and recover the volumes associated with
+	// this pool
+	volumes := make([]storagePoolPersistentVolumeInfo, len(p.missingVolumes))
+	copy(volumes, p.missingVolumes)
+	p.missingVolumes = p.missingVolumes[:0] // Truncate the list
 
-	for _, volumeInfo := range p.providingVolumes {
-		log := log.WithValues("volumeID", volumeInfo.VolumeId)
-
-		namespaceID, _ := strconv.Atoi(volumeInfo.VolumeId)
-		_, err = volumeInfo.Storage.FindVolumeByNamespaceId(nvme2.NamespaceIdentifier(namespaceID))
-		if err != nil {
-			log.Error(err, "volume missing", "serialNumber", volumeInfo.Storage.SerialNumber(), "slot", volumeInfo.Storage.Slot())
+	// Convert providing volumes
+	for _, pv := range p.providingVolumes {
+		v := storagePoolPersistentVolumeInfo{
+			SerialNumber: pv.Storage.SerialNumber(),
+			NamespaceId:  pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId(),
 		}
+
+		volumes = append(volumes, v)
+	}
+	p.providingVolumes = p.providingVolumes[:0] // Truncate the list
+
+	if err := p.recoverVolumes(volumes); err != nil {
+		log.Error(err, "Failed to rescan volumes")
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func (p *StoragePool) deallocateVolumes() error {

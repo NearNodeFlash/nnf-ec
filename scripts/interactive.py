@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Copyright 2021-2025 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -136,19 +136,22 @@ class StoragePool(Command):
         self.conn.push_path('') # Use @odata.id directly
         volumes = response.json()['Members']
         for volume in volumes:
-            volumeId = volume['@odata.id']
-            volume = self.conn.get(volumeId)
+            try:
+                volumeId = volume['@odata.id']
+                volume = self.conn.get(volumeId)
 
-            storageId = volume.json()['Links']['OwningStorageResource']['@odata.id']
-            storage = self.conn.get(storageId)
+                storageId = volume.json()['Links']['OwningStorageResource']['@odata.id']
+                storage = self.conn.get(storageId)
 
-            locationType = storage.json()['Location']['PartLocation']['LocationType']
-            locationValue = storage.json()['Location']['PartLocation']['LocationOrdinalValue']
-            nqn = storage.json()['Identifiers'][0]['DurableName']
-            nsid = volume.json()['Identifiers'][0]['DurableName']
-            capacityBytes = volume.json()['CapacityBytes']
+                locationType = storage.json()['Location']['PartLocation']['LocationType']
+                locationValue = storage.json()['Location']['PartLocation']['LocationOrdinalValue']
+                nqn = storage.json()['Identifiers'][0]['DurableName']
+                nsid = volume.json()['Identifiers'][0]['DurableName']
+                capacityBytes = volume.json()['CapacityBytes']
 
-            print(f'{locationType} {locationValue}\t{nqn} {nsid} {capacityBytes}')
+                print(f'{locationType} {locationValue}\t{nqn} {nsid} {capacityBytes}')
+            except:
+                print("Missing volume")
 
         self.conn.pop_path()
 

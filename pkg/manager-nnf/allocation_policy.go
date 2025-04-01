@@ -23,19 +23,16 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/uuid"
-
 	nvme "github.com/NearNodeFlash/nnf-ec/pkg/manager-nvme"
 
 	openapi "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/common"
-	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // AllocationPolicy -
 type AllocationPolicy interface {
 	Initialize(capacityBytes uint64) error
 	CheckAndAdjustCapacity() error
-	Allocate(guid uuid.UUID) ([]nvme.ProvidingVolume, error)
+	Allocate() ([]nvme.ProvidingVolume, error)
 }
 
 // AllocationPolicyType -
@@ -194,7 +191,7 @@ func (p *SpareAllocationPolicy) CheckAndAdjustCapacity() error {
 }
 
 // Allocate - allocate the storage
-func (p *SpareAllocationPolicy) Allocate(pid uuid.UUID) ([]nvme.ProvidingVolume, error) {
+func (p *SpareAllocationPolicy) Allocate() ([]nvme.ProvidingVolume, error) {
 
 	perStorageCapacityBytes := p.capacityBytes / uint64(len(p.storage))
 	remainingCapacityBytes := p.capacityBytes
@@ -211,19 +208,19 @@ func (p *SpareAllocationPolicy) Allocate(pid uuid.UUID) ([]nvme.ProvidingVolume,
 			capacityBytes = remainingCapacityBytes
 		}
 
-		volume, err := createVolume(storage, capacityBytes, pid, idx, len(p.storage))
+		volume, err := createVolume(storage, capacityBytes)
 
 		if err != nil {
 			return volumes, fmt.Errorf("Create Volume Failure: %s", err)
 		}
 
 		remainingCapacityBytes = remainingCapacityBytes - volume.GetCapacityBytes()
-		volumes = append(volumes, nvme.ProvidingVolume{Storage: storage, VolumeId: volume.Id(), State: sf.ENABLED_RST})
+		volumes = append(volumes, nvme.ProvidingVolume{Storage: storage, VolumeId: volume.Id()})
 	}
 
 	return volumes, nil
 }
 
-func createVolume(storage *nvme.Storage, capacityBytes uint64, pid uuid.UUID, idx, count int) (*nvme.Volume, error) {
+func createVolume(storage *nvme.Storage, capacityBytes uint64) (*nvme.Volume, error) {
 	return nvme.CreateVolume(storage, capacityBytes)
 }
