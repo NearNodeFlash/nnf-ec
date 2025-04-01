@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Hewlett Packard Enterprise Development LP
+ * Copyright 2023-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -28,10 +28,10 @@ import (
 )
 
 type CsrReadCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	PDFID  string `arg help:"PDFID of the end-point."`
-	Addr   string `arg help:"Address to read."`
-	Bytes  uint8  `arg optional default:"4" help:"Number of bytes to read."`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	PDFID  string `arg:"--pdfid" help:"PDFID of the end-point."`
+	Addr   string `arg:"--addr" help:"Address to read."`
+	Bytes  uint8  `arg:"--bytes" default:"4" help:"Number of bytes to read."`
 }
 
 func (cmd *CsrReadCmd) Run() error {
@@ -69,11 +69,11 @@ func (cmd *CsrReadCmd) Run() error {
 }
 
 type CsrWriteCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	PDFID  string `arg help:"PDFID of the end-point."`
-	Addr   string `arg help:"Address to read."`
-	Data   string `arg help:"Value to write."`
-	Bytes  uint8  `arg optional default:"4" help:"Number of bytes to read."`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	PDFID  string `arg:"--pdfid" help:"PDFID of the end-point."`
+	Addr   string `arg:"--addr" help:"Address to read."`
+	Data   string `arg:"--data" help:"Value to write."`
+	Bytes  uint8  `arg:"--bytes" default:"4" help:"Number of bytes to read."`
 }
 
 func (cmd *CsrWriteCmd) Run() error {
@@ -101,6 +101,6 @@ func (cmd *CsrWriteCmd) Run() error {
 }
 
 type CsrCmd struct {
-	Read  CsrReadCmd  `cmd help:"Read bytes from a device's Configuration Status Registers."`
-	Write CsrWriteCmd `cmd help:"Write bytes to a device's Configuration Status Registers."`
+	Read  CsrReadCmd  `cmd:"csrread" help:"Read bytes from a device's Configuration Status Registers."`
+	Write CsrWriteCmd `cmd:"csrwrite" help:"Write bytes to a device's Configuration Status Registers."`
 }

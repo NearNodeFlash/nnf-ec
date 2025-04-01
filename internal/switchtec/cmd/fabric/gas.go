@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -29,10 +29,10 @@ import (
 
 // GasWriteCmd defines the GAS Write CLI command and parameters
 type GasWriteCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	Addr   string `arg help:"Address to write."`
-	Value  string `arg help:"Value to write."`
-	Bytes  int    `arg optional default:"4" help:"Number of bytes to write."`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	Addr   string `arg:"--addr" help:"Address to write."`
+	Value  string `arg:"--value" help:"Value to write."`
+	Bytes  int    `arg:"--bytes" default:"4" help:"Number of bytes to write."`
 }
 
 // Run will execute the GAS Write Command
@@ -76,9 +76,9 @@ func (cmd *GasWriteCmd) Run() error {
 
 // GasReadCmd defines the GAS Read CLI command and parameters
 type GasReadCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	Addr   string `arg help:"Address to read."`
-	Bytes  uint64 `arg optional default:"4" help:"Number of bytes to read."`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	Addr   string `arg:"--addr" help:"Address to read."`
+	Bytes  uint64 `arg:"--bytes" default:"4" help:"Number of bytes to read."`
 }
 
 // Run will execute the GAS Read Command and display the read data
@@ -118,7 +118,7 @@ func (cmd *GasReadCmd) Run() error {
 }
 
 type GasStatCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
 }
 
 func (cmd *GasStatCmd) Run() error {
@@ -152,7 +152,7 @@ func (cmd *GasStatCmd) Run() error {
 }
 
 type GasCmd struct {
-	Write GasWriteCmd `cmd help:"Write bytes to the Global Address Space."`
-	Read  GasReadCmd  `cmd help:"Read bytes from the Global Address Space."`
-	Stat  GasStatCmd  `cmd help:"Identify the device's Global Address Space."`
+	Write GasWriteCmd `cmd:"write" help:"Write bytes to the Global Address Space."`
+	Read  GasReadCmd  `cmd:"read" help:"Read bytes from the Global Address Space."`
+	Stat  GasStatCmd  `cmd:"stat" help:"Identify the device's Global Address Space."`
 }
