@@ -195,6 +195,12 @@ func (s *StorageService) patchStoragePool(sp *StoragePool) error {
 		return err
 	}
 
+	err = sp.replaceMissingVolumes()
+	if err != nil {
+		log.Error(err, "Unable to replace missing volumes")
+		return err
+	}
+
 	return err
 }
 
@@ -926,33 +932,37 @@ func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceId, stor
 		}
 	}()
 
-	s.patchStoragePool(p)
-	err = s.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, model)
-	// deleteFunc := func() error {
-	// 	err := p.deallocateVolumes()
-	// 	if err != nil {
-	// 		log.Error(err, "deallocateVolumes failed, but returning success anyway")
-	// 	}
+	// Update fields that are allowed to be modified
+	if model.Name != "" {
+		p.name = model.Name
+	}
 
-	// 	return nil
-	// }
+	if model.Description != "" {
+		p.description = model.Description
+	}
 
-	// if err := s.persistentController.DeletePersistentObject(p, deleteFunc, storagePoolStorageDeleteStartLogEntryType, storagePoolStorageDeleteCompleteLogEntryType); err != nil {
-	// 	err := ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause(fmt.Sprintf("Failed to delete storage pool"))
-	// 	if err != nil {
-	// 		log.Error(err, "DeletePersistentObject failed, but returning success anyway")
-	// 	}
+	// Replace any missing volumes
+	if err = s.patchStoragePool(p); err != nil {
+		log.Error(err, "Failed to check and replace volumes in storage pool")
+		return ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause("Failed to update storage pool resources")
+	}
 
-	// 	return nil
-	// }
+	// Persist the changes
+	updateFunc := func() error {
+		// Nothing to do for simple metadata updates
+		return nil
+	}
 
-	// event.EventManager.PublishResourceEvent(msgreg.ResourceRemovedResourceEvent(), p)
+	if err := s.persistentController.UpdatePersistentObject(p, updateFunc, storagePoolStorageUpdateStartLogEntryType, storagePoolStorageUpdateCompleteLogEntryType); err != nil {
+		return ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause("Failed to update storage pool")
+	}
 
-	// s.deleteStoragePool(p)
+	event.EventManager.PublishResourceEvent(msgreg.ResourceChangedResourceEvent(), p)
 
 	log.Info("Patched storage pool")
 
-	return nil
+	// Return the updated storage pool model
+	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, model)
 }
 
 // StorageServiceIdStoragePoolIdCapacitySourcesGet -
