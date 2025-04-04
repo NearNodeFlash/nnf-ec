@@ -195,6 +195,12 @@ func (s *StorageService) patchStoragePool(sp *StoragePool) error {
 		return err
 	}
 
+	err = sp.replaceMissingVolumes()
+	if err != nil {
+		log.Error(err, "Unable to replace missing volumes")
+		return err
+	}
+
 	return err
 }
 

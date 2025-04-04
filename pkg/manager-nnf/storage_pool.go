@@ -187,6 +187,63 @@ func (p *StoragePool) checkVolumes() error {
 	return nil
 }
 
+// Replace each missing volume with new volume on available Storage
+func (p *StoragePool) replaceMissingVolumes() error {
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
+	log.Info("replace missing volumes")
+
+	logMissingVolumesFunc := func() {
+		log.V(2).Info("missing volumes", "missingVolumeCount", len(p.missingVolumes))
+	}
+	defer logMissingVolumesFunc()
+
+	// Anything to do?
+	if len(p.missingVolumes) == 0 {
+		return nil
+	}
+
+	unusedStorages := p.locateUnusedStorage()
+	if len(unusedStorages) == 0 {
+		return fmt.Errorf("Unable to find unused storage")
+	}
+
+	for _, s := range unusedStorages {
+		log.V(2).Info("unused storage found", "serial", s.SerialNumber(), "slot", s.Slot())
+	}
+
+	return nil
+}
+
+// Locate a Storage that isn't providing a volume
+func (p *StoragePool) locateUnusedStorage() []*nvme.Storage {
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
+	log.Info("locate unused storage")
+
+	var unusedStorages []*nvme.Storage
+
+	// Return the first storage that is not providing a volume, if any
+	for _, s := range nvme.GetStorage() {
+		if s.SerialNumber() == "" { // Skip unpopulated Storage slot
+			continue
+		}
+
+		candidate := s
+		for _, pv := range p.providingVolumes {
+			if s.SerialNumber() == pv.Storage.SerialNumber() {
+				candidate = nil
+				break
+			}
+		}
+
+		if candidate != nil {
+			log.V(3).Info("found a storage", "slot", candidate.Slot())
+			unusedStorages = append(unusedStorages, candidate)
+		}
+	}
+
+	return unusedStorages
+}
+
 func (p *StoragePool) deallocateVolumes() error {
 	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
 	// In order to speed up deleting volumes, we format them first. Format runs asynchronously, so after
