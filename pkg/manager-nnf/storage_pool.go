@@ -46,6 +46,9 @@ type StoragePool struct {
 	providingVolumes []nvme.ProvidingVolume
 	missingVolumes   []storagePoolPersistentVolumeInfo
 
+	// Original persistent volume information from KV store
+	persistentVolumes []storagePoolPersistentVolumeInfo
+
 	storageGroupIds []string
 	fileSystemId    string
 
@@ -122,6 +125,10 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
 	log.Info("recover volumes")
 
+	// Store the persistent volumes information for later use
+	p.persistentVolumes = make([]storagePoolPersistentVolumeInfo, len(volumes))
+	copy(p.persistentVolumes, volumes)
+
 	for _, volumeInfo := range volumes {
 		log := log.WithValues("serialNumber", volumeInfo.SerialNumber, "namespaceId", volumeInfo.NamespaceID)
 
@@ -132,9 +139,6 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 			p.missingVolumes = append(p.missingVolumes, volumeInfo)
 			continue
 		}
-
-		// Ensure namespace information is current
-		storage.Rescan()
 
 		// Locate the Volume by Namespace ID
 		volumeID := uint32(volumeInfo.NamespaceID)
@@ -164,23 +168,23 @@ func (p *StoragePool) checkVolumes() error {
 	log := p.storageService.log.WithValues(storagePoolIdKey, p.id)
 	log.Info("check volumes")
 
-	// Recreate the persistent storages list which we expect
-	// to me stored in nnf.db and recover the volumes associated with
-	// this pool
-	volumes := make([]storagePoolPersistentVolumeInfo, len(p.missingVolumes))
-	copy(volumes, p.missingVolumes)
-	p.missingVolumes = p.missingVolumes[:0] // Truncate the list
+	// Rescan the storages to ensure our namespace information is up to date
+	volumes := make([]storagePoolPersistentVolumeInfo, len(p.persistentVolumes))
+	copy(volumes, p.persistentVolumes)
 
-	// Convert providing volumes
-	for _, pv := range p.providingVolumes {
-		v := storagePoolPersistentVolumeInfo{
-			SerialNumber: pv.Storage.SerialNumber(),
-			NamespaceID:  pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId(),
+	for _, pv := range volumes {
+		log := log.WithValues("serialNumber", pv.SerialNumber, "namespaceId", pv.NamespaceID)
+		log.V(2).Info("check volume", "volumeId", pv.NamespaceID)
+		storage := p.storageService.findStorage(pv.SerialNumber)
+		if storage == nil {
+			log.Info("storage device not found")
+			continue
 		}
-
-		volumes = append(volumes, v)
+		storage.Rescan()
 	}
-	p.providingVolumes = p.providingVolumes[:0] // Truncate the list
+
+	p.missingVolumes = p.missingVolumes[:0] // Clear the missing volumes list
+	p.providingVolumes = p.providingVolumes[:0] // Clear the providing volumes list
 
 	if err := p.recoverVolumes(volumes); err != nil {
 		log.Error(err, "Failed to rescan volumes")
@@ -403,6 +407,10 @@ func (p *StoragePool) GenerateStateData(state uint32) ([]byte, error) {
 				NamespaceID:  pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId(),
 			}
 		}
+
+		// Store the persistent volumes information for later use
+		p.persistentVolumes = make([]storagePoolPersistentVolumeInfo, len(entry.Volumes))
+		copy(p.persistentVolumes, entry.Volumes)
 
 		return json.Marshal(entry)
 	}

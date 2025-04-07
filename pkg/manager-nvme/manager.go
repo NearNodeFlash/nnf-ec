@@ -590,7 +590,7 @@ func (s *Storage) formatVolume(volumeID string) error {
 }
 
 func (s *Storage) recoverStorageVolumes() error {
-	s.log.V(1).Info("Recovering storage volumes")
+	s.log.V(1).Info("recovering storage volumes")
 
 	namespaces, err := s.device.ListNamespaces(0)
 	if err != nil {
@@ -621,7 +621,7 @@ func (s *Storage) recoverStorageVolumes() error {
 
 		s.volumes = append(s.volumes, volume)
 
-		s.log.V(1).Info("Recovered Volume", "volume", volume)
+		s.log.V(1).Info("recovered volume", "id", volume.id)
 	}
 
 	return nil
