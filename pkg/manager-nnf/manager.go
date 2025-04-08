@@ -763,7 +763,7 @@ func (*StorageService) StorageServiceIdStoragePoolsPost(storageServiceId string,
 	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, p.id, model)
 }
 
-// StorageServiceIdStoragePoolsPatch -
+// StorageServiceIdStoragePoolsPatch updates the storage pools in the storage service.
 func (*StorageService) StorageServiceIdStoragePoolsPatch(storageServiceId string, model *sf.StoragePoolCollectionStoragePoolCollection) (err error) {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -777,6 +777,20 @@ func (*StorageService) StorageServiceIdStoragePoolsPatch(storageServiceId string
 			log.Error(err, "Patch storage pool failed")
 		}
 	}()
+
+	// Patch each storage pool
+	for _, sp := range s.pools {
+		log := log.WithValues(storagePoolIdKey, sp.id)
+		log.V(2).Info("Patching storage pool")
+
+		poolModel := &sf.StoragePoolV150StoragePool{
+			Id: sp.OdataId(), // Populate other fields as necessary
+		}
+		err = s.StorageServiceIdStoragePoolIdPatch(storageServiceId, sp.id, poolModel)
+		if err != nil {
+			break
+		}
+	}
 
 	model.MembersodataCount = int64(len(s.pools))
 	model.Members = make([]sf.OdataV4IdRef, model.MembersodataCount)
@@ -918,10 +932,10 @@ func (*StorageService) StorageServiceIdStoragePoolIdDelete(storageServiceId, sto
 }
 
 // StorageServiceIdStoragePoolIdPatch -
-func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceId, storagePoolId string, model *sf.StoragePoolV150StoragePool) (err error) {
-	s, p := findStoragePool(storageServiceId, storagePoolId)
+func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceID, storagePoolID string, model *sf.StoragePoolV150StoragePool) (err error) {
+	s, p := findStoragePool(storageServiceID, storagePoolID)
 	if p == nil {
-		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolId))
+		return ec.NewErrNotFound().WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolID))
 	}
 
 	log := s.log.WithValues(storagePoolIdKey, p.id)
@@ -962,7 +976,7 @@ func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceId, stor
 	log.Info("Patched storage pool")
 
 	// Return the updated storage pool model
-	return s.StorageServiceIdStoragePoolIdGet(storageServiceId, storagePoolId, model)
+	return s.StorageServiceIdStoragePoolIdGet(storageServiceID, storagePoolID, model)
 }
 
 // StorageServiceIdStoragePoolIdCapacitySourcesGet -

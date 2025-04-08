@@ -183,7 +183,7 @@ func (p *StoragePool) checkVolumes() error {
 		storage.Rescan()
 	}
 
-	p.missingVolumes = p.missingVolumes[:0] // Clear the missing volumes list
+	p.missingVolumes = p.missingVolumes[:0]     // Clear the missing volumes list
 	p.providingVolumes = p.providingVolumes[:0] // Clear the providing volumes list
 
 	if err := p.recoverVolumes(volumes); err != nil {
@@ -252,6 +252,12 @@ func (p *StoragePool) replaceMissingVolumes() error {
 		}
 
 		p.providingVolumes = append(p.providingVolumes, pv)
+
+		// TODO: Find the serialnumber/volumeid in any other storage pools and
+		// invalidate that volumeid to prevent reuse. Should probably store
+		// that new value some how too.
+		// OR
+		// Patch all the storage pools and don't allow a particular storeage pool to be patched in isolation
 	}
 
 	// We've replaced all the missing volumes, so clear the list
