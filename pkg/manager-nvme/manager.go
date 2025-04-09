@@ -116,7 +116,7 @@ type Storage struct {
 
 	// Namespace Properties - Read using the Common Namespace Identifier (0xffffffff)
 	// These are properties common to all namespaces for this controller (we use controller
-	// zero as the basis for all other controllers - technically the spec supports uinque
+	// zero as the basis for all other controllers - technically the spec supports unique
 	// LBA Formats per controller, but this is not done in practice by drive vendors.)
 	lbaFormatIndex uint8
 	blockSizeBytes uint64
@@ -147,7 +147,7 @@ type StorageController struct {
 	controllerId   uint16
 	functionNumber uint16
 
-	// These are attributes for a Secondary Controller that is manged
+	// These are attributes for a Secondary Controller that is managed
 	// by the Primary Controller using NVMe 1.3 Virtualization Mgmt.
 	vqResources uint16
 	viResources uint16
@@ -349,7 +349,7 @@ func (s *Storage) initialize() error {
 
 	ctrl, err := s.device.IdentifyController(0)
 	if err != nil {
-		return fmt.Errorf("Initialize Storage %s: Failed to indentify common controller: Error: %w", s.id, err)
+		return fmt.Errorf("Initialize Storage %s: Failed to identify common controller: Error: %w", s.id, err)
 	}
 
 	s.physicalFunctionControllerId = ctrl.ControllerId
@@ -388,7 +388,7 @@ func (s *Storage) initialize() error {
 		return fmt.Errorf("Initialize Storage %s: Unsupported unallocated 0x%x_%x, will overflow uint64 definition", s.id, unallocatedCapBytesHi, unallocatedCapBytesLo)
 	}
 
-	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualiztionManagementSupport)
+	s.virtManagementEnabled = ctrl.GetCapability(nvme.VirtualizationManagementSupport)
 
 	log.V(1).Info("Identified controller",
 		"serialNumber", s.serialNumber,

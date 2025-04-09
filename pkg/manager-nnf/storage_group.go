@@ -28,6 +28,7 @@ import (
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
+// StorageGroup represents a mapping between a storage pool and an endpoint
 type StorageGroup struct {
 	id          string
 	name        string
@@ -88,6 +89,22 @@ const (
 	storageGroupDeleteCompleteLogEntryType
 )
 
+// storageGroupLogEntryTypeNames maps the numeric log entry type constants to their string representations
+var storageGroupLogEntryTypeNames = []string{
+	"storageGroupCreateStartLogEntryType",
+	"storageGroupCreateCompleteLogEntryType",
+	"storageGroupDeleteStartLogEntryType",
+	"storageGroupDeleteCompleteLogEntryType",
+}
+
+// LogEntryTypeToString converts a numeric log entry type to its string representation
+func LogEntryTypeToString(entryType uint32) string {
+	if int(entryType) < len(storageGroupLogEntryTypeNames) {
+		return storageGroupLogEntryTypeNames[entryType]
+	}
+	return fmt.Sprintf("Unknown(%d)", entryType)
+}
+
 type storageGroupPersistentMetadata struct {
 	Name          string `json:"Name"`
 	Description   string `json:"Description"`
@@ -117,7 +134,7 @@ func (sg *StorageGroup) GenerateStateData(state uint32) ([]byte, error) {
 func (sg *StorageGroup) Rollback(state uint32) error {
 	switch state {
 	case storageGroupCreateStartLogEntryType:
-		// Rollback to a state where no controllers are detached from the storage pool
+		// Rollback to a state where no controllers are attached to the storage pool
 
 		sp := sg.storageService.findStoragePool(sg.storagePoolId)
 		if sp == nil {
@@ -136,7 +153,7 @@ func (sg *StorageGroup) Rollback(state uint32) error {
 		}
 
 	case storageGroupDeleteStartLogEntryType:
-		// Rollback to a state where all controllers are attached to the storage pool
+		// Rollback to a state where all controllers are detached from the storage pool
 
 		sp := sg.storageService.findStoragePool(sg.storagePoolId)
 		if sp == nil {
@@ -164,6 +181,7 @@ type storageGroupRecoveryRegistry struct {
 	storageService *StorageService
 }
 
+// NewStorageGroupRecoveryRegistry creates a new registry for recovering storage groups
 func NewStorageGroupRecoveryRegistry(s *StorageService) persistent.Registry {
 	return &storageGroupRecoveryRegistry{storageService: s}
 }
@@ -215,7 +233,7 @@ func (rh *storageGroupRecoveryReplyHandler) Done() (bool, error) {
 
 	switch rh.lastLogEntryType {
 	case storageGroupCreateStartLogEntryType:
-		// In this case the storage group started, but didn't finish. We may have outstanding controllers
+		// In this case, the storage group started but didn't finish. We may have outstanding controllers
 		// attached to the endpoint that we don't want to preserve since the client did not get confirmation
 		// of the action. We want to detach any controllers for this <Pool, Endpoint> pair.
 
@@ -236,18 +254,22 @@ func (rh *storageGroupRecoveryReplyHandler) Done() (bool, error) {
 		return true, nil
 
 	case storageGroupCreateCompleteLogEntryType:
-		// In this case we've created the storage group, and it exists without error. There is nothing to do
-		// here (the storage group is already part of the storage service from the call to Metadata())
+		// In this case, we've created the storage group, and it exists without error. There is nothing to do
+		// here (the storage group is already part of the storage service from the call to Metadata()).
+		// The attachment to a particular endpoint is persistently maintained in the NVMe controller, thus we
+		// don't need to do anything here.
 	case storageGroupDeleteStartLogEntryType:
 		// Delete Start: We started the delete operation but did not complete it. We may have remaining connections
-		// to the controllers; and we need to find those that remain, but we can expect some to be missing. This is done
+		// to the controllers, and we need to find those that remain, but we can expect some to be missing. This is done
 		// by recovering the list of controllers attached to the volume.
-
 	case storageGroupDeleteCompleteLogEntryType:
-		// We've deleted all the connections but the key remains. We should garbage collect the key
-		// from the store. We don't have a guarentee that the client received the completion for
-		// the delete; they may try to delete it again and we should just ignore it.
+		// We've deleted all the connections, but the key remains. We should garbage collect the key
+		// from the store. We don't have a guarantee that the client received the completion for
+		// the delete; they may try to delete it again, and we should just ignore it.
 	}
 
+	rh.storageService.log.V(2).Info("recover storage group complete",
+		"storageGroup", sg.id,
+		"lastLogEntryType", LogEntryTypeToString(rh.lastLogEntryType))
 	return false, nil
 }

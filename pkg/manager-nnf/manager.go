@@ -1095,7 +1095,7 @@ func (*StorageService) StorageServiceIdStorageGroupsGet(storageServiceId string,
 	return nil
 }
 
-// StorageServiceIdStorageGroupPost -
+// StorageServiceIdStorageGroupPost creates a new storage group in the storage service.
 func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string, model *sf.StorageGroupV150StorageGroup) (err error) {
 	s := findStorageService(storageServiceId)
 	if s == nil {
@@ -1115,11 +1115,11 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.InvalidURIBase(model.Links.StoragePool.OdataId))
 	}
 
-	storagePoolId := fields[s.resourceIndex]
+	storagePoolID := fields[s.resourceIndex]
 
-	_, sp := findStoragePool(storageServiceId, storagePoolId)
+	_, sp := findStoragePool(storageServiceId, storagePoolID)
 	if sp == nil {
-		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolId))
+		return ec.NewErrNotAcceptable().WithResourceType(StoragePoolOdataType).WithEvent(msgreg.ResourceNotFoundBase(StoragePoolOdataType, storagePoolID))
 	}
 
 	// TODO RABSW-1110: Ensure storage pool is operational before creating a storage group
@@ -1129,19 +1129,18 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 		return ec.NewErrNotAcceptable().WithResourceType(EndpointOdataType).WithEvent(msgreg.InvalidURIBase(model.Links.ServerEndpoint.OdataId))
 	}
 
-	endpointId := fields[s.resourceIndex]
+	endpointID := fields[s.resourceIndex]
 
-	ep := s.findEndpoint(endpointId)
+	ep := s.findEndpoint(endpointID)
 	if ep == nil {
-		return ec.NewErrNotAcceptable().WithResourceType(EndpointOdataType).WithEvent(msgreg.ResourceNotFoundBase(EndpointOdataType, endpointId))
+		return ec.NewErrNotAcceptable().WithResourceType(EndpointOdataType).WithEvent(msgreg.ResourceNotFoundBase(EndpointOdataType, endpointID))
 	}
 
 	if !ep.serverCtrl.Connected() {
-		return ec.NewErrNotAcceptable().WithResourceType(EndpointOdataType).WithCause(fmt.Sprintf("Server endpoint '%s' not connected", endpointId))
+		return ec.NewErrNotAcceptable().WithResourceType(EndpointOdataType).WithCause(fmt.Sprintf("Server endpoint '%s' not connected", endpointID))
 	}
 
 	// Everything validated OK - create the Storage Group
-
 	sg := s.createStorageGroup(model.Id, sp, ep)
 
 	updateFunc := func() error {
@@ -1171,7 +1170,7 @@ func (*StorageService) StorageServiceIdStorageGroupPost(storageServiceId string,
 	return s.StorageServiceIdStorageGroupIdGet(storageServiceId, sg.id, model)
 }
 
-// StorageServiceIdStorageGroupIdPut
+// StorageServiceIdStorageGroupIdPut handles PUT requests for a specific storage group
 func (*StorageService) StorageServiceIdStorageGroupIdPut(storageServiceId, storageGroupId string, model *sf.StorageGroupV150StorageGroup) error {
 	s, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if s == nil {
@@ -1186,7 +1185,7 @@ func (*StorageService) StorageServiceIdStorageGroupIdPut(storageServiceId, stora
 	return s.StorageServiceIdStorageGroupPost(storageServiceId, model)
 }
 
-// StorageServiceIdStorageGroupIdGet -
+// StorageServiceIdStorageGroupIdGet handles GET requests for a specific storage group
 func (*StorageService) StorageServiceIdStorageGroupIdGet(storageServiceId, storageGroupId string, model *sf.StorageGroupV150StorageGroup) error {
 	s, sg := findStorageGroup(storageServiceId, storageGroupId)
 	if sg == nil {
