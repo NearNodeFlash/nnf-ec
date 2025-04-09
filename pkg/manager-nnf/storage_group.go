@@ -175,6 +175,41 @@ func (sg *StorageGroup) Rollback(state uint32) error {
 	return nil
 }
 
+// recoverPool iterates through each volume in the associated storage pool and
+// lists the controllers that volumes are attached to. It helps ensure that all
+// necessary controller attachments are properly recovered during system recovery.
+func (sg *StorageGroup) recoverPool() error {
+	log := sg.storageService.log.WithValues("storageGroup", sg.id, "storagePool", sg.storagePoolId, "endpoint", sg.endpoint.id)
+
+	sp := sg.storageService.findStoragePool(sg.storagePoolId)
+	if sp == nil {
+		return fmt.Errorf("recover storage group pool: storage pool %s not found", sg.storagePoolId)
+	}
+
+	log.V(1).Info("recovering storage group")
+
+	// Check each providing volume in the storage pool
+	for _, pv := range sp.providingVolumes {
+		volume := pv.Storage.FindVolume(pv.VolumeId)
+		if volume == nil {
+			log.Error(fmt.Errorf("volume not found"),
+				"failed to recover volume",
+				"storageGroup", sg.id,
+				"volumeId", pv.VolumeId)
+			continue
+		}
+
+		// Attach the volume to the endpoint if necessary
+		if err := volume.AttachControllerIfUnattached(sg.endpoint.controllerId); err != nil {
+			return err
+		}
+	}
+
+	log.V(1).Info("recovered storage group")
+
+	return nil
+}
+
 // Persistent Object Recovery API
 
 type storageGroupRecoveryRegistry struct {
@@ -238,6 +273,9 @@ func (rh *storageGroupRecoveryReplyHandler) Done() (bool, error) {
 		// of the action. We want to detach any controllers for this <Pool, Endpoint> pair.
 
 		sp := rh.storageService.findStoragePool(sg.storagePoolId)
+		if sp == nil {
+			return false, fmt.Errorf("Storage Group %s Recover: Storage Pool %s not found", sg.id, sg.storagePoolId)
+		}
 		for _, pv := range sp.providingVolumes {
 			volume := pv.Storage.FindVolume(pv.VolumeId)
 			if volume == nil {
@@ -256,8 +294,14 @@ func (rh *storageGroupRecoveryReplyHandler) Done() (bool, error) {
 	case storageGroupCreateCompleteLogEntryType:
 		// In this case, we've created the storage group, and it exists without error. There is nothing to do
 		// here (the storage group is already part of the storage service from the call to Metadata()).
-		// The attachment to a particular endpoint is persistently maintained in the NVMe controller, thus we
-		// don't need to do anything here.
+		// The attachment to a particular endpoint is persistently maintained in the NVMe controller, so
+		// for namespaces that formerly were attached, there is nothing to do.
+
+		// Verify all volumes are attached to the endpoint
+		if err := sg.recoverPool(); err != nil {
+			return false, err
+		}
+
 	case storageGroupDeleteStartLogEntryType:
 		// Delete Start: We started the delete operation but did not complete it. We may have remaining connections
 		// to the controllers, and we need to find those that remain, but we can expect some to be missing. This is done

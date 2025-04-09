@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -673,6 +674,10 @@ func (v *Volume) SetFeature(data []byte) error {
 	return v.runInAttachDetachBlock(func() error { return v.storage.device.SetNamespaceFeature(v.namespaceId, data) })
 }
 
+func (v *Volume) listAttachedControllers() ([]uint16, error) {
+	return v.storage.device.ListAttachedControllers(v.namespaceId)
+}
+
 func (v *Volume) runInAttachDetachBlock(fn func() error) error {
 	const controllerIndex uint16 = PhysicalFunctionControllerIndex
 	if err := v.attach(controllerIndex); err != nil {
@@ -729,15 +734,14 @@ func (v *Volume) WaitFormatComplete() error {
 	return nil
 }
 
+// Controller indicies to be passed into the nvme-manager;
+// For Kioxia Dual Port drives (not production), the secondary controller IDs
+// start at 3, with controller IDs one and two representing the dual port physical functions.
+//
+// For Direct Devices, the Rabbit is controlling the drive through the physical functions; we
+// still use the secondary controller values for all other ports, but we need to remap the
+// first index to the physical function.
 func (v *Volume) controllerIDFromIndex(controllerIndex uint16) uint16 {
-	// Controller indicies to be passed into the nvme-manager;
-	// For Kioxia Dual Port drives (not production), the secondary controller IDs
-	// start at 3, with controller IDs one and two representing the dual port physical functions.
-	//
-	// For Direct Devices, the Rabbit is controlling the drive through the physical functions; we
-	// still use the secondary controller values for all other ports, but we need to remap the
-	// first index to the physical function.
-
 	if controllerIndex == PhysicalFunctionControllerIndex {
 		return v.storage.physicalFunctionControllerId
 	}
@@ -803,6 +807,47 @@ func (v *Volume) detach(controllerIndex uint16) error {
 	}
 
 	log.V(1).Info("Detached namespace")
+
+	return nil
+}
+
+// AttachControllerIfUnattached ensures that a specified controller is attached to the volume.
+// If the controller is not already attached, it attempts to attach it.
+//
+// Parameters:
+//   - controllerIndex: The index of the controller to check and attach if necessary.
+//
+// Returns:
+//   - error: An error if the operation to list or attach controllers fails, otherwise nil.
+//
+// This function logs detailed information about the operation, including the storage ID,
+// volume ID, controller index, and controller ID. It also logs the list of currently
+// attached controllers and whether a reattachment is performed.
+func (v *Volume) AttachControllerIfUnattached(controllerIndex uint16) error {
+	controllerID := v.controllerIDFromIndex(controllerIndex)
+
+	log := v.log.WithValues("storage", v.storage.id, "volume", v.id, "controllerIndex", controllerIndex, "controllerID", controllerID)
+	log.V(2).Info("Attach controller if unattached")
+
+	attachedControllers, err := v.listAttachedControllers()
+	if err != nil {
+		log.Error(err, "failed to list attached controllers")
+		return err
+	}
+
+	controllerAttached := slices.Contains(attachedControllers, controllerID)
+
+	// Log all controllers this volume is attached to
+	log.V(3).Info("attachments", "controllers", attachedControllers)
+
+	if !controllerAttached {
+		log.Info("reattaching controller to volume")
+
+		if err := v.AttachController(controllerIndex); err != nil {
+			log.Error(err, "failed to reattach controller to volume")
+			return err
+		}
+	}
 
 	return nil
 }
