@@ -827,7 +827,6 @@ func (v *Volume) AttachControllerIfUnattached(controllerIndex uint16) error {
 	controllerID := v.controllerIDFromIndex(controllerIndex)
 
 	log := v.log.WithValues("storage", v.storage.id, "volume", v.id, "controllerIndex", controllerIndex, "controllerID", controllerID)
-	log.V(2).Info("Attach controller if unattached")
 
 	attachedControllers, err := v.listAttachedControllers()
 	if err != nil {
@@ -836,9 +835,6 @@ func (v *Volume) AttachControllerIfUnattached(controllerIndex uint16) error {
 	}
 
 	controllerAttached := slices.Contains(attachedControllers, controllerID)
-
-	// Log all controllers this volume is attached to
-	log.V(3).Info("attachments", "controllers", attachedControllers)
 
 	if !controllerAttached {
 		log.Info("reattaching controller to volume")

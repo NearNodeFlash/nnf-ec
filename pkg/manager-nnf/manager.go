@@ -598,6 +598,26 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		log.Info("Storage Service Enabled", "health", s.health)
 	}
 
+	// Check for storage pool events
+	if e.Is(msgreg.StoragePoolPatchedNnf("")) {
+		log.V(1).Info("Storage Pool Patched")
+		var storagePoolID string
+		if err := e.Args(&storagePoolID); err != nil {
+			return ec.NewErrInternalServerError().WithError(err).WithCause("event parameters illformed")
+		}
+
+		log = log.WithValues("poolId", storagePoolID)
+
+		for sg := range s.groups {
+			sg := &s.groups[sg]
+			if sg.storagePoolId == storagePoolID {
+				if err := sg.recoverPool(); err != nil {
+					return ec.NewErrInternalServerError().WithError(err).WithCause("unable to update storage group")
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -971,7 +991,7 @@ func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceID, stor
 		return ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause("Failed to update storage pool")
 	}
 
-	event.EventManager.PublishResourceEvent(msgreg.ResourceChangedResourceEvent(), p)
+	event.EventManager.PublishResourceEvent(msgreg.StoragePoolPatchedNnf(storagePoolID), p)
 
 	log.Info("Patched storage pool")
 
