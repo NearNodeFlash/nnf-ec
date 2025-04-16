@@ -55,8 +55,9 @@ var storageService = StorageService{
 	health: sf.CRITICAL_RH,
 }
 
-func NewDefaultStorageService(unknownVolumes bool) StorageServiceApi {
+func NewDefaultStorageService(unknownVolumes bool, replaceMissingVolumes bool) StorageServiceApi {
 	storageService.deleteUnknownVolumes = unknownVolumes
+	storageService.replaceMissingVolumes = replaceMissingVolumes
 	return NewAerService(&storageService) // Wrap the default storage service with Advanced Error Reporting capabilities
 }
 
@@ -82,6 +83,8 @@ type StorageService struct {
 
 	// This flag controls whether we delete volumes that don't appear in storage pools we know about.
 	deleteUnknownVolumes bool
+	// This flag controls whether we replace volumes that are missing from storage pools.
+	replaceMissingVolumes bool
 
 	log ec.Logger
 }
@@ -182,11 +185,17 @@ func (s *StorageService) deleteStoragePool(sp *StoragePool) {
 			break
 		}
 	}
-
 }
 
-func (s *StorageService) patchStoragePool(sp *StoragePool) error {
+func (s *StorageService) patchStoragePool(sp *StoragePool, forceRescan bool) error {
 	log := s.log
+
+	// In a test environment where you may be deleting volumes underneath nnf-ec and
+	// the initial rescan has already completed, it is handly to force a rescan
+	if !forceRescan && len(sp.missingVolumes) == 0 {
+		log.V(2).Info("No missing volumes to replace")
+		return nil
+	}
 
 	// Look for missing volumes
 	err := sp.checkVolumes()
@@ -200,6 +209,18 @@ func (s *StorageService) patchStoragePool(sp *StoragePool) error {
 		log.Error(err, "Unable to replace missing volumes")
 		return err
 	}
+
+	// Persist the changes
+	updateFunc := func() error {
+		// Nothing to do for simple metadata updates
+		return nil
+	}
+
+	if err := s.persistentController.UpdatePersistentObject(sp, updateFunc, storagePoolStorageUpdateStartLogEntryType, storagePoolStorageUpdateCompleteLogEntryType); err != nil {
+		return ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause("Failed to update storage pool")
+	}
+
+	event.EventManager.PublishResourceEvent(msgreg.StoragePoolPatchedNnf(sp.id), sp)
 
 	return err
 }
@@ -562,8 +583,8 @@ func (s *StorageService) EventHandler(e event.Event) error {
 		return nil
 	}
 
-	// Check if the fabric is ready;
-	// that is all devices are enumerated and discovery is complete.
+	// Fabric is ready
+	// All devices are enumerated and discovery is complete.
 	if e.Is(msgreg.FabricReadyNnf("")) {
 		log.V(1).Info("Fabric ready")
 
@@ -578,16 +599,26 @@ func (s *StorageService) EventHandler(e event.Event) error {
 			s.cleanupVolumes()
 		}
 
+		if s.replaceMissingVolumes {
+			log.V(2).Info("Replace missing volumes")
+			for spIdx := range s.pools {
+				pool := &s.pools[spIdx]
+				if err := pool.storageService.patchStoragePool(pool, false /* rescan */); err != nil {
+					log.Error(err, "Failed to replace missing volumes", "poolId", pool.id)
+				}
+			}
+		}
+
 		s.state = sf.ENABLED_RST
 		s.health = sf.OK_RH
 
-		var fabricId string
-		if err := e.Args(&fabricId); err != nil {
+		var fabricID string
+		if err := e.Args(&fabricID); err != nil {
 			return ec.NewErrInternalServerError().WithError(err).WithCause("event parameters illformed")
 		}
 
 		f := &sf.FabricV120Fabric{}
-		if err := fabric.FabricIdGet(fabricId, f); err != nil {
+		if err := fabric.FabricIdGet(fabricID, f); err != nil {
 			return ec.NewErrInternalServerError().WithError(err).WithCause("fabric not found")
 		}
 
@@ -600,6 +631,7 @@ func (s *StorageService) EventHandler(e event.Event) error {
 
 	// Check for storage pool events
 	if e.Is(msgreg.StoragePoolPatchedNnf("")) {
+		// After a storage pool is patched, check for new volumes that need to be attached
 		log.V(1).Info("Storage Pool Patched")
 		var storagePoolID string
 		if err := e.Args(&storagePoolID); err != nil {
@@ -608,8 +640,8 @@ func (s *StorageService) EventHandler(e event.Event) error {
 
 		log = log.WithValues("poolId", storagePoolID)
 
-		for sg := range s.groups {
-			sg := &s.groups[sg]
+		// We may have multiple storage groups associated with the same storage pool
+		for _, sg := range s.groups {
 			if sg.storagePoolId == storagePoolID {
 				if err := sg.recoverPool(); err != nil {
 					return ec.NewErrInternalServerError().WithError(err).WithCause("unable to update storage group")
@@ -804,7 +836,7 @@ func (*StorageService) StorageServiceIdStoragePoolsPatch(storageServiceId string
 		log.V(2).Info("Patching storage pool")
 
 		poolModel := &sf.StoragePoolV150StoragePool{
-			Id: sp.OdataId(), // Populate other fields as necessary
+			Id: sp.OdataId(),
 		}
 		err = s.StorageServiceIdStoragePoolIdPatch(storageServiceId, sp.id, poolModel)
 		if err != nil {
@@ -976,22 +1008,10 @@ func (*StorageService) StorageServiceIdStoragePoolIdPatch(storageServiceID, stor
 	}
 
 	// Replace any missing volumes
-	if err = s.patchStoragePool(p); err != nil {
+	if err = s.patchStoragePool(p, true /* forceRescan */); err != nil {
 		log.Error(err, "Failed to check and replace volumes in storage pool")
 		return ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause("Failed to update storage pool resources")
 	}
-
-	// Persist the changes
-	updateFunc := func() error {
-		// Nothing to do for simple metadata updates
-		return nil
-	}
-
-	if err := s.persistentController.UpdatePersistentObject(p, updateFunc, storagePoolStorageUpdateStartLogEntryType, storagePoolStorageUpdateCompleteLogEntryType); err != nil {
-		return ec.NewErrInternalServerError().WithResourceType(StoragePoolOdataType).WithError(err).WithCause("Failed to update storage pool")
-	}
-
-	event.EventManager.PublishResourceEvent(msgreg.StoragePoolPatchedNnf(storagePoolID), p)
 
 	log.Info("Patched storage pool")
 

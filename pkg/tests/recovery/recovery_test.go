@@ -83,7 +83,7 @@ var _ = Describe("Reboot Recovery Testing", func() {
 				c = nnfec.NewController(nnfec.NewMockOptions(true))
 				Expect(c.Init(ec.NewDefaultOptions())).NotTo(HaveOccurred())
 
-				ss = nnf.NewDefaultStorageService(true /* deleteUnknownVolumes */)
+				ss = nnf.NewDefaultStorageService(true /* deleteUnknownVolumes */, true /* replaceMissingVolumes */)
 			})
 
 			// After each test we close the NNF Element Controller, thereby safely closing

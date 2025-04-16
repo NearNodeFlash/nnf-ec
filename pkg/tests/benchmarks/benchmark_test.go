@@ -39,7 +39,7 @@ func BenchmarkStorage(b *testing.B) {
 		b.Fatalf("Failed to start nnf controller")
 	}
 
-	ss := nnf.NewDefaultStorageService(true /* deleteUnknownVolumes */)
+	ss := nnf.NewDefaultStorageService(true /* deleteUnknownVolumes */, true /* replaceMissingVolumes */)
 	b.ResetTimer()
 
 	pools := make([]*sf.StoragePoolV150StoragePool, 0)

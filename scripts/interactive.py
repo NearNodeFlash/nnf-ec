@@ -135,6 +135,8 @@ class StoragePool(Command):
 
         self.conn.push_path('') # Use @odata.id directly
         volumes = response.json()['Members']
+
+        counter = 1
         for volume in volumes:
             try:
                 volumeId = volume['@odata.id']
@@ -149,9 +151,13 @@ class StoragePool(Command):
                 nsid = volume.json()['Identifiers'][0]['DurableName']
                 capacityBytes = volume.json()['CapacityBytes']
 
-                print(f'{locationType} {locationValue}\t{nqn} {nsid} {capacityBytes}')
+                # Display counter for each volume
+                print(f'{counter}\t{locationType} {locationValue}\t{nqn} {nsid} {capacityBytes}')
+                # Increment counter after each volume
+                counter += 1
             except:
-                print("Missing volume")
+                print(f"{counter}: Missing volume")
+                counter += 1
 
         self.conn.pop_path()
 

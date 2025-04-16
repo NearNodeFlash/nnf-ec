@@ -591,8 +591,6 @@ func (s *Storage) formatVolume(volumeID string) error {
 }
 
 func (s *Storage) recoverStorageVolumes() error {
-	s.log.V(1).Info("recovering storage volumes")
-
 	namespaces, err := s.device.ListNamespaces(0)
 	if err != nil {
 		s.log.Error(err, "Failed to list device namespaces")
@@ -602,7 +600,6 @@ func (s *Storage) recoverStorageVolumes() error {
 	for _, nsid := range namespaces {
 		log := s.log.WithValues(namespaceIdKey, nsid)
 
-		log.V(2).Info("Identify namespace")
 		ns, err := s.device.IdentifyNamespace(nsid)
 		if err != nil {
 			log.Error(err, "Failed to identify namespace")
@@ -621,8 +618,6 @@ func (s *Storage) recoverStorageVolumes() error {
 		}
 
 		s.volumes = append(s.volumes, volume)
-
-		s.log.V(1).Info("recovered volume", "id", volume.id)
 	}
 
 	return nil
