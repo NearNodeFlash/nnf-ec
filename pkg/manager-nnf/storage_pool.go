@@ -174,7 +174,6 @@ func (p *StoragePool) checkVolumes() error {
 
 	for _, pv := range volumes {
 		log := log.WithValues("serialNumber", pv.SerialNumber, "namespaceId", pv.NamespaceID)
-		log.V(2).Info("check volume", "volumeId", pv.NamespaceID)
 		storage := p.storageService.findStorage(pv.SerialNumber)
 		if storage == nil {
 			log.Info("storage device not found")
@@ -187,7 +186,7 @@ func (p *StoragePool) checkVolumes() error {
 	p.providingVolumes = p.providingVolumes[:0] // Clear the providing volumes list
 
 	if err := p.recoverVolumes(volumes); err != nil {
-		log.Error(err, "Failed to rescan volumes")
+		log.Error(err, "Failed to recover volumes")
 		return err
 	}
 

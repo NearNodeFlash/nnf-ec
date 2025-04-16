@@ -186,7 +186,7 @@ func (sg *StorageGroup) recoverPool() error {
 		return fmt.Errorf("recover storage group pool: storage pool %s not found", sg.storagePoolId)
 	}
 
-	log.V(1).Info("recovering storage group")
+	log.V(1).Info("recover storage group")
 
 	// Check each providing volume in the storage pool
 	for _, pv := range sp.providingVolumes {
@@ -199,13 +199,11 @@ func (sg *StorageGroup) recoverPool() error {
 			continue
 		}
 
-		// Attach the volume to the endpoint if necessary
+		// Ensure volume is attached to the endpoint
 		if err := volume.AttachControllerIfUnattached(sg.endpoint.controllerId); err != nil {
 			return err
 		}
 	}
-
-	log.V(1).Info("recovered storage group")
 
 	return nil
 }
