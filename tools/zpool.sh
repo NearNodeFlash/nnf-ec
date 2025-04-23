@@ -34,7 +34,6 @@ Commands:
     status                                                    status of zpool
     scrub                                                     scrub the zpool
     list-volumes                                              list volumes in zpool
-    fio    [NAME] [time-in-minutes]                           run fio on the zpool
 EOF
 }
 
@@ -70,7 +69,7 @@ join() {
 
 NAME=${2:-"rabbit"}
 NAMESPACE=${3:-"1"}
-RAID_LEVEL=${4:-"striped"}
+RAID_LEVEL=${4:-"raidz2"}
 
 case $1 in
     list-drives)
@@ -108,9 +107,6 @@ case $1 in
     list-volumes)
         echo "Volumes in '${NAME}'"
         zpool list -o name,size,alloc,free,cap,dedup,health "${NAME}"
-        ;;
-    fio)
-        fio --name=zfs_rw_mix --directory=/${NAME} --rw=randrw --rwmixread=70 --bs=128k --size=200G --numjobs=4 --iodepth=16 --time_based --runtime=60s --group_reporting
         ;;
     *)
         usage
