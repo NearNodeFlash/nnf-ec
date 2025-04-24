@@ -1,10 +1,39 @@
 #!/bin/bash
+
+# Copyright 2025 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
 #
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Script to find replacement NVMe namespaces for missing LVM PVs
 # Matches based on size and manufacturer, prioritizing exact matches
 
 set +e
 shopt -s nullglob
+
+usage() {
+    cat <<EOF
+
+Usage: $0 [--replace] [--dry-run]
+  no-args    Analyze all volume groups for missing PVs, prompting for replacements
+  --replace  Automatically perform replacement of missing PVs (no prompting)
+  --dry-run  Show what would happen but don't make actual changes
+  --help     Show this help message
+
+EOF
+}
 
 # Convert various size units to MB
 convert_to_mb() {
@@ -586,10 +615,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help)
-            echo "Usage: $0 [--replace] [--dry-run]"
-            echo "  --replace  Automatically perform replacement of missing PVs (no prompting)"
-            echo "  --dry-run  Show what would happen but don't make actual changes"
-            echo "  --help     Show this help message"
+            usage
             exit 0
             ;;
         *)
