@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -28,8 +28,8 @@ import (
 )
 
 type DumpEpPortCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	Pid    uint8  `arg help:"The end-point port ID."`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	Pid    uint8  `arg:"--pid" help:"The end-point port ID."`
 }
 
 func (cmd *DumpEpPortCmd) Run() error {
@@ -91,5 +91,5 @@ func (cmd *DumpEpPortCmd) Run() error {
 }
 
 type DumpCmd struct {
-	EpPort DumpEpPortCmd `cmd help:"Dump information for a specific end-point port."`
+	EpPort DumpEpPortCmd `cmd:"epport" help:"Dump information for a specific end-point port."`
 }
