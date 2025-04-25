@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2021, 2022 Hewlett Packard Enterprise Development LP
+# Copyright 2021-2025 Hewlett Packard Enterprise Development LP
 # Other additional copyright holders may be indicated within.
 #
 # The entirety of this work is licensed under the Apache License,
@@ -43,7 +43,7 @@ class Command(cmd.Cmd):
         return sys.exit(0)
 
 class StoragePool(Command):
-    intro = 'Create/Put/Get/List/Delete Storage Pools'
+    intro = 'Create/Put/Get/List/Delete/Patch Storage Pools'
     prompt = '(nnf)' + '(storage pool)'
 
     def create_payload(self, size):
@@ -54,6 +54,8 @@ class StoragePool(Command):
         try:
             size = ByteSizeStringToIntegerBytes(size)
             payload = {
+                'Name': "storage pool",
+                'Description': "Pretty good storage group",
                 'Capacity': {'Data': {'AllocatedBytes': int(size)}},
                 'Oem': {'Compliance': 'strict'}
             }
@@ -103,6 +105,24 @@ class StoragePool(Command):
         'Delete a Storage Pool by POOL ID'
         self.handle_response(self.conn.delete(f'/StoragePools/{arg}'))
 
+    def patch_payload(self):
+        payload = {
+        }
+        return payload
+
+    def do_patch(self, arg):
+        'Patch Storage Pool'
+
+        if arg is None or arg == '':
+            print('*** POOL ID is required parameter')
+            return
+
+        payload = self.patch_payload()
+        if payload is None:
+            return
+
+        self.handle_response(self.conn.patch(f'/StoragePools/{arg}', payload))
+
     def do_storage(self, arg):
         'List Storage for provided POOL ID'
         if arg is None or arg == '':
@@ -115,19 +135,29 @@ class StoragePool(Command):
 
         self.conn.push_path('') # Use @odata.id directly
         volumes = response.json()['Members']
+
+        counter = 1
         for volume in volumes:
-            volumeId = volume['@odata.id']
-            volume = self.conn.get(volumeId)
+            try:
+                volumeId = volume['@odata.id']
+                volume = self.conn.get(volumeId)
 
-            storageId = volume.json()['Links']['OwningStorageResource']['@odata.id']
-            storage = self.conn.get(storageId)
+                storageId = volume.json()['Links']['OwningStorageResource']['@odata.id']
+                storage = self.conn.get(storageId)
 
+                locationType = storage.json()['Location']['PartLocation']['LocationType']
+                locationValue = storage.json()['Location']['PartLocation']['LocationOrdinalValue']
+                nqn = storage.json()['Identifiers'][0]['DurableName']
+                nsid = volume.json()['Identifiers'][0]['DurableName']
+                capacityBytes = volume.json()['CapacityBytes']
 
-            nqn = storage.json()['Identifiers'][0]['DurableName']
-            nsid = volume.json()['Identifiers'][0]['DurableName']
-            capacityBytes = volume.json()['CapacityBytes']
-
-            print(f'{nqn} {nsid} {capacityBytes}')
+                # Display counter for each volume
+                print(f'{counter}\t{locationType} {locationValue}\t{nqn} {nsid} {capacityBytes}')
+                # Increment counter after each volume
+                counter += 1
+            except:
+                print(f"{counter}: Missing volume")
+                counter += 1
 
         self.conn.pop_path()
 

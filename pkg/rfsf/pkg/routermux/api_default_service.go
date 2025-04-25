@@ -9070,6 +9070,13 @@ func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePools
 	return nil, errors.New("service method 'RedfishV1StorageServicesStorageServiceIdStoragePoolsPost' not implemented")
 }
 
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch -
+func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch(storageServiceId string, storagePoolV150StoragePool openapi.StoragePoolV150StoragePool) (interface{}, error) {
+	// TODO - update RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch with the required logic for this service method.
+	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+	return nil, errors.New("service method 'RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch' not implemented")
+}
+
 // RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedPoolsAllocatedPoolIdDelete -
 func (s *DefaultApiService) RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedPoolsAllocatedPoolIdDelete(storageServiceId string, storagePoolId string, allocatedPoolId string) (interface{}, error) {
 	// TODO - update RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedPoolsAllocatedPoolIdDelete with the required logic for this service method.

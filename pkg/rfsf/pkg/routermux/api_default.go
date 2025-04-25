@@ -7778,6 +7778,12 @@ func (c *DefaultApiController) Routes() Routes {
 			c.RedfishV1StorageServicesStorageServiceIdStoragePoolsPost,
 		},
 		{
+			"RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch",
+			strings.ToUpper("P"),
+			"/redfish/v1/StorageServices/{StorageServiceId}/StoragePools",
+			c.RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch,
+		},
+		{
 			"RedfishV1StorageServicesStorageServiceIdStoragePoolsStoragePoolIdAllocatedPoolsAllocatedPoolIdDelete",
 			strings.ToUpper("Delete"),
 			"/redfish/v1/StorageServices/{StorageServiceId}/StoragePools/{StoragePoolId}/AllocatedPools/{AllocatedPoolId}",
@@ -35274,6 +35280,25 @@ func (c *DefaultApiController) RedfishV1StorageServicesStorageServiceIdStoragePo
 	}
 
 	result, err := c.service.RedfishV1StorageServicesStorageServiceIdStoragePoolsPost(storageServiceId, *storagePoolV150StoragePool)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	EncodeJSONResponse(result, nil, w)
+}
+
+// RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch -
+func (c *DefaultApiController) RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	storageServiceId := params["storageServiceId"]
+	storagePoolV150StoragePool := &openapi.StoragePoolV150StoragePool{}
+	if err := json.NewDecoder(r.Body).Decode(&storagePoolV150StoragePool); err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	result, err := c.service.RedfishV1StorageServicesStorageServiceIdStoragePoolsPatch(storageServiceId, *storagePoolV150StoragePool)
 	if err != nil {
 		w.WriteHeader(500)
 		return

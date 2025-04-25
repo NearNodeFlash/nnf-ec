@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Hewlett Packard Enterprise Development LP
+ * Copyright 2023-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -26,8 +26,8 @@ import (
 )
 
 type VfResetCmd struct {
-	Device string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	PDFID  string `arg help:"PDFID of the end-point."`
+	Device string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	PDFID  string `arg:"--pdfid" help:"PDFID of the end-point."`
 }
 
 func (cmd *VfResetCmd) Run() error {

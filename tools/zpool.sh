@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# Copyright 2025 Hewlett Packard Enterprise Development LP
+# Other additional copyright holders may be indicated within.
+#
+# The entirety of this work is licensed under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+#
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+set -eo pipefail
+shopt -s expand_aliases
+shopt -s extglob
+
+usage() {
+    cat <<EOF
+Manage zpool on Rabbit
+NOTE: Namespaces must be created and attached prior
+
+Usage: $0 COMMAND [ARGS...]
+
+Commands:
+    list-drives                                               list the drives used in create/delete
+    create [NAME] [NAMESPACE-ID] [mirror|raidz|raidz2|raidz3] create a zpool on all drives, optionally configuring raidz
+    delete [NAME] [NAMESPACE-ID]                              delete a zpool
+    status                                                    status of zpool
+    scrub                                                     scrub the zpool
+    list-volumes                                              list volumes in zpool
+    fio    [NAME] [time-in-minutes]                           run fio on the zpool
+EOF
+}
+
+DRIVES=()
+
+drives() {
+    local NAMESPACE=$1
+    DRIVES=()
+    for DRIVE in /dev/nvme*n"$NAMESPACE";
+    do
+        # shellcheck disable=SC2086
+        if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
+        then
+            echo "  Found drive ${DRIVE}"
+            NAMESPACEID=$(nvme id-ns ${DRIVE} | grep -E '^NVME Identify Namespace [[:digit:]]+' | awk '{print $4}')
+            if [ "${NAMESPACEID::-1}" == "$NAMESPACE" ];
+            then
+                echo "    Found Namespace ${NAMESPACE}"
+                DRIVES+=("${DRIVE}")
+            fi
+        fi
+    done
+
+    echo "${#DRIVES[@]}" DRIVES: "${DRIVES[@]}"
+}
+
+join() {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
+
+
+NAME=${2:-"rabbit"}
+NAMESPACE=${3:-"1"}
+RAID_LEVEL=${4:-"striped"}
+
+case $1 in
+    list-drives)
+        drives "$NAMESPACE"
+        ;;
+    create)
+        drives "$NAMESPACE"
+        if (( "${#DRIVES[@]}" == 0 )); then
+            echo "No drives found, please create and attach namespaces"
+            usage
+            exit 1
+        fi
+
+        zpool create "${NAME}" -o autotrim=on -o cachefile=none  "${RAID_LEVEL}" $(join " " "${DRIVES[@]}")
+        if [ $? -ne 0 ]; then
+            echo "Failed to create zpool"
+            exit 1
+        fi
+        echo "Created zpool '${NAME}' with ${RAID_LEVEL} on drives: $(join " " "${DRIVES[@]}")"
+
+        echo "DONE! Access the volume at /dev/${NAME}/${NAME}"
+        ;;
+    delete)
+        echo "Removing zpool '${NAME}'"
+        zpool destroy "${NAME}" || true
+        ;;
+    status)
+        echo "Status of '${NAME}'"
+        zpool status -v -P -L "${NAME}"
+        ;;
+    scrub)
+        echo "Scrubbing '${NAME}'"
+        zpool scrub "${NAME}"
+        ;;
+    list-volumes)
+        echo "Volumes in '${NAME}'"
+        zpool list -o name,size,alloc,free,cap,dedup,health "${NAME}"
+        ;;
+    fio)
+        fio --name=zfs_rw_mix --directory=/${NAME} --rw=randrw --rwmixread=70 --bs=128k --size=200G --numjobs=4 --iodepth=16 --time_based --runtime=60s --group_reporting
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+esac

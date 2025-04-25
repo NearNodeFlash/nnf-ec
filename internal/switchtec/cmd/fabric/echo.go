@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -25,8 +25,8 @@ import (
 
 // EchoCmd defines the Echo CLI command and parameters
 type EchoCmd struct {
-	Device  string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	Payload uint32 `arg optional default:"0" help:"The echo payload. The bit-inverse will be returned by the device."`
+	Device  string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	Payload uint32 `arg:"--payload" default:"0" help:"The echo payload. The bit-inverse will be returned by the device."`
 }
 
 // Run will run the Echo command

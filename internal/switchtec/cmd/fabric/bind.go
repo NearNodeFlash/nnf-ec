@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -27,11 +27,11 @@ import (
 
 // BindCmd defines the Bind CLI command and parameters
 type BindCmd struct {
-	Device    string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	SwIndex   uint8  `arg help:"Software index of the fabric device."`
-	PhyPortID uint8  `arg help:"Physical port ID within the domain."`
-	LogPortID uint8  `arg help:"Logical port ID within the domain."`
-	PDFID     string `arg help:"PDFID of the end-point."`
+	Device    string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	SwIndex   uint8  `arg:"--swindex" help:"Software index of the fabric device."`
+	PhyPortID uint8  `arg:"--phyportid" help:"Physical port ID within the domain."`
+	LogPortID uint8  `arg:"--logportid" help:"Logical port ID within the domain."`
+	PDFID     string `arg:"--pdfid" help:"PDFID of the end-point."`
 }
 
 // Run will run the Bind command
@@ -52,10 +52,10 @@ func (cmd *BindCmd) Run() error {
 
 // UnbindCmd defines the Bind CLI command and parameters
 type UnbindCmd struct {
-	Device    string `arg help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
-	SwIndex   uint8  `arg help:"Software index of the fabric device."`
-	PhyPortID uint8  `arg help:"Physical port ID within the domain."`
-	LogPortID uint8  `arg help:"Logical port ID within the domain."`
+	Device    string `arg:"--device" help:"The switchtec device." type:"existingFile" env:"SWITCHTEC_DEV"`
+	SwIndex   uint8  `arg:"--swindex" help:"Software index of the fabric device."`
+	PhyPortID uint8  `arg:"--phyportid" help:"Physical port ID within the domain."`
+	LogPortID uint8  `arg:"--logportid" help:"Logical port ID within the domain."`
 }
 
 // Run will run the Unbind command
