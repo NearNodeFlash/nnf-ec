@@ -169,20 +169,14 @@ find_matching_namespace() {
         is_model_match "$model" "$expected_model" && model_match=true
         is_size_match "$size_mb" "$expected_size_mb" && size_match=true
 
-        # Determine match quality
-        local match_score=0
+        # Only consider perfect matches (both size and model match)
         if $size_match && $model_match; then
-            match_score=2
-        elif $size_match || $model_match; then
-            match_score=1
-        fi
-
-        # Update best match if this match is better
-        if [[ $match_score -gt $best_match_score ]]; then
             best_device="$device"
-            best_match_type=$([[ $match_score -eq 2 ]] && echo "PERFECT MATCH" || echo "PARTIAL MATCH")
-            best_match_score=$match_score
+            best_match_type="PERFECT MATCH"
+            best_match_score=2
+            break  # Take the first perfect match we find
         fi
+        # Skip partial matches - only perfect matches are allowed
     done
 
     [[ -n "$best_device" ]] && echo "$best_device:$best_match_type:$best_match_score" || echo ""
@@ -245,10 +239,16 @@ get_present_pv_info() {
 list_candidates() {
     local expected_size_mb=$1
     local expected_model=$2
+    local missing_pv=$3
     local found_candidates=0
 
     echo "   Candidates:"
     for device in "${!nvme_usage_by_device[@]}"; do
+        # Skip devices already used as replacements globally
+        if [[ -n "${globally_used_replacement_devices[$device]}" ]]; then
+            continue
+        fi
+
         # Skip if not available
         [[ "${nvme_usage_by_device[$device]}" != "Available" ]] && continue
 
@@ -306,6 +306,8 @@ replace_pv() {
 
     # Mark the device as used
     nvme_usage_by_device["$new_device"]="Used by LVM"
+    # Mark the device as globally used for replacement to avoid using it again
+    globally_used_replacement_devices["$new_device"]=1
 
     if $DRY_RUN; then
         echo "DRY RUN: Would remove $missing_pv from VG $vg"
@@ -462,7 +464,7 @@ replace_missing_pvs() {
         else
             echo "   No suitable candidates found for missing PV: $missing_pv"
             # List available candidates for diagnostic purposes
-            list_candidates "$expected_size_mb" "$common_model"
+            list_candidates "$expected_size_mb" "$common_model" "$missing_pv"
         fi
     done
 
@@ -573,7 +575,7 @@ analyze_vg() {
         echo "   Using size for comparisons: ${expected_size_mb}MB"
 
         # List candidate devices
-        list_candidates "$expected_size_mb" "$common_model"
+        list_candidates "$expected_size_mb" "$common_model" "$missing_pv"
     done
 
     if [[ ${#missing_pvs[@]} -gt 0 ]]; then
