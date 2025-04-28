@@ -38,14 +38,18 @@ EOF
 # Convert various size units to MB
 convert_to_mb() {
     local size=$1
-    local unit=$(echo "$size" | sed 's/[0-9.]//g')
-    local num=$(echo "$size" | sed 's/[^0-9.]//g')
+    local unit
+    # Use parameter expansion instead of sed
+    unit=${size//[0-9.]/}
+    local num
+    # Use parameter expansion instead of sed
+    num=${size//[^0-9.]/}
 
     case $unit in
-        T|TB) echo "scale=2; $num * 1024 * 1024" | bc || echo "$num" ;;
-        G|GB) echo "scale=2; $num * 1024" | bc || echo "$num" ;;
-        M|MB) echo "scale=2; $num" | bc || echo "$num" ;;
-        K|KB) echo "scale=2; $num / 1024" | bc || echo "$num" ;;
+        T|TB|TiB) echo "scale=2; $num * 1024 * 1024" | bc || echo "$num" ;;
+        G|GB|GiB) echo "scale=2; $num * 1024" | bc || echo "$num" ;;
+        M|MB|MiB) echo "scale=2; $num" | bc || echo "$num" ;;
+        K|KB|KiB) echo "scale=2; $num / 1024" | bc || echo "$num" ;;
         *) echo "$num" ;;
     esac
 }
@@ -63,17 +67,22 @@ is_size_match() {
     expected_size_mb=$(echo "$expected_size_mb" | tr -cd '0-9.')
 
     # Compare rounded integers first (faster)
-    local size_mb_int=$(echo "scale=0; ($size_mb+0.5)/1" | bc 2>/dev/null || echo "0")
-    local expected_size_mb_int=$(echo "scale=0; ($expected_size_mb+0.5)/1" | bc 2>/dev/null || echo "0")
+    local size_mb_int
+    size_mb_int=$(echo "scale=0; ($size_mb+0.5)/1" | bc 2>/dev/null || echo "0")
+    local expected_size_mb_int
+    expected_size_mb_int=$(echo "scale=0; ($expected_size_mb+0.5)/1" | bc 2>/dev/null || echo "0")
 
     if [[ "$size_mb_int" == "$expected_size_mb_int" ]]; then
         return 0  # Match
     fi
 
     # Check percent difference if integers don't match
-    local size_diff=$(echo "scale=4; $size_mb - $expected_size_mb" | bc 2>/dev/null || echo "0")
-    local size_diff_abs=$(echo "$size_diff" | tr -d '-')
-    local percent_diff=$(echo "scale=4; ($size_diff_abs * 100) / $expected_size_mb" | bc 2>/dev/null || echo "100")
+    local size_diff
+    size_diff=$(echo "scale=4; $size_mb - $expected_size_mb" | bc 2>/dev/null || echo "0")
+    local size_diff_abs
+    size_diff_abs=$(echo "$size_diff" | tr -d '-')
+    local percent_diff
+    percent_diff=$(echo "scale=4; ($size_diff_abs * 100) / $expected_size_mb" | bc 2>/dev/null || echo "100")
 
     [[ $(echo "$percent_diff < 0.5" | bc -l 2>/dev/null || echo "0") -eq 1 ]] && return 0 || return 1
 }
@@ -130,8 +139,10 @@ get_pv_size_from_metadata() {
     local vg_output=$1
     local pv=$2
 
-    local pv_section=$(echo "$vg_output" | grep -A 20 "$pv")
-    local extracted_size=$(echo "$pv_section" | grep -E "PV Size|PV Size:" | head -1 | sed -E 's/.*PV Size[^0-9]*([0-9.]+) ?([KMGT]i?B?).*/\1\2/')
+    local pv_section
+    pv_section=$(echo "$vg_output" | grep -A 20 "$pv")
+    local extracted_size
+    extracted_size=$(echo "$pv_section" | grep -E "PV Size|PV Size:" | head -1 | sed -E 's/.*PV Size[^0-9]*([0-9.]+) ?([KMGT]i?B?).*/\1\2/')
 
     [[ -n "$extracted_size" ]] && convert_to_mb "$extracted_size" || echo "0"
 }
@@ -254,25 +265,26 @@ list_candidates() {
         # Determine match type
         local match_type=""
         if $size_match && $model_match; then
-            match_type="✅ PERFECT MATCH"
+            match_type="PERFECT MATCH"
             ((found_candidates++))
         elif $size_match; then
-            match_type="⚠️ SIZE MATCH ONLY"
+            match_type="SIZE MATCH ONLY"
             ((found_candidates++))
         elif $model_match; then
-            match_type="⚠️ MODEL MATCH ONLY"
+            match_type="MODEL MATCH ONLY"
             ((found_candidates++))
         else
             continue
         fi
 
         # Show device details
-        local raw_device_size=$(lsblk -dn -o SIZE "$device" | tr -d '[:space:]')
-        printf "   ➤ %s: %sMB (raw: %s) | %s | %s | %s\n" \
+        local raw_device_size
+        raw_device_size=$(lsblk -dn -o SIZE "$device" | tr -d '[:space:]')
+        printf "   > %s: %sMB (raw: %s) | %s | %s | %s\n" \
             "$device" "$size_mb" "$raw_device_size" "$model" "$serial" "$match_type"
     done
 
-    [[ $found_candidates -eq 0 ]] && echo "   ❗ No suitable candidates found."
+    [[ $found_candidates -eq 0 ]] && echo "   No suitable candidates found."
     return $found_candidates
 }
 
@@ -283,11 +295,11 @@ replace_pv() {
     local new_device=$3
 
     if $DRY_RUN; then
-        echo "🔍 DRY RUN: Would add $new_device to VG $vg"
+        echo "DRY RUN: Would add $new_device to VG $vg"
     else
-        echo "🔄 Adding $new_device to VG $vg"
+        echo "Adding $new_device to VG $vg"
         if ! vgextend "$vg" "$new_device"; then
-            echo "⚠️ Failed to add $new_device to VG $vg"
+            echo "Failed to add $new_device to VG $vg"
             return 1
         fi
     fi
@@ -296,11 +308,11 @@ replace_pv() {
     nvme_usage_by_device["$new_device"]="Used by LVM"
 
     if $DRY_RUN; then
-        echo "🔍 DRY RUN: Would remove $missing_pv from VG $vg"
+        echo "DRY RUN: Would remove $missing_pv from VG $vg"
     else
-        echo "➖ Removing $missing_pv from VG $vg"
+        echo "Removing $missing_pv from VG $vg"
         if ! vgreduce --removemissing --force "$vg"; then
-            echo "⚠️ Failed to remove $missing_pv from VG $vg"
+            echo "Failed to remove $missing_pv from VG $vg"
             return 1
         fi
     fi
@@ -313,7 +325,7 @@ repair_lvs() {
     local vg=$1
     [[ $DRY_RUN == true ]] && return 0
 
-    echo -e "\n🔍 Checking for damaged LVs..."
+    echo -e "\nChecking for damaged LVs..."
 
     # List LVs in this VG
     local lvs_to_repair=()
@@ -329,22 +341,22 @@ repair_lvs() {
 
     echo "Found ${#lvs_to_repair[@]} LVs to check/repair"
     for lv in "${lvs_to_repair[@]}"; do
-        echo "🔧 Checking LV $vg/$lv"
+        echo "Checking LV $vg/$lv"
 
         # Try to activate the LV
         if ! lvchange -ay "$vg/$lv" 2>/dev/null; then
-            echo "⚠️ Could not activate LV $vg/$lv"
+            echo "Could not activate LV $vg/$lv"
 
             # Try to repair
-            echo "🔧 Attempting repair of LV $vg/$lv"
+            echo "Attempting repair of LV $vg/$lv"
             if lvconvert --repair "$vg/$lv"; then
-                echo "✅ Repaired LV $vg/$lv"
+                echo "Repaired LV $vg/$lv"
                 lvchange -ay "$vg/$lv"
             else
-                echo "⚠️ Failed to repair LV $vg/$lv automatically"
+                echo "Failed to repair LV $vg/$lv automatically"
             fi
         else
-            echo "✅ LV $vg/$lv is active"
+            echo "LV $vg/$lv is active"
         fi
     done
 
@@ -358,7 +370,7 @@ replace_missing_pvs() {
     # Get VG information
     vgdisplay_output=$(vgdisplay -v "$vg" 2>/dev/null)
     if [[ -z "$vgdisplay_output" ]]; then
-        echo "⚠️ Could not get VG information for $vg"
+        echo "Could not get VG information for $vg"
         return 1
     fi
 
@@ -369,11 +381,12 @@ replace_missing_pvs() {
         return 0
     fi
 
-    echo -e "\n🔧 Found ${#missing_pvs[@]} missing PVs in VG '$vg'"
+    echo -e "\nFound ${#missing_pvs[@]} missing PVs in VG '$vg'"
     local replacement_count=0
 
     # Get information about present PVs
-    local pv_info=$(get_present_pv_info "$vg" "$vgdisplay_output")
+    local pv_info
+    pv_info=$(get_present_pv_info "$vg" "$vgdisplay_output")
 
     # Extract sizes and models
     declare -A present_pvs_size
@@ -406,34 +419,38 @@ replace_missing_pvs() {
     if [[ -n "$common_size" ]]; then
         echo "Common PV size in VG: ${common_size}MB"
     else
-        echo "⚠️ No common size found"
+        echo "No common size found"
     fi
 
     if [[ -n "$common_model" ]]; then
         echo "Looking for devices with model: $common_model"
     else
-        echo "⚠️ No common model found"
+        echo "No common model found"
     fi
 
     # Process each missing PV
     for missing_pv in "${missing_pvs[@]}"; do
-        echo -e "\n🔄 Finding new PV to add before removing: $missing_pv"
+        echo -e "\nFinding new PV to add before removing: $missing_pv"
 
         # Determine expected size
-        local expected_size_mb=$(get_pv_size_from_metadata "$vgdisplay_output" "$missing_pv")
+        local expected_size_mb
+        expected_size_mb=$(get_pv_size_from_metadata "$vgdisplay_output" "$missing_pv")
         if [[ "$expected_size_mb" == "0" && -n "$common_size" ]]; then
             expected_size_mb="$common_size"
-            echo "   📏 Using common size from other PVs: ${expected_size_mb}MB"
+            echo "   Using common size from other PVs: ${expected_size_mb}MB"
         elif [[ "$expected_size_mb" != "0" ]]; then
-            echo "   📏 Size from metadata: ${expected_size_mb}MB"
+            echo "   Size from metadata: ${expected_size_mb}MB"
         else
-            echo "   ⚠️ Could not determine size for missing PV"
+            echo "   Could not determine size for missing PV"
         fi
 
         # Find best matching namespace
-        local best_match=$(find_matching_namespace "$expected_size_mb" "$common_model")
-        local best_device=$(echo "$best_match" | cut -d: -f1)
-        local best_match_type=$(echo "$best_match" | cut -d: -f2)
+        local best_match
+        best_match=$(find_matching_namespace "$expected_size_mb" "$common_model")
+        local best_device
+        best_device=$(echo "$best_match" | cut -d: -f1)
+        local best_match_type
+        best_match_type=$(echo "$best_match" | cut -d: -f2)
 
         if [[ -n "$best_device" ]]; then
             echo "Found matching device to add: $best_device ($best_match_type)"
@@ -443,7 +460,7 @@ replace_missing_pvs() {
                 ((replacement_count++))
             fi
         else
-            echo "   ❗ No suitable candidates found for missing PV: $missing_pv"
+            echo "   No suitable candidates found for missing PV: $missing_pv"
             # List available candidates for diagnostic purposes
             list_candidates "$expected_size_mb" "$common_model"
         fi
@@ -452,14 +469,14 @@ replace_missing_pvs() {
     # Final cleanup and repair if replacements were made
     if [[ $replacement_count -gt 0 ]]; then
         if $DRY_RUN; then
-            echo -e "\n🔍 DRY RUN: Would now check and repair LVs in $vg if needed"
+            echo -e "\nDRY RUN: Would now check and repair LVs in $vg if needed"
         else
             # Repair logical volumes if needed
             repair_lvs "$vg"
-            echo -e "\n✅ Completed replacement of $replacement_count PVs in VG $vg"
+            echo -e "\nCompleted replacement of $replacement_count PVs in VG $vg"
         fi
     else
-        echo -e "\n⚠️ No replacements were performed"
+        echo -e "\nNo replacements were performed"
     fi
 
     return 0
@@ -469,13 +486,13 @@ replace_missing_pvs() {
 analyze_vg() {
     local vg=$1
 
-    echo -e "\n🔸 Volume Group: $vg"
+    echo -e "\nVolume Group: $vg"
     echo "-----------------------------------"
 
     # Get VG information
     vgdisplay_output=$(vgdisplay -v "$vg" 2>/dev/null)
     if [[ -z "$vgdisplay_output" ]]; then
-        echo "⚠️ Could not get VG information for $vg"
+        echo "Could not get VG information for $vg"
         return 1
     fi
 
@@ -483,70 +500,84 @@ analyze_vg() {
     IFS=' ' read -r -a missing_pvs <<< "$(get_missing_pvs "$vg")"
 
     # Get information about present PVs
-    local pv_info=$(get_present_pv_info "$vg" "$vgdisplay_output")
+    local pv_info
+    pv_info=$(get_present_pv_info "$vg" "$vgdisplay_output")
 
     # Show missing PVs
     for pv in "${missing_pvs[@]}"; do
-        echo "❌ MISSING PV: $pv"
+        echo "MISSING PV: $pv"
     done
 
     if [[ ${#missing_pvs[@]} -eq 0 ]]; then
-        echo "📊 No missing PVs in this volume group."
+        echo "No missing PVs in this volume group."
         return 0
     fi
 
     # Extract sizes and models
     declare -A present_pvs_size
     declare -A present_pvs_model
-    IFS=',' read -r -a pv_entries <<< "$pv_info"
-    for entry in "${pv_entries[@]}"; do
-        [[ -z "$entry" ]] && continue
-        IFS=':' read -r pv size model <<< "$entry"
-        present_pvs_size["$pv"]="$size"
-        present_pvs_model["$pv"]="$model"
-    done
+
+    if [[ -n "$pv_info" ]]; then
+        IFS=',' read -r -a pv_entries <<< "$pv_info"
+        for entry in "${pv_entries[@]}"; do
+            [[ -z "$entry" ]] && continue
+            IFS=':' read -r pv size model <<< "$entry"
+            if [[ -n "$pv" && -n "$size" ]]; then
+                present_pvs_size["$pv"]="$size"
+                present_pvs_model["$pv"]="$model"
+            fi
+        done
+    fi
 
     # Find common size and model
-    local common_size=$(get_most_common present_pvs_size)
-    local common_model=$(get_most_common present_pvs_model)
+    local common_size=""
+    local common_model=""
 
-    echo "Using sizes collected from PVs already in this VG:"
-    for pv in "${!present_pvs_size[@]}"]; do
-        echo "   • PV: $pv, Size: ${present_pvs_size[$pv]}MB"
-    done
+    if [[ ${#present_pvs_size[@]} -gt 0 ]]; then
+        common_size=$(get_most_common present_pvs_size)
+        common_model=$(get_most_common present_pvs_model)
 
-    [[ -n "$common_size" ]] && echo "Common PV size in VG '$vg': $common_size MB" ||
-        echo "⚠️ No common size found in existing PVs in this VG"
+        echo "Using sizes collected from PVs already in this VG:"
+        for pv in "${!present_pvs_size[@]}"; do
+            echo "   • PV: $pv, Size: ${present_pvs_size[$pv]}MB"
+        done
+
+        [[ -n "$common_size" ]] && echo "Common PV size in VG '$vg': $common_size MB" ||
+            echo "No common size found in existing PVs in this VG"
+    else
+        echo "No present PVs found in this VG to determine common size or model"
+    fi
 
     # Analyze each missing PV
-    for missing_pv in "${missing_pvs[@]}"]; do
-        echo -e "\n🔄 Finding replacements for: $missing_pv"
-        echo "   Expected size from VG scan: ${common_size}MB, Preferred model: $common_model"
+    for missing_pv in "${missing_pvs[@]}"; do
+        echo -e "\nFinding replacements for: $missing_pv"
+        echo "   Expected size from VG scan: ${common_size:-Unknown}MB, Preferred model: ${common_model:-Unknown}"
 
         # Get size from metadata
-        local extracted_size=$(get_pv_size_from_metadata "$vgdisplay_output" "$missing_pv")
+        local extracted_size
+        extracted_size=$(get_pv_size_from_metadata "$vgdisplay_output" "$missing_pv")
 
         # Determine expected size
         local expected_size_mb=""
         if [[ "$extracted_size" != "0" ]]; then
             expected_size_mb="$extracted_size"
-            echo "   📏 Extracted size from metadata: ${expected_size_mb}MB"
+            echo "   Extracted size from metadata: ${expected_size_mb}MB"
         elif [[ -n "$common_size" ]]; then
             expected_size_mb="$common_size"
-            echo "   📏 Using common size from other PVs: ${expected_size_mb}MB"
+            echo "   Using common size from other PVs: ${expected_size_mb}MB"
         else
-            echo "   ⚠️ WARNING: Could not determine size for missing PV"
+            echo "   WARNING: Could not determine size for missing PV"
             expected_size_mb="0"
         fi
 
-        echo "   📊 Using size for comparisons: ${expected_size_mb}MB"
+        echo "   Using size for comparisons: ${expected_size_mb}MB"
 
         # List candidate devices
         list_candidates "$expected_size_mb" "$common_model"
     done
 
     if [[ ${#missing_pvs[@]} -gt 0 ]]; then
-        echo "📋 VG '$vg' has ${#missing_pvs[@]} missing PVs that need replacement"
+        echo "VG '$vg' has ${#missing_pvs[@]} missing PVs that need replacement"
         return 10  # Return code 10 indicates missing PVs
     fi
 
@@ -560,8 +591,16 @@ scan_nvme_devices() {
     declare -gA nvme_sizes_by_device
     declare -gA nvme_serials_by_device
     declare -gA nvme_usage_by_device
+    declare -gA nvme_state_by_device
+    declare -gA nvme_basename_by_device  # Add mapping from device path to basename
 
-    echo "⏳ Scanning NVMe devices..."
+    # Get ZPool status output once to avoid calling it for each device
+    local zpool_status_output=""
+    if command -v zpool &>/dev/null; then
+        zpool_status_output=$(zpool status 2>/dev/null)
+    fi
+
+    echo "Scanning NVMe devices..."
     for device in /dev/nvme*n*; do
         [[ -b "$device" ]] || continue
         name=$(basename "$device")
@@ -574,28 +613,190 @@ scan_nvme_devices() {
         size=$(lsblk -dn -o SIZE "$device" | tr -d '[:space:]')
         size_mb=$(convert_to_mb "$size")
 
-        # Check if device is used by LVM or mounted
-        if pvs "$device" &>/dev/null; then
-            usage="Used by LVM"
-        elif grep -q "$device" /proc/mounts; then
-            usage="Mounted"
-        else
-            usage="Available"
+        # Initialize state and usage
+        local state="ONLINE"
+        usage="Available"
+
+        # Check if device is part of a ZPool by checking both full path and basename
+        device_basename=$(basename "$device")
+        # Store the basename for later use in matching
+        nvme_basename_by_device["$device"]="$device_basename"
+
+        if [[ -n "$zpool_status_output" ]]; then
+            # Check if the device appears in zpool status output
+            if echo "$zpool_status_output" | grep -q "$device" ||
+               echo "$zpool_status_output" | grep -q "$device_basename"; then
+
+                # Extract the device's state from zpool status output
+                device_line=$(echo "$zpool_status_output" | grep -m1 "$device_basename" || echo "")
+                if [[ -n "$device_line" ]]; then
+                    state=$(echo "$device_line" | awk '{print $2}')
+                    usage="Used by ZFS"
+
+                    # Update usage with the state if not ONLINE
+                    if [[ "$state" != "ONLINE" ]]; then
+                        usage="Used by ZFS ($state)"
+                    fi
+                fi
+            fi
         fi
+
+        # If not used by ZFS, check if used by LVM or mounted
+        if [[ "$usage" == "Available" ]]; then
+            if pvs "$device" &>/dev/null; then
+                usage="Used by LVM"
+            elif grep -q "$device" /proc/mounts; then
+                usage="Mounted"
+            fi
+        fi
+
+        # Also check if any partitions of this device are used by ZFS
+        if [[ "$usage" == "Available" && -n "$zpool_status_output" ]]; then
+            for partition in "${device}"p*; do
+                [[ -b "$partition" ]] || continue
+                partition_basename=$(basename "$partition")
+
+                # Check if the partition is in zpool output
+                if echo "$zpool_status_output" | grep -q "$partition" ||
+                   echo "$zpool_status_output" | grep -q "$partition_basename"; then
+
+                    # Extract the partition's state from zpool status
+                    local partition_line
+                    partition_line=$(echo "$zpool_status_output" | grep -m1 "$partition_basename" || echo "")
+                    if [[ -n "$partition_line" ]]; then
+                        local partition_state
+                        partition_state=$(echo "$partition_line" | awk '{print $2}')
+                        usage="Partitions used by ZFS"
+
+                        # Update usage with state if not ONLINE
+                        if [[ "$partition_state" != "ONLINE" ]]; then
+                            usage="Partitions used by ZFS ($partition_state)"
+                            state="$partition_state"  # Update device state to match partition
+                        fi
+                    else
+                        usage="Partitions used by ZFS"
+                    fi
+                    break
+                fi
+            done
+        fi
+
+        # Get size of the raw device
+        local raw_device_size
+        raw_device_size=$(lsblk -dn -o SIZE "$device" | tr -d '[:space:]')
 
         nvme_models_by_device["$device"]="$model"
         nvme_sizes_by_device["$device"]="$size_mb"
         nvme_serials_by_device["$device"]="$serial"
         nvme_usage_by_device["$device"]="$usage"
+        # shellcheck disable=SC2034 # This variable may be used in future versions
+        nvme_state_by_device["$device"]="$state"
 
         echo "  - Found: $device ($model, $size, $usage)"
     done
 }
 
+# Find the best replacement device for a specific volume group
+find_best_replacement() {
+    local vg_name="$1"
+    local missing_pv_name="$2"
+    local missing_pv_size="$3"
+    local missing_device_base=""
+
+    # Extract the base device name if missing_pv_name is in nvme format
+    if [[ "$missing_pv_name" =~ /dev/nvme[0-9]+n[0-9]+ ]]; then
+        missing_device_base=$(basename "$missing_pv_name")
+    fi
+
+    local best_device=""
+    local best_score=0
+    local best_size_diff=999999999  # Very large number to start with
+
+    echo "Looking for a replacement for missing PV: $missing_pv_name (size: $missing_pv_size MB) in VG: $vg_name"
+
+    # First, check for available devices with the same base name
+    if [[ -n "$missing_device_base" ]]; then
+        for device in "${!nvme_usage_by_device[@]}"; do
+            if [[ "${nvme_usage_by_device[$device]}" == "Available" && "${nvme_basename_by_device[$device]}" == "$missing_device_base" ]]; then
+                local device_size="${nvme_sizes_by_device[$device]}"
+                local size_diff=$((device_size - missing_pv_size))
+
+                # If device with same name found and size is at least equal or larger
+                if ((size_diff >= 0)); then
+                    echo "  - Found perfect replacement with same name: $device"
+                    echo "    Model: ${nvme_models_by_device[$device]}, Size: $device_size MB"
+                    # This is a priority match - same name and adequate size
+                    best_device="$device"
+                    # High score to prioritize same-name devices
+                    best_score=1000
+                    best_size_diff="$size_diff"
+                    # Exit early as this is an ideal match
+                    break
+                fi
+            fi
+        done
+    fi
+
+    # If no device with same name found, or it was too small, look for alternatives
+    if [[ -z "$best_device" ]]; then
+        for device in "${!nvme_usage_by_device[@]}"; do
+            if [[ "${nvme_usage_by_device[$device]}" == "Available" ]]; then
+                local device_size="${nvme_sizes_by_device[$device]}"
+                local size_diff=$((device_size - missing_pv_size))
+
+                # Score the device based on size fit and other characteristics
+                local score=0
+
+                # Only consider devices that are at least as large as what we need
+                if ((size_diff >= 0)); then
+                    # Start with a base score
+                    score=50
+
+                    # Prefer devices that are closer in size
+                    if ((size_diff < 5000)); then  # Within 5GB
+                        score=$((score + 30))
+                    elif ((size_diff < 10000)); then  # Within 10GB
+                        score=$((score + 20))
+                    elif ((size_diff < 20000)); then  # Within 20GB
+                        score=$((score + 10))
+                    fi
+
+                    # Consider model matching (not implemented yet)
+                    # This would require knowing the model of the missing device
+
+                    echo "  - Potential replacement: $device"
+                    echo "    Model: ${nvme_models_by_device[$device]}, Size: $device_size MB, Score: $score"
+
+                    # Update best device if this one has a higher score, or same score but better size match
+                    if ((score > best_score)) || ((score == best_score && size_diff < best_size_diff)); then
+                        best_device="$device"
+                        best_score="$score"
+                        best_size_diff="$size_diff"
+                    fi
+                fi
+            fi
+        done
+    fi
+
+    # If we found a suitable replacement
+    if [[ -n "$best_device" ]]; then
+        local replacement_size="${nvme_sizes_by_device[$best_device]}"
+        echo "  - Selected replacement: $best_device"
+        echo "    Model: ${nvme_models_by_device[$best_device]}, Size: $replacement_size MB"
+        echo "    Size difference: $best_size_diff MB"
+        echo "$best_device"
+        return 0
+    else
+        echo "  - No suitable replacement found"
+        echo ""
+        return 1
+    fi
+}
+
 # Main script execution
 
 echo "===================================================="
-echo "🔍 Finding replacement NVMe devices for missing LVM PVs"
+echo "Finding replacement NVMe devices for missing LVM PVs"
 echo "===================================================="
 
 # Initialize global variables
@@ -611,7 +812,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=true
-            echo "🔍 Running in DRY RUN mode. No changes will be made."
+            echo "Running in DRY RUN mode. No changes will be made."
             shift
             ;;
         --help)
@@ -638,7 +839,7 @@ fi
 
 # First pass: identify VGs with missing PVs
 declare -a vgs_with_missing_pvs
-echo -e "\n🔍 First pass: Scanning all volume groups for missing PVs..."
+echo -e "\nFirst pass: Scanning all volume groups for missing PVs..."
 
 while read -r vg; do
     vg=$(echo "$vg" | tr -d '[:space:]')
@@ -646,33 +847,33 @@ while read -r vg; do
 
     # Analyze this VG for missing PVs
     if analyze_vg "$vg"; then
-        echo "✅ VG '$vg' has no missing PVs"
+        echo "VG '$vg' has no missing PVs"
     elif [ $? -eq 10 ]; then
         vgs_with_missing_pvs+=("$vg")
     else
-        echo "⚠️ Error scanning VG: $vg"
+        echo "Error scanning VG: $vg"
     fi
 done < <(echo "$vgs_output")
 
 # Second pass: replace missing PVs
 if [[ ${#vgs_with_missing_pvs[@]} -gt 0 ]]; then
-    echo -e "\n🔧 Second pass: Processing ${#vgs_with_missing_pvs[@]} VGs with missing PVs"
+    echo -e "\nSecond pass: Processing ${#vgs_with_missing_pvs[@]} VGs with missing PVs"
 
     for vg in "${vgs_with_missing_pvs[@]}"; do
-        echo -e "\n🔸 Processing VG: $vg for replacement"
+        echo -e "\nProcessing VG: $vg for replacement"
 
         if $AUTO_REPLACE; then
-            echo "🔄 Auto-replacing missing PVs..."
-            replace_missing_pvs "$vg" || echo "⚠️ Error replacing PVs in VG: $vg"
+            echo "Auto-replacing missing PVs..."
+            replace_missing_pvs "$vg" || echo "Error replacing PVs in VG: $vg"
         else
             if $DRY_RUN; then
-                echo "🔍 DRY RUN: Running replacement analysis..."
-                replace_missing_pvs "$vg" || echo "⚠️ Error analyzing PVs in VG: $vg"
+                echo "DRY RUN: Running replacement analysis..."
+                replace_missing_pvs "$vg" || echo "Error analyzing PVs in VG: $vg"
             else
-                echo -n "🔄 Do you want to replace missing PVs in VG '$vg'? (y/n): "
+                echo -n "Do you want to replace missing PVs in VG '$vg'? (y/n): "
                 read -r response
                 if [[ "$response" == "y" ]]; then
-                    replace_missing_pvs "$vg" || echo "⚠️ Error replacing PVs in VG: $vg"
+                    replace_missing_pvs "$vg" || echo "Error replacing PVs in VG: $vg"
                 else
                     echo "Skipping replacement for VG '$vg'"
                 fi
@@ -680,7 +881,7 @@ if [[ ${#vgs_with_missing_pvs[@]} -gt 0 ]]; then
         fi
     done
 else
-    echo -e "\n✅ No volume groups with missing PVs found"
+    echo -e "\nNo volume groups with missing PVs found"
 fi
 
-echo -e "\n✅ Scan completed"
+echo -e "\nScan completed"
