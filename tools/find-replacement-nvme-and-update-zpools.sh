@@ -9,11 +9,12 @@ shopt -s nullglob
 usage() {
     cat <<EOF
 
-Usage: $0 [--replace] [--dry-run] [--offline-all]
+Usage: $0 [--replace] [--dry-run] [--offline-all] [--scan-devices]
   no-args       Analyze all ZPools for missing/unavailable devices, prompting for replacements
   --replace     Automatically perform replacement of missing devices (no prompting)
   --dry-run     Show what would happen but don't make actual changes
   --offline-all Set all unavailable vdevs to OFFLINE in all zpools
+  --scan-devices Only scan NVMe devices and display information, then exit
   --help        Show this help message
 
 EOF
@@ -99,7 +100,9 @@ get_most_common() {
 list_candidates() {
     local expected_size_mb="$1"
     local expected_model="$2"
-    local missing_device="$3"  # New parameter to get the missing device name
+    local missing_device="$3"
+    local pool_name="$4"
+
     local found_candidates=0
 
     # Keep track of which devices have been displayed
@@ -119,8 +122,18 @@ list_candidates() {
     # Only show PERFECT NAME MATCHES in the first pass
     if [[ -n "$missing_device_basename" ]]; then
         for device in "${!nvme_usage_by_device[@]}"; do
-            # Check for available devices including those with ZFS states (OFFLINE, UNAVAIL, etc.)
-            # Modified to consider devices that are Available with ZFS states
+            # Skip devices already used as replacements globally
+            if [[ -n "${globally_used_replacement_devices[$device]}" ]]; then
+                continue
+            fi
+
+            # Skip if this physical device is already used in this pool
+            local physical_device="${nvme_physical_device[$device]}"
+            if [[ -n "$pool_name" && -n "${pool_used_physical_devices["${pool_name}:${physical_device}"]}" ]]; then
+                continue
+            fi
+
+            # Check for available devices including those with ZFS states
             [[ ! "${nvme_usage_by_device[$device]}" == "Available"* ]] && continue
 
             device_basename=$(basename "$device")
@@ -166,9 +179,19 @@ list_candidates() {
         done
     fi
 
-    # Second pass: check for size/model matches - only show PERFECT MATCHES (both size and model)
-    # MODEL MATCH ONLY is no longer shown as a candidate
+    # Second pass: check for size/model matches
     for device in "${!nvme_usage_by_device[@]}"; do
+        # Skip devices already used as replacements globally
+        if [[ -n "${globally_used_replacement_devices[$device]}" ]]; then
+            continue
+        fi
+
+        # Skip if this physical device is already used in this pool
+        local physical_device="${nvme_physical_device[$device]}"
+        if [[ -n "$pool_name" && -n "${pool_used_physical_devices["${pool_name}:${physical_device}"]}" ]]; then
+            continue
+        fi
+
         # Skip if not available
         [[ ! "${nvme_usage_by_device[$device]}" == "Available"* ]] && continue
 
@@ -217,37 +240,70 @@ list_candidates() {
 find_matching_namespace() {
     local expected_size_mb="$1"
     local expected_model="$2"
+    local pool_name="$3"  # Pool name to identify which physical devices are already used
 
     local best_device=""
     local best_match_type=""
     local best_match_score=0  # 2=perfect match, 1=partial match
 
-    for device in "${!nvme_usage_by_device[@]}"; do
-        # Skip if not available
-        [[ "${nvme_usage_by_device[$device]}" != "Available" ]] && continue
+    # Create an array to store the best device for each physical device
+    declare -A best_device_by_physical
 
-        local model="${nvme_models_by_device[$device]}"
-        local size_mb="${nvme_sizes_by_device[$device]}"
-
-        local size_match=false
-        local model_match=false
-
-        is_model_match "$model" "$expected_model" && model_match=true
-        is_size_match "$size_mb" "$expected_size_mb" && size_match=true
-
-        # Determine match quality
-        local match_score=0
-        if $size_match && $model_match; then
-            match_score=2
-        elif $size_match || $model_match; then
-            match_score=1
+    # First, find the best matching namespace for each physical device
+    for physical_device in "${!physical_device_namespaces[@]}"; do
+        # Skip if this physical device is already used in this pool
+        if [[ -n "$pool_name" && -n "${pool_used_physical_devices["${pool_name}:${physical_device}"]}" ]]; then
+            echo "DEBUG: Skipping physical device $physical_device because it's already used in pool $pool_name (ONLINE)" >&2
+            continue
         fi
 
-        # Update best match if this match is better
-        if [[ $match_score -gt $best_match_score ]]; then
+        local best_namespace=""
+        local best_namespace_score=0
+
+        # Get the list of namespaces for this physical device
+        local namespace_list="${physical_device_namespaces[$physical_device]}"
+
+        # Iterate through each namespace on this physical device
+        for device in $namespace_list; do
+            # Skip if not available (includes "Available (ZFS state)")
+            [[ ! "${nvme_usage_by_device[$device]}" == "Available"* ]] && continue
+
+            # Skip if this namespace is already used globally
+            if [[ -n "${globally_used_replacement_devices[$device]}" ]]; then
+                continue
+            fi
+
+            local model="${nvme_models_by_device[$device]}"
+            local size_mb="${nvme_sizes_by_device[$device]}"
+
+            local current_score=0
+
+            # Calculate score for this namespace
+            is_size_match "$size_mb" "$expected_size_mb" && ((current_score++))
+            is_model_match "$model" "$expected_model" && ((current_score++))
+
+            # Update best namespace for this physical device if score is better
+            if [[ $current_score -gt $best_namespace_score ]]; then
+                best_namespace="$device"
+                best_namespace_score=$current_score
+            fi
+        done
+
+        # Store the best namespace for this physical device if found
+        if [[ -n "$best_namespace" && $best_namespace_score -gt 0 ]]; then
+            best_device_by_physical["$physical_device"]="$best_namespace:$best_namespace_score"
+        fi
+    done
+
+    # Now select the best overall namespace from the best ones for each physical device
+    for physical_device in "${!best_device_by_physical[@]}"; do
+        IFS=':' read -r device score <<< "${best_device_by_physical[$physical_device]}"
+
+        # Update global best if this one is better
+        if [[ $score -gt $best_match_score ]]; then
             best_device="$device"
-            best_match_type=$([[ $match_score -eq 2 ]] && echo "PERFECT MATCH" || echo "PARTIAL MATCH")
-            best_match_score=$match_score
+            best_match_score=$score
+            best_match_type=$([[ $score -eq 2 ]] && echo "PERFECT MATCH" || echo "PARTIAL MATCH")
         fi
     done
 
@@ -263,6 +319,16 @@ scan_nvme_devices() {
     declare -gA nvme_usage_by_device
     declare -gA nvme_state_by_device
     declare -gA nvme_device_original_name  # New array to track original device name in zpool
+    declare -gA nvme_physical_device       # Map namespace to physical device
+
+    # New array to track namespaces per physical device
+    declare -gA physical_device_namespaces # Map physical device to list of namespaces
+
+    # Global array to track devices already used as replacements across all pools
+    declare -gA globally_used_replacement_devices
+
+    # Track physical devices used in each pool
+    declare -gA pool_used_physical_devices
 
     # Get ZPool status output once to avoid calling it for each device
     local zpool_status_output=""
@@ -277,6 +343,18 @@ scan_nvme_devices() {
 
         # Skip partitions
         [[ "$name" =~ p[0-9]+$ ]] && continue
+
+        # Extract the physical device from the namespace (e.g., /dev/nvme0n1 -> /dev/nvme0)
+        local physical_device
+        physical_device=$(echo "$device" | sed -E 's/(\/dev\/nvme[0-9]+)n[0-9]+/\1/')
+        nvme_physical_device["$device"]="$physical_device"
+
+        # Add this namespace to the list for this physical device
+        if [[ -z "${physical_device_namespaces[$physical_device]}" ]]; then
+            physical_device_namespaces["$physical_device"]="$device"
+        else
+            physical_device_namespaces["$physical_device"]="${physical_device_namespaces[$physical_device]} $device"
+        fi
 
         model=$(lsblk -dn -o MODEL "$device" 2>/dev/null | tr -d '[:space:]')
         serial=$(lsblk -dn -o SERIAL "$device" 2>/dev/null | tr -d '[:space:]')
@@ -302,6 +380,21 @@ scan_nvme_devices() {
 
                     # Extract pool name from device line (typically the first pool mentioned above this line)
                     original_name="$device_basename"
+
+                    # Find which pool this device belongs to
+                    local pool_name=""
+                    local pool_line
+                    pool_line=$(echo "$zpool_status_output" | grep -B100 -m1 "$device_basename" | grep -m1 "pool:" | awk '{print $2}')
+                    if [[ -n "$pool_line" ]]; then
+                        pool_name="$pool_line"
+                        # Only mark physical device as used in this pool if the device is ONLINE
+                        if [[ "$state" == "ONLINE" ]]; then
+                            pool_used_physical_devices["${pool_name}:${physical_device}"]=1
+                            echo "DEBUG: Marking ONLINE physical device $physical_device as used in pool $pool_name" >&2
+                        else
+                            echo "DEBUG: NOT marking non-ONLINE physical device $physical_device in pool $pool_name (state: $state)" >&2
+                        fi
+                    fi
 
                     # Only mark as used if it's ONLINE, otherwise keep it available for replacement
                     if [[ "$state" == "ONLINE" ]]; then
@@ -371,6 +464,12 @@ scan_nvme_devices() {
         nvme_device_original_name["$device"]="$original_name"
 
         echo "  - Found: $device ($model, $size, $usage)"
+    done
+
+    # Debug output of physical devices and their namespaces
+    echo -e "\nPhysical device to namespaces mapping:"
+    for phys_dev in "${!physical_device_namespaces[@]}"; do
+        echo "  $phys_dev => ${physical_device_namespaces[$phys_dev]}"
     done
 }
 
@@ -481,15 +580,6 @@ get_zpool_devices() {
         fi
     done < <(echo "$device_section")
 
-    # Sort arrays to ensure consistent device ordering
-    if [[ ${#present_devices[@]} -gt 0 ]]; then
-        readarray -t present_devices < <(printf '%s\n' "${present_devices[@]}" | sort -V)
-    fi
-    
-    if [[ ${#missing_devices[@]} -gt 0 ]]; then
-        readarray -t missing_devices < <(printf '%s\n' "${missing_devices[@]}" | sort -V)
-    fi
-    
     # Return results with clear separation between present and missing devices
     echo "${present_devices[*]}|${missing_devices[*]}"
 }
@@ -565,6 +655,15 @@ replace_zpool_device() {
     # Skip actual replacement if in dry run mode
     if $DRY_RUN; then
         replace_cmd="echo WOULD EXECUTE: $replace_cmd"
+    else
+        # Not in dry run mode - actually track the device usage
+        # Get the physical device for the new device
+        local physical_device="${nvme_physical_device[$new_device]}"
+        if [[ -n "$physical_device" ]]; then
+            # Mark this physical device as used in this pool
+            pool_used_physical_devices["${pool}:${physical_device}"]=1
+            echo "DEBUG: Marking physical device $physical_device as used in pool $pool" >&2
+        fi
     fi
 
     # Handle the case where old_device is a composite of numeric ID and original path
@@ -680,7 +779,7 @@ analyze_zpool() {
         echo "   Expected size: ${common_size}MB, Preferred model: $common_model"
 
         # List candidate devices
-        list_candidates "$common_size" "$common_model" "$device"
+        list_candidates "$common_size" "$common_model" "$device" "$pool"
     done
 
     # Return status based on missing devices (for auto-replacement workflow)
@@ -766,153 +865,42 @@ replace_missing_devices() {
             done
         fi
 
-        # Filter available devices to get only offline ones
-        declare -a offline_candidates=()
+        # Get the best matching namespace based on size and model
+        local result
+        result=$(find_matching_namespace "$common_size" "$common_model" "$pool")
 
-        # First, collect all available but offline devices
-        for device in "${!nvme_usage_by_device[@]}"; do
-            # Skip devices already used as replacements in this pool operation
-            if [[ " ${used_replacement_devices[*]} " == *" $device "* ]]; then
-                continue
-            fi
+        if [[ -n "$result" ]]; then
+            IFS=':' read -r best_device best_match_type best_match_score <<< "$result"
 
-            if [[ "${nvme_usage_by_device[$device]}" == "Available (ZFS "* ]]; then
-                offline_candidates+=("$device")
-            fi
-        done
+            if [[ -n "$best_device" ]]; then
+                echo "Found matching device to add: $best_device ($best_match_type)"
 
-        local best_device=""
-        local best_match_type=""
+                # Mark the physical device as used in this pool to prevent using more namespaces from the same device
+                local physical_device="${nvme_physical_device[$best_device]}"
+                echo "This namespace is on physical device: $physical_device"
 
-        # If we have offline candidates, try to find a match among them first
-        if [[ ${#offline_candidates[@]} -gt 0 ]]; then
-            echo "Looking at offline devices first:"
-            for device in "${offline_candidates[@]}"; do
-                # Skip devices already used as replacements in this pool operation
-                if [[ " ${used_replacement_devices[*]} " == *" $device "* ]]; then
-                    continue
+                # Replace the device
+                if replace_zpool_device "$pool" "$missing_device" "$best_device"; then
+                    ((replacement_count++))
+
+                    # Add this device to the used replacements array to prevent reuse
+                    used_replacement_devices+=("$best_device")
+                    echo "Added $best_device to list of used replacement devices for this pool"
+
+                    # Also mark the device as used globally to prevent using it in other pools
+                    if ! $DRY_RUN; then
+                        nvme_usage_by_device["$best_device"]="Used by ZFS (replacement)"
+                        globally_used_replacement_devices["$best_device"]=1
+
+                        # Mark this physical device as used in this pool
+                        pool_used_physical_devices["${pool}:${physical_device}"]=1
+                    fi
                 fi
-
-                local model="${nvme_models_by_device[$device]}"
-                local size_mb="${nvme_sizes_by_device[$device]}"
-                local state="${nvme_state_by_device[$device]}"
-
-                echo "   • Device: $device, Size: ${size_mb}MB, Model: $model, State: $state"
-
-                # Try to match this offline device with the missing device
-                local size_match=false
-                local model_match=false
-
-                is_model_match "$model" "$common_model" && model_match=true
-                is_size_match "$size_mb" "$common_size" && size_match=true
-
-                if $size_match && $model_match; then
-                    best_device="$device"
-                    best_match_type="PERFECT MATCH (OFFLINE)"
-                    break
-                elif $size_match || $model_match; then
-                    best_device="$device"
-                    best_match_type="PARTIAL MATCH (OFFLINE)"
-                    # Continue in case we find a better match
-                fi
-            done
-        fi
-
-        # If no suitable offline device found, fall back to the regular matching
-        if [[ -z "$best_device" ]]; then
-            echo "No suitable offline devices found, checking other available devices..."
-
-            # Find matching device without listing all candidates
-            local best_match_score=0
-
-            for device in "${!nvme_usage_by_device[@]}"; do
-                # Skip if not available
-                if [[ "${nvme_usage_by_device[$device]}" != "Available" ]]; then
-                    # Debug output for skip reason
-                    echo "   Skipping $device: status is ${nvme_usage_by_device[$device]}" >&2
-                    continue
-                fi
-
-                # Skip devices already used as replacements in this pool operation
-                if [[ " ${used_replacement_devices[*]} " == *" $device "* ]]; then
-                    echo "   Skipping $device: already used in this pool" >&2
-                    continue
-                fi
-
-                local model="${nvme_models_by_device[$device]}"
-                local size_mb="${nvme_sizes_by_device[$device]}"
-                local match_score=0
-
-                # Check for size and model match
-                is_size_match "$size_mb" "$common_size" && ((match_score++))
-                is_model_match "$model" "$common_model" && ((match_score++))
-
-                # Update best match if better
-                if [[ $match_score -gt $best_match_score ]]; then
-                    best_device="$device"
-                    best_match_type=$([[ $match_score -eq 2 ]] && echo "PERFECT MATCH" || echo "PARTIAL MATCH")
-                    best_match_score=$match_score
-                fi
-            done
-        fi
-
-        if [[ -n "$best_device" ]]; then
-            echo "Found matching device to add: $best_device ($best_match_type)"
-
-            # Double-check that the device isn't already used
-            if [[ " ${used_replacement_devices[*]} " == *" $best_device "* ]]; then
-                echo "ERROR: Device $best_device was already used in this pool operation!"
-                echo "Skipping replacement for $missing_device"
-                continue
-            fi
-
-            # Replace the device
-            if replace_zpool_device "$pool" "$missing_device" "$best_device"; then
-                ((replacement_count++))
-
-                # Add this device to the used replacements array to prevent reuse
-                used_replacement_devices+=("$best_device")
-                echo "Added $best_device to list of used replacement devices for this pool"
-
-                # Update device usage status to mark it as no longer available
-                if ! $DRY_RUN; then
-                    nvme_usage_by_device["$best_device"]="Used by ZFS (replacement)"
-                fi
+            else
+                echo "   No suitable candidate found for missing device: $missing_device"
             fi
         else
-            echo "   No suitable candidates found for missing device: $missing_device"
-            # List available candidates for diagnostic purposes, excluding already used devices
-            echo "   Remaining available candidates:"
-            for device in "${!nvme_usage_by_device[@]}"; do
-                # Skip if not available or already used
-                if [[ "${nvme_usage_by_device[$device]}" != "Available"* ||
-                      " ${used_replacement_devices[*]} " == *" $device "* ]]; then
-                    continue
-                fi
-
-                local size_mb="${nvme_sizes_by_device[$device]}"
-                local model="${nvme_models_by_device[$device]}"
-                local serial="${nvme_serials_by_device[$device]}"
-
-                local size_match=false
-                local model_match=false
-
-                is_model_match "$model" "$common_model" && model_match=true
-                is_size_match "$size_mb" "$common_size" && size_match=true
-
-                local match_type=""
-                if $size_match && $model_match; then
-                    match_type="PERFECT MATCH"
-                elif $size_match; then
-                    match_type="SIZE MATCH ONLY"
-                elif $model_match; then
-                    match_type="MODEL MATCH ONLY"
-                else
-                    match_type="NO MATCH"
-                fi
-
-                echo "   • $device: ${size_mb}MB | $model | $serial | $match_type"
-            done
+            echo "   No suitable candidate found for missing device: $missing_device"
         fi
     done
 
@@ -1074,8 +1062,8 @@ find_replacement() {
     # These are regular available devices that happen to have the same name as the missing device
     if [[ -n "$missing_device_basename" ]]; then
         for device in "${!nvme_usage_by_device[@]}"; do
-            # # Skip if not available
-            # [[ "${nvme_usage_by_device[$device]}" != "Available" ]] && continue
+            # Skip if not available
+            [[ "${nvme_usage_by_device[$device]}" != "Available" ]] && continue
 
             local device_basename=
             device_basename=$(basename "$device")
@@ -1110,20 +1098,14 @@ find_replacement() {
         is_model_match "$model" "$expected_model" && model_match=true
         is_size_match "$size_mb" "$expected_size_mb" && size_match=true
 
-        # Determine match quality
-        local match_score=0
+        # Only consider perfect matches (both size and model match)
         if $size_match && $model_match; then
-            match_score=2
-        elif $size_match || $model_match; then
-            match_score=1
-        fi
-
-        # Update best match if this match is better
-        if [[ $match_score -gt $best_match_score ]]; then
             best_device="$device"
-            best_match_type=$([[ $match_score -eq 2 ]] && echo "PERFECT MATCH" || echo "PARTIAL MATCH")
-            best_match_score=$match_score
+            best_match_type="PERFECT MATCH"
+            best_match_score=2
+            break  # Take the first perfect match we find
         fi
+        # Skip partial matches - only perfect matches are allowed
     done
 
     [[ -n "$best_device" ]] && echo "$best_device:$best_match_type:$best_match_score" || echo ""
@@ -1139,6 +1121,7 @@ echo "===================================================="
 AUTO_REPLACE=false
 DRY_RUN=false
 OFFLINE_ALL=false
+SCAN_ONLY=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -1161,6 +1144,11 @@ while [[ $# -gt 0 ]]; do
             echo "Running in OFFLINE ALL mode. All unavailable vdevs will be set to OFFLINE."
             shift
             ;;
+        --scan-devices)
+            SCAN_ONLY=true
+            echo "Running in SCAN ONLY mode. Will scan NVMe devices and exit."
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             echo "Use --help for usage information"
@@ -1177,6 +1165,12 @@ fi
 
 # Scan NVMe devices
 scan_nvme_devices
+
+# If in scan-only mode, exit now
+if $SCAN_ONLY; then
+    echo -e "\nScan completed. Exiting in scan-devices mode."
+    exit 0
+fi
 
 # Get list of ZPools
 zpools_output=$(zpool list -H -o name 2>/dev/null || echo "")
@@ -1201,6 +1195,14 @@ while read -r pool; do
         echo "Error scanning ZPool: $pool"
     fi
 done < <(echo "$zpools_output")
+
+# DEBUG: exit
+DEBUG=false
+if $DEBUG; then
+    echo "DEBUG: ZPools with missing devices: ${zpools_with_missing_devices[*]}"
+    exit 0
+fi
+
 
 # Second pass: perform operations based on mode
 if $OFFLINE_ALL; then
