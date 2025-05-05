@@ -236,7 +236,7 @@ func (p *StoragePool) replaceMissingVolumes() error {
 	for idx, missingVolume := range p.missingVolumes {
 		log := log.WithValues("missingVolume", missingVolume)
 
-		log.V(2).Info("replace missing volume", "missingVolume", missingVolume)
+		log.Info("replace missing volume")
 		storage := unusedStorages[idx]
 
 		volume, err := nvme.CreateVolume(storage, p.volumeCapacity)
@@ -244,11 +244,11 @@ func (p *StoragePool) replaceMissingVolumes() error {
 			log.Error(err, "Failed to create replacement volume")
 			return fmt.Errorf("Failed to create volume: %v", err)
 		}
-		log.V(2).Info("created replacement volume", "volume", volume.Id())
 		pv := nvme.ProvidingVolume{
 			Storage:  storage,
 			VolumeId: volume.Id(),
 		}
+		log.Info("created replacement volume", "storage", storage.SerialNumber(), "volume", pv.VolumeId)
 
 		p.providingVolumes = append(p.providingVolumes, pv)
 
