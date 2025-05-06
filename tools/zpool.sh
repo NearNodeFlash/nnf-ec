@@ -43,22 +43,21 @@ DRIVES=()
 drives() {
     local NAMESPACE=$1
     DRIVES=()
-    for DRIVE in /dev/nvme*n"$NAMESPACE";
-    do
-        # shellcheck disable=SC2086
-        if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
-        then
-            echo "  Found drive ${DRIVE}"
-            NAMESPACEID=$(nvme id-ns ${DRIVE} | grep -E '^NVME Identify Namespace [[:digit:]]+' | awk '{print $4}')
-            if [ "${NAMESPACEID::-1}" == "$NAMESPACE" ];
-            then
-                echo "    Found Namespace ${NAMESPACE}"
-                DRIVES+=("${DRIVE}")
-            fi
+    echo "Finding drives for namespace ${NAMESPACE}"
+    for drive in /dev/disk/by-path/*; do
+        if [[ $drive =~ pci-0000:(05|06|07|08|09|0a|0b|0d|83|84|85|86|88|89|8a|8b):00\.0-nvme-"$NAMESPACE"$ ]]; then
+            DRIVES+=("$drive")
         fi
     done
-
-    echo "${#DRIVES[@]}" DRIVES: "${DRIVES[@]}"
+    if (( "${#DRIVES[@]}" == 0 )); then
+        echo "    No drives found for namespace ${NAMESPACE}"
+        return
+    fi
+    echo "    Found drives for namespace ${NAMESPACE}:"
+    for drive in "${DRIVES[@]}"; do
+        echo "        $drive"
+    done
+    echo "    Found ${#DRIVES[@]} drives with namespace ${NAMESPACE}"
 }
 
 join() {
@@ -70,7 +69,7 @@ join() {
 
 NAME=${2:-"rabbit"}
 NAMESPACE=${3:-"1"}
-RAID_LEVEL=${4:-"striped"}
+RAID_LEVEL=${4:-"raidz2"}
 
 case $1 in
     list-drives)
