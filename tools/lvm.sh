@@ -38,26 +38,6 @@ EOF
 
 DRIVES=()
 
-# drives() {
-#     local NAMESPACE=$1
-#     DRIVES=()
-#     for DRIVE in /dev/nvme*n"$NAMESPACE";
-#     do
-#         # shellcheck disable=SC2086
-#         if [ "$(nvme id-ctrl ${DRIVE} | grep -e KIOXIA -e 'SAMSUNG MZ3LO1T9HCJR')" != "" ];
-#         then
-#             echo "  Found drive ${DRIVE}"
-#             NAMESPACEID=$(nvme id-ns ${DRIVE} | grep -E '^NVME Identify Namespace [[:digit:]]+' | awk '{print $4}')
-#             if [ "${NAMESPACEID::-1}" == "$NAMESPACE" ];
-#             then
-#                 echo "    Found Namespace ${NAMESPACE}"
-#                 DRIVES+=("${DRIVE}")
-#             fi
-#         fi
-#     done
-
-#     echo "${#DRIVES[@]}" DRIVES: "${DRIVES[@]}"
-# }
 drives() {
     local NAMESPACE=$1
     DRIVES=()
