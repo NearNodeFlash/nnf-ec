@@ -69,6 +69,7 @@ EOF
 
 # Associative array /dev/nvme names keyed by serial number
 declare -A deviceName
+declare -A devicePCIAddress
 
 # execute <fn<path>> <args...>
 execute() {
@@ -178,6 +179,17 @@ setDeviceName() {
     do
         SerialNumber=$(nvme id-ctrl "${DRIVE}" | grep -E "^sn " | awk '{print $3}')
         deviceName[$SerialNumber]=$DRIVE
+
+        # Get the PCI address of the NVMe device
+        local dev
+        dev=$(basename "$DRIVE")
+        local devpath=/sys/class/nvme/$dev
+        local pcie_path
+        pcie_path=$(readlink -f "$devpath")
+        local pci
+        pci=$(echo "$pcie_path" | grep -oP '[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-9]' | tail -n1)
+
+        devicePCIAddress[$SerialNumber]="$pci"
     done
 }
 
@@ -252,17 +264,19 @@ displayDriveSlotStatus() {
                         FW="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^fr " | awk '{print $3}')"
                         SN="$(printf '%s\n' "${idCtrl[@]}" | grep -E "^sn " | awk '{print $3}')"
                         Device="${deviceName["$SN"]}"
+                        DeviceAddress="${devicePCIAddress["$SN"]}"
                         ;;
                     *)
                         MF="Unavail"
                         SN="Unavail"
                         FW="Unavail"
                         Device="Unavail"
+                        DeviceAddress="Unavail"
                         ;;
                 esac
             fi
 
-            printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %15.15s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "${physicalPortString//}"
+            printf "PDFID: %6.6s\tSLOT: %2.2d  %15.15s %s %s %15.15s %13.13s %s\n" "${PDFID//}" "${SLOT//}" "$MF" "$SN" "$FW" "$Device" "$DeviceAddress" "${physicalPortString//}"
         fi
     done
     printf "\n"
