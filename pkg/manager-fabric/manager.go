@@ -782,7 +782,11 @@ func (p *Port) bind() error {
 							if endpoint.boundPaxId != uint8(s.paxId) ||
 								endpoint.boundHvdPhyId != uint8(initiatorPort.config.Port) ||
 								endpoint.boundHvdLogId != uint8(logicalPortId) {
-								panic(fmt.Sprintf("Already Bound: Misconfigured Port: PAX: %d, Physical Port: %d, Logical Port: %d, PDFID: %#04x", endpoint.boundPaxId, endpoint.boundHvdPhyId, endpoint.boundHvdLogId, endpoint.pdfid))
+								panic(fmt.Sprintf("Already Bound: Misconfigured Port: PAX: %d(%d), Physical Port: %d(%d), Logical Port: %d(%d), PDFID: %#04x",
+									endpoint.boundPaxId, uint8(s.paxId),
+									endpoint.boundHvdPhyId, uint8(initiatorPort.config.Port),
+									endpoint.boundHvdLogId, uint8(logicalPortId),
+									endpoint.pdfid))
 							}
 
 							break
