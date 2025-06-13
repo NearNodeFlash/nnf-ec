@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -21,6 +21,7 @@ package nvme
 
 import (
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type NvmeController interface {
@@ -65,6 +66,8 @@ type NvmeDeviceApi interface {
 	GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error)
 
 	GetWearLevelAsPercentageUsed() (uint8, error)
+
+	CheckSmartLogForStatus() (sf.ResourceState, error)
 }
 
 // SecondaryControllersInitFunc -

@@ -1125,7 +1125,7 @@ func Start() error {
 	event.EventManager.Publish(msgreg.FabricReadyNnf(m.id))
 
 	// Run the Fabric Monitor in a background thread.
-	go NewFabricMonitor(m).Run()
+	StartFabricMonitor(m)
 
 	return nil
 }

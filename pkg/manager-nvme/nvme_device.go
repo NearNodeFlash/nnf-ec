@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -27,6 +27,7 @@ import (
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type SwitchtecNvmeController struct{}
@@ -255,4 +256,14 @@ func (d *nvmeDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
 	}
 
 	return log.PercentageUsed, nil
+}
+
+func (d *nvmeDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
+
+	sl, err := d.dev.GetSmartLog()
+	if err != nil {
+		return sf.DISABLED_RST, err
+	}
+
+	return nvme.InterpretSmartLog(sl), nil
 }

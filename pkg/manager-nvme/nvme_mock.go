@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type MockNvmeController struct {
@@ -457,4 +458,8 @@ func (d *mockDevice) findNamespace(namespaceId nvme.NamespaceIdentifier) *mockNa
 	}
 
 	return nil
+}
+
+func (*mockDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
+	return sf.ENABLED_RST, nil
 }

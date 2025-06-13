@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -24,6 +24,7 @@ import (
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type DirectNvmeController struct {
@@ -144,4 +145,8 @@ func (*nvmeDirectDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifie
 
 func (d *nvmeDirectDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
 	return d.cliDevice.GetWearLevelAsPercentageUsed()
+}
+
+func (d *nvmeDirectDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
+	return d.cliDevice.CheckSmartLogForStatus()
 }

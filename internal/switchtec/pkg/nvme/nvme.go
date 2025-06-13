@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -33,6 +33,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
+	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 // Device describes the NVMe Device and its attributes
@@ -532,7 +533,7 @@ type id_ctrl struct {
 	NVMSetIdentifierMaximum                   uint16               // NSETIDMAX
 	EnduraceGroupIdentifierMaximum            uint16               // ENDGIDMAX
 	ANATranstitionTime                        uint8                // ANATT
-	AsymentricNamespaceAccessCapabilities     uint8                // ANACAP
+	AsymmetricNamespaceAccessCapabilities     uint8                // ANACAP
 	ANAGroupIdenfierMaximum                   uint32               // ANAGRPMAX
 	NumberOfANAGroupIdentifiers               uint32               // NANAGRPID
 	PersistentEventLogSize                    uint32               // PELS
@@ -1101,7 +1102,7 @@ type SmartLog struct {
 	DataUnitsWrittenLo                           uint64
 	DataUnitsWrittenHi                           uint64
 	HostReadsLo                                  uint64
-	HistReadsHi                                  uint64
+	HostReadsHi                                  uint64
 	HostWritesLo                                 uint64
 	HostWritesHi                                 uint64
 	ControllerBusyTimeLo                         uint64
@@ -1126,6 +1127,7 @@ type SmartLog struct {
 	Reserved232                                  [280]uint8
 }
 
+// GetSmartLog - retrieve the smartlog information
 func (dev *Device) GetSmartLog() (*SmartLog, error) {
 
 	log := new(SmartLog)
@@ -1146,6 +1148,28 @@ func (dev *Device) GetSmartLog() (*SmartLog, error) {
 	return log, nil
 }
 
+// InterpretSmartLog - calculate the drive's swordfish status
+func InterpretSmartLog(log *SmartLog) sf.ResourceState {
+	// Check critical warnings first - check individual bitfield members
+	if log.CriticalWarning.SpareCapacity != 0 { // Spare capacity
+		return sf.DISABLED_RST
+	}
+	if log.CriticalWarning.ReadOnly != 0 { // Read-only mode
+		return sf.DISABLED_RST
+	}
+
+	// Check other critical warnings for degraded state
+	if log.CriticalWarning.Temperature != 0 ||
+		log.CriticalWarning.Degraded != 0 ||
+		log.CriticalWarning.BackupFailed != 0 ||
+		log.CriticalWarning.PersistentMemoryRegionReadOnly != 0 {
+		return sf.STANDBY_OFFLINE_RST
+	}
+
+	return sf.ENABLED_RST // Healthy
+}
+
+// Log contstants
 const (
 	LogCdw10LogPageIdentiferMask         = 0xFF
 	LogCdw10LogPageIdentiferShift        = 0
@@ -1166,7 +1190,7 @@ const (
 )
 
 func (dev *Device) getNsidLog(logPageIdentifier uint8, retainAsynchronousEvent uint8, nsid uint32, buf []byte) error {
-	return dev.getLog(logPageIdentifier, 0, 0, nsid, 0, buf)
+	return dev.getLog(logPageIdentifier, 0, retainAsynchronousEvent, nsid, 0, buf)
 }
 
 func (dev *Device) getLog(logPageIdentifier uint8, logSpecificField uint8, retainAsynchronousEvent uint8, nsid uint32, logPageOffset uint64, buf []byte) error {
