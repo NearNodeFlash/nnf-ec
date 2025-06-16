@@ -410,6 +410,8 @@ func (s *Storage) initialize() error {
 			}
 
 			s.log.Info("identify common namespace attempt failed, retrying", "retryCount", retryCount)
+		} else if ns == nil {
+			return fmt.Errorf("Initialize Storage %s: IdentifyNamespace returned nil without error", s.id)
 		} else {
 			identifySuccess = true
 		}
@@ -418,7 +420,6 @@ func (s *Storage) initialize() error {
 	// Workaround for SSST drives that improperly report only one NumberOfLBAFormats, but actually
 	// support two - with the second being the most performant 4096 sector size.
 	if ns.NumberOfLBAFormats == 1 {
-
 		if ((1 << ns.LBAFormats[1].LBADataSize) == 4096) && (ns.LBAFormats[1].RelativePerformance == 0) {
 			log.Info("Incorrect number of LBA formats", "expected", 2, "actual", ns.NumberOfLBAFormats)
 			ns.NumberOfLBAFormats = 2
@@ -479,10 +480,16 @@ vol_loop:
 		volIdsToDelete = append(volIdsToDelete, vol.id)
 	}
 
+	var errs []error
 	for _, volId := range volIdsToDelete {
 		if err := s.deleteVolume(volId); err != nil {
-			return err
+			s.log.Error(err, "Failed to delete volume during purge", "volumeId", volId)
+			errs = append(errs, fmt.Errorf("volume %s: %w", volId, err))
 		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("purgeVolumes encountered errors: %v", errs)
 	}
 
 	return nil
@@ -552,19 +559,19 @@ func (s *Storage) deleteVolume(volumeId string) error {
 			log := volume.log
 
 			log.V(2).Info("Deleting namespace")
-			if err := s.device.DeleteNamespace(volume.namespaceId); err != nil {
-				log.Error(err, "Delete namespace failed")
-				return err
+			err := s.device.DeleteNamespace(volume.namespaceId)
+			if err != nil {
+				log.Error(err, "Delete namespace failed, removing from in-memory state anyway", "capacity", volume.capacityBytes)
+			} else {
+				log.V(1).Info("Deleted namespace", "capacity", volume.capacityBytes)
 			}
-			log.V(1).Info("Deleted namespace", "capacity", volume.capacityBytes)
 
+			// Whether or not there was an error, delete the volume in memory
 			s.unallocatedBytes += volume.capacityBytes
+			copy(s.volumes[idx:], s.volumes[idx+1:])
+			s.volumes = s.volumes[:len(s.volumes)-1]
 
-			// remove the volume from the array
-			copy(s.volumes[idx:], s.volumes[idx+1:]) // shift left 1 at idx
-			s.volumes = s.volumes[:len(s.volumes)-1] // truncate tail
-
-			return nil
+			return err
 		}
 	}
 
@@ -603,6 +610,11 @@ func (s *Storage) recoverStorageVolumes() error {
 		ns, err := s.device.IdentifyNamespace(nsid)
 		if err != nil {
 			log.Error(err, "Failed to identify namespace")
+			continue
+		}
+		if ns == nil {
+			log.Error(fmt.Errorf("IdentifyNamespace returned nil without error"), "Failed to identify namespace")
+			continue
 		}
 
 		blockSizeBytes := uint64(1 << ns.LBAFormats[ns.FormattedLBASize.Format].LBADataSize)
@@ -695,6 +707,9 @@ func (v *Volume) WaitFormatComplete() error {
 	if err != nil {
 		return err
 	}
+	if ns == nil {
+		return fmt.Errorf("IdentifyNamespace returned nil without error")
+	}
 
 	stalledCount := 0
 	for ns.Utilization != 0 {
@@ -710,6 +725,9 @@ func (v *Volume) WaitFormatComplete() error {
 		ns, err = v.storage.device.IdentifyNamespace(v.namespaceId)
 		if err != nil {
 			return err
+		}
+		if ns == nil {
+			return fmt.Errorf("IdentifyNamespace returned nil without error")
 		}
 
 		if lastUtilization == ns.Utilization {
@@ -1292,6 +1310,10 @@ func (mgr *Manager) StorageIdVolumeIdGet(storageId, volumeId string, model *sf.V
 	ns, err := s.device.IdentifyNamespace(nvme.NamespaceIdentifier(v.namespaceId))
 	if err != nil {
 		v.log.Error(err, "Identify Namespace Failed")
+		return ec.NewErrInternalServerError()
+	}
+	if ns == nil {
+		v.log.Error(fmt.Errorf("IdentifyNamespace returned nil without error"), "Identify Namespace Failed")
 		return ec.NewErrInternalServerError()
 	}
 
