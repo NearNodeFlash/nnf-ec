@@ -1239,7 +1239,7 @@ func (mgr *Manager) StorageIdControllersControllerIdGet(storageId, controllerId 
 		return ec.NewErrNotFound().WithError(err).WithCause(fmt.Sprintf("Storage Controller fabric endpoint not found: Storage: %s Controller: %s", storageId, controllerId))
 	}
 
-	percentageUsage, err := s.device.GetWearLevelAsPercentageUsed()
+	percentageUsage, err := GetWearLevelAsPercentageUsed(s.device)
 	if err != nil {
 		return ec.NewErrInternalServerError().WithError(err).WithCause(fmt.Sprintf("Storage Controller failed to retrieve SMART data: Storage: %s", storageId))
 	}
