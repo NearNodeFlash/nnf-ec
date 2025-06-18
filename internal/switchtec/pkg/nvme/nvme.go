@@ -22,6 +22,7 @@ package nvme
 import (
 	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"path"
 	"regexp"
 	"strconv"
@@ -33,6 +34,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/switchtec"
+	"github.com/NearNodeFlash/nnf-ec/pkg/ec"
 	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
@@ -1169,6 +1171,31 @@ func InterpretSmartLog(log *SmartLog) sf.ResourceState {
 	return sf.ENABLED_RST // Healthy
 }
 
+func MangleSmartLog(log *SmartLog) {
+
+	// Occaionally managle the smart log data
+	if rand.Intn(100) < 10 { // 10% chance of simulating critical condition
+		warningType := rand.Intn(6)
+		switch warningType {
+		case 0:
+			log.CriticalWarning.SpareCapacity = 1
+			log.AvailableSpare = 5 // Below threshold
+		case 1:
+			log.CriticalWarning.Temperature = 1
+			log.CompositeTemperature = 358 // ~85°C
+		case 2:
+			log.CriticalWarning.Degraded = 1
+		case 3:
+			log.CriticalWarning.ReadOnly = 1
+		case 4:
+			log.CriticalWarning.BackupFailed = 1
+		case 5:
+			log.CriticalWarning.PersistentMemoryRegionReadOnly = 1
+		}
+	}
+
+}
+
 // Log contstants
 const (
 	LogCdw10LogPageIdentiferMask         = 0xFF
@@ -1223,4 +1250,27 @@ func (dev *Device) getLog(logPageIdentifier uint8, logSpecificField uint8, retai
 
 	return dev.ops.submitAdminPassthru(dev, &cmd, buf)
 
+}
+
+// LogSmartLog outputs the SMART log data in a structured way for logging.
+func LogSmartLog(log ec.Logger, smartLog *SmartLog, context ...interface{}) {
+	if smartLog == nil {
+		log.Error(nil, "SMART log is nil", context...)
+		return
+	}
+	log.Info("SMART log data",
+		append(context,
+			"criticalWarning.spareCapacity", smartLog.CriticalWarning.SpareCapacity,
+			"criticalWarning.temperature", smartLog.CriticalWarning.Temperature,
+			"criticalWarning.degraded", smartLog.CriticalWarning.Degraded,
+			"criticalWarning.readOnly", smartLog.CriticalWarning.ReadOnly,
+			"criticalWarning.backupFailed", smartLog.CriticalWarning.BackupFailed,
+			"criticalWarning.persistentMemoryRegionReadOnly", smartLog.CriticalWarning.PersistentMemoryRegionReadOnly,
+			"availableSpare", smartLog.AvailableSpare,
+			"availableSpareThreshold", smartLog.AvailableSpareThreshold,
+			"percentageUsed", smartLog.PercentageUsed,
+			"compositeTemperature", smartLog.CompositeTemperature,
+			"mediaErrorsLo", smartLog.MediaErrorsLo,
+			"numberErrorLogEntriesLo", smartLog.NumberErrorLogEntriesLo,
+		)...)
 }

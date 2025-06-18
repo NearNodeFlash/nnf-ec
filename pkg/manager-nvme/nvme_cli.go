@@ -33,7 +33,6 @@ import (
 
 	"github.com/NearNodeFlash/nnf-ec/pkg/logging"
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
-	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 func NewCliNvmeController() NvmeController {
@@ -376,33 +375,20 @@ func (*cliDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]b
 	return nil, nil
 }
 
-func (d *cliDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
+// GetSmartLog returns the raw SMART log page data
+func (d *cliDevice) GetSmartLog() (*nvme.SmartLog, error) {
 	rsp, err := d.run(fmt.Sprintf("smart-log %s --output-format=binary", d.dev()))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	log := new(nvme.SmartLog)
-
-	err = structex.DecodeByteBuffer(bytes.NewBuffer([]byte(rsp)), log)
-
-	return log.PercentageUsed, err
-}
-
-func (d *cliDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
-	rsp, err := d.run(fmt.Sprintf("smart-log %s --output-format=binary", d.dev()))
-	if err != nil {
-		return sf.DISABLED_RST, err
-	}
-
-	log := new(nvme.SmartLog)
-
 	err = structex.DecodeByteBuffer(bytes.NewBuffer([]byte(rsp)), log)
 	if err != nil {
-		return sf.DISABLED_RST, err
+		return nil, err
 	}
 
-	return nvme.InterpretSmartLog(log), err
+	return log, nil
 }
 
 func (d *cliDevice) run(cmd string) (string, error) {

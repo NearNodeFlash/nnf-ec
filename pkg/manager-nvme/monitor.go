@@ -70,27 +70,36 @@ func NewMonitor(log ec.Logger, interval time.Duration) *Monitor {
 
 // Run starts the monitor loop. It periodically calls GetSmartLog on all devices.
 func (m *Monitor) Run() {
-	log := m.Log
 	for {
 		time.Sleep(m.Interval)
 
 		storages := GetStorage()
-		// log.V(2).Info("Drive monitor tick", "period", m.Interval, "device count", len(storages))
 		for _, storage := range storages {
 			if !storage.IsEnabled() {
-				// log.V(2).Info("storage disabled", "slot", storage.Slot())
 				continue
 			}
 
-			state, err := storage.device.CheckSmartLogForStatus()
-			if err != nil {
-				log.Error(err, "smartlog request failed", "serial", storage.SerialNumber(), "slot", storage.Slot())
-				storage.state = sf.DISABLED_RST
-			}
-			if state != storage.state {
-				log.Info("smartlog state change, (see 'nnf-nvme.sh cmd smartlog' for details)", "old state", storage.state, "new state", state, "serial", storage.SerialNumber(), "slot", storage.Slot())
-				storage.state = state
-			}
+			m.checkSmartLog(storage)
 		}
+	}
+}
+
+func (m *Monitor) checkSmartLog(storage *Storage) {
+	log := m.Log
+
+	smartLog, err := storage.device.GetSmartLog()
+	if err != nil {
+		log.Error(err, "smartlog request failed", "serial", storage.SerialNumber(), "slot", storage.Slot())
+		storage.state = sf.DISABLED_RST
+	}
+
+	// nvme.MangleSmartLog(smartLog)
+
+	state := nvme.InterpretSmartLog(smartLog)
+	if state != storage.state {
+		log.Info("smartlog state change", "old state", storage.state, "new state", state, "serial", storage.SerialNumber(), "slot", storage.Slot())
+		storage.state = state
+
+		nvme.LogSmartLog(log, smartLog)
 	}
 }

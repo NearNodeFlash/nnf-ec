@@ -27,7 +27,6 @@ import (
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
-	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type SwitchtecNvmeController struct{}
@@ -248,22 +247,7 @@ func (d *nvmeDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) (
 	return buf, nil
 }
 
-func (d *nvmeDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
-
-	log, err := d.dev.GetSmartLog()
-	if err != nil {
-		return 0, err
-	}
-
-	return log.PercentageUsed, nil
-}
-
-func (d *nvmeDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
-
-	sl, err := d.dev.GetSmartLog()
-	if err != nil {
-		return sf.DISABLED_RST, err
-	}
-
-	return nvme.InterpretSmartLog(sl), nil
+// GetSmartLog returns the raw SMART log page data
+func (d *nvmeDevice) GetSmartLog() (*nvme.SmartLog, error) {
+	return d.dev.GetSmartLog()
 }

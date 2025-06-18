@@ -21,7 +21,6 @@ package nvme
 
 import (
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
-	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type NvmeController interface {
@@ -65,9 +64,8 @@ type NvmeDeviceApi interface {
 	SetNamespaceFeature(namespaceId nvme.NamespaceIdentifier, data []byte) error
 	GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) ([]byte, error)
 
-	GetWearLevelAsPercentageUsed() (uint8, error)
-
-	CheckSmartLogForStatus() (sf.ResourceState, error)
+	// GetSmartLog returns the raw SMART log page data
+	GetSmartLog() (*nvme.SmartLog, error)
 }
 
 // SecondaryControllersInitFunc -
@@ -83,3 +81,12 @@ const (
 	VQResourceType SecondaryControllerResourceType = iota
 	VIResourceType
 )
+
+// GetWearLevelAsPercentageUsed returns the PercentageUsed field from the SMART log page.
+func GetWearLevelAsPercentageUsed(dev NvmeDeviceApi) (uint8, error) {
+	smartLog, err := dev.GetSmartLog()
+	if err != nil {
+		return 0, err
+	}
+	return smartLog.PercentageUsed, nil
+}

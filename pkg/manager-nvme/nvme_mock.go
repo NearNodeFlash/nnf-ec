@@ -28,7 +28,6 @@ import (
 	"strings"
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
-	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type MockNvmeController struct {
@@ -445,10 +444,6 @@ func (d *mockDevice) GetNamespaceFeature(namespaceId nvme.NamespaceIdentifier) (
 	return ns.metadata, nil
 }
 
-func (*mockDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
-	return 0, nil
-}
-
 func (d *mockDevice) findNamespace(namespaceId nvme.NamespaceIdentifier) *mockNamespace {
 
 	for idx, ns := range d.namespaces {
@@ -460,6 +455,32 @@ func (d *mockDevice) findNamespace(namespaceId nvme.NamespaceIdentifier) *mockNa
 	return nil
 }
 
-func (*mockDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
-	return sf.ENABLED_RST, nil
+// GetSmartLog returns mock SMART log page data
+func (d *mockDevice) GetSmartLog() (*nvme.SmartLog, error) {
+	// Create a mock SMART log with typical healthy values
+	log := &nvme.SmartLog{
+		CriticalWarning: struct {
+			SpareCapacity                  uint8 `bitfield:"1"`
+			Temperature                    uint8 `bitfield:"1"`
+			Degraded                       uint8 `bitfield:"1"`
+			ReadOnly                       uint8 `bitfield:"1"`
+			BackupFailed                   uint8 `bitfield:"1"`
+			PersistentMemoryRegionReadOnly uint8 `bitfield:"1"`
+			Reserved                       uint8 `bitfield:"2"`
+		}{
+			SpareCapacity:                  0,
+			Temperature:                    0,
+			Degraded:                       0,
+			ReadOnly:                       0,
+			BackupFailed:                   0,
+			PersistentMemoryRegionReadOnly: 0,
+			Reserved:                       0,
+		},
+		CompositeTemperature:    308, // ~35°C (273 + 35)
+		AvailableSpare:          95,  // 95% spare capacity available
+		AvailableSpareThreshold: 10,  // Warning at 10%
+		PercentageUsed:          25,  // 25% of device life used
+	}
+
+	return log, nil
 }

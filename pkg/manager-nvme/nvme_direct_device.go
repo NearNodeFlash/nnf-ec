@@ -24,7 +24,6 @@ import (
 
 	"github.com/NearNodeFlash/nnf-ec/internal/switchtec/pkg/nvme"
 	fabric "github.com/NearNodeFlash/nnf-ec/pkg/manager-fabric"
-	sf "github.com/NearNodeFlash/nnf-ec/pkg/rfsf/pkg/models"
 )
 
 type DirectNvmeController struct {
@@ -143,10 +142,7 @@ func (*nvmeDirectDevice) SetNamespaceFeature(namespaceId nvme.NamespaceIdentifie
 	panic("unimplemented")
 }
 
-func (d *nvmeDirectDevice) GetWearLevelAsPercentageUsed() (uint8, error) {
-	return d.cliDevice.GetWearLevelAsPercentageUsed()
-}
-
-func (d *nvmeDirectDevice) CheckSmartLogForStatus() (sf.ResourceState, error) {
-	return d.cliDevice.CheckSmartLogForStatus()
+// GetSmartLog returns the raw SMART log page data
+func (d *nvmeDirectDevice) GetSmartLog() (*nvme.SmartLog, error) {
+	return d.cliDevice.GetSmartLog()
 }
