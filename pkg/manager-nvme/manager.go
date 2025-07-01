@@ -172,6 +172,20 @@ type ProvidingVolume struct {
 	VolumeId string
 }
 
+// Calculate a drive's health from its current state
+func resourceHealthFromState(state sf.ResourceState) sf.ResourceHealth {
+	switch state {
+	case sf.ENABLED_RST:
+		return sf.OK_RH
+	case sf.DISABLED_RST:
+		return sf.WARNING_RH
+	case sf.UNAVAILABLE_OFFLINE_RST, sf.ABSENT_RST:
+		return sf.CRITICAL_RH
+	default:
+		return sf.CRITICAL_RH
+	}
+}
+
 // TODO: We may want to put this manager under a resource block
 //   /​redfish/​v1/​ResourceBlocks/​{ResourceBlockId} // <- Rabbit
 //   /​redfish/​v1/​ResourceBlocks/​{ResourceBlockId}/​Systems/{​ComputerSystemId} // <- Also Rabbit & Computes
@@ -510,7 +524,7 @@ func (s *Storage) getStatus() (stat sf.ResourceStatus) {
 		stat.State = sf.UNAVAILABLE_OFFLINE_RST
 		stat.Health = sf.CRITICAL_RH
 	} else {
-		stat.Health = sf.OK_RH
+		stat.Health = resourceHealthFromState(s.state)
 		stat.State = s.state
 	}
 
@@ -645,6 +659,14 @@ func (s *Storage) findVolume(volumeId string) *Volume {
 	return nil
 }
 
+func (s *Storage) notify(newState sf.ResourceState) {
+	if newState != s.state {
+		s.state = newState
+		event.EventManager.Publish(msgreg.NvmeStateChangeNnf(strconv.FormatInt(s.slot, 10), s.modelNumber, s.serialNumber))
+	}
+}
+
+// Getters for common volume operations
 func (v *Volume) Id() string                               { return v.id }
 func (v *Volume) GetOdataId() string                       { return v.storage.OdataId() + "/Volumes/" + v.id }
 func (v *Volume) GetCapacityBytes() uint64                 { return uint64(v.capacityBytes) }
