@@ -90,16 +90,17 @@ func (m *Monitor) checkSmartLog(storage *Storage) {
 	smartLog, err := storage.device.GetSmartLog()
 	if err != nil {
 		log.Error(err, "smartlog request failed", "serial", storage.SerialNumber(), "slot", storage.Slot())
-		storage.state = sf.DISABLED_RST
-	}
+		storage.notify(sf.UNAVAILABLE_OFFLINE_RST)
+	} else {
 
-	// nvme.MangleSmartLog(smartLog)
+		// nvme.MangleSmartLog(smartLog)
 
-	state := nvme.InterpretSmartLog(smartLog)
-	if state != storage.state {
-		log.Info("smartlog state change", "old state", storage.state, "new state", state, "serial", storage.SerialNumber(), "slot", storage.Slot())
-		storage.state = state
+		state := nvme.InterpretSmartLog(smartLog)
+		if state != storage.state {
+			log.Info("smartlog state change", "old state", storage.state, "new state", state, "serial", storage.SerialNumber(), "slot", storage.Slot())
+			storage.notify(state)
 
-		nvme.LogSmartLog(log, smartLog)
+			nvme.LogSmartLog(log, smartLog)
+		}
 	}
 }
