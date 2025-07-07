@@ -27,6 +27,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	. "github.com/NearNodeFlash/nnf-ec/pkg/api"
@@ -80,6 +81,10 @@ type Manager struct {
 
 	storage []Storage
 	ctrl    NvmeDeviceController
+
+	// Track connected devices to start initialization after all have been connected
+	connectedDevices sync.Map // map[int]bool - tracks which storage indices are connected
+	devicesLock      sync.RWMutex
 
 	// Command-Line Options
 	purge       bool // Purge existing namespaces on storage controllers
@@ -980,10 +985,12 @@ func (m *Manager) EventHandler(e event.Event) error {
 	return nil
 }
 
+// LinkEstablishedEventHandler handles device connection when a link is established for a storage device.
+// It connects to the device and tracks connection status. When all devices are connected, it triggers initialization.
 func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 	log := s.log.WithValues(switchIdKey, switchId, portIdKey, portId)
 
-	// Connect
+	// Connect - ensure the end point tunnel is enabled
 	device, err := s.manager.ctrl.NewNvmeDevice(fabric.FabricId, switchId, portId)
 	if err != nil {
 		log.Error(err, "Could not allocate storage controller")
@@ -991,6 +998,63 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 	}
 
 	s.device = device
+
+	log.V(1).Info("NVMe device connected")
+
+	// Get the storage index for this device
+	idx, err := fabric.FabricController.GetDownstreamPortRelativePortIndex(switchId, portId)
+	if err != nil {
+		log.Error(err, "Could not get port index")
+		return err
+	}
+
+	// Mark this device as connected
+	s.manager.connectedDevices.Store(idx, true)
+
+	// Check if all devices are now connected
+	s.manager.devicesLock.Lock()
+	defer s.manager.devicesLock.Unlock()
+
+	connectedCount := 0
+	for i := 0; i < len(s.manager.storage); i++ {
+		if _, ok := s.manager.connectedDevices.Load(i); ok {
+			connectedCount++
+		}
+	}
+
+	expectedDevices := len(s.manager.storage) - 2 /* 2 slots unpopulated in Rabbit */
+	log.V(1).Info("Device connection status", "connected", connectedCount, "expected", expectedDevices)
+
+	// If all devices are connected, emit events for initialization
+	if connectedCount == expectedDevices {
+		log.Info("All NVMe devices connected, starting initialization")
+
+		// Emit device connected events for all devices to trigger initialization
+		for i := 0; i < len(s.manager.storage); i++ {
+			storage := &s.manager.storage[i]
+			if storage.device != nil {
+				storage.DeviceConnected()
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Storage) LinkDroppedEventHandler() error {
+	s.state = sf.UNAVAILABLE_OFFLINE_RST
+	s.controllers = nil
+	s.capacityBytes = 0
+
+	return nil
+}
+
+// DeviceConnected handles initialization after a device has been connected.
+// It initializes the device, sets up controllers, and recovers existing volumes.
+func (s *Storage) DeviceConnected() error {
+	log := s.log
+
+	log.V(1).Info("Initialize")
 
 	if err := s.initialize(); err != nil {
 		log.Error(err, "Failed to initialize storage device")
@@ -1035,7 +1099,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 	} else {
 		log.V(2).Info("List Secondary Controllers")
 
-		ls, err := device.ListSecondary()
+		ls, err := s.device.ListSecondary()
 		if err != nil {
 			log.Error(err, "List Secondary failed")
 			return err
@@ -1095,7 +1159,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 
 				if sc.SecondaryControllerState&0x01 == 0 {
 					log.V(2).Info("Reset controller")
-					if err := fabric.FabricController.ResetEndpoint(switchId, portId, idx); err != nil {
+					if err := fabric.FabricController.ResetEndpoint(s.switchId, s.portId, idx); err != nil {
 						log.Error(err, "Failed to reset controller")
 					}
 				}
@@ -1136,15 +1200,7 @@ func (s *Storage) LinkEstablishedEventHandler(switchId, portId string) error {
 	log.Info("Storage Ready")
 	s.state = sf.ENABLED_RST
 
-	event.EventManager.Publish(msgreg.PortAutomaticallyEnabledFabric(switchId, portId))
-
-	return nil
-}
-
-func (s *Storage) LinkDroppedEventHandler() error {
-	s.state = sf.UNAVAILABLE_OFFLINE_RST
-	s.controllers = nil
-	s.capacityBytes = 0
+	event.EventManager.Publish(msgreg.PortAutomaticallyEnabledFabric(s.switchId, s.portId))
 
 	return nil
 }

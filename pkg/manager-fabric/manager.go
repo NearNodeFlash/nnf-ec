@@ -44,6 +44,7 @@ const (
 	portIdKey     = "portId"
 	endpointIdKey = "endpointId"
 	slotKey       = "slot"
+	nameKey       = "name"
 )
 
 type Fabric struct {
@@ -947,7 +948,7 @@ func Initialize(log ec.Logger, ctrl SwitchtecControllerInterface) error {
 				swtch:     &m.switches[switchIdx],
 				config:    &switchConf.Ports[portIdx],
 				endpoints: []*Endpoint{},
-				log:       log.WithName(id).WithValues(portIdKey, id, slotKey, slot),
+				log:       log.WithName(id).WithValues(portIdKey, id, slotKey, slot, nameKey, portConf.Name),
 			}
 
 			fabricPortId++
