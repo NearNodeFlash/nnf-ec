@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, 2021, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2020-2025 Hewlett Packard Enterprise Development LP
  * Other additional copyright holders may be indicated within.
  *
  * The entirety of this work is licensed under the Apache License,
@@ -51,7 +51,7 @@ func (cmd *BandwidthCmd) Run() error {
 		return err
 	}
 
-	// Resetting the bandwidht counter takes about 1s
+	// Resetting the bandwidth counter takes about 1s
 	time.Sleep(time.Second)
 
 	// Record the bandwidth counters
