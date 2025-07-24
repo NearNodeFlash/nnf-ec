@@ -134,6 +134,14 @@ func (p *StoragePool) recoverVolumes(volumes []storagePoolPersistentVolumeInfo) 
 	for _, volumeInfo := range volumes {
 		log := log.WithValues("serialNumber", volumeInfo.SerialNumber, "namespaceId", volumeInfo.NamespaceID)
 
+		// Consider volumes that have been invalidated (marked with invalid namespace ID) as missing.
+		// They need a replacement.
+		if volumeInfo.NamespaceID == invalidNamespaceID {
+			log.V(2).Info("skipping invalidated volume during recovery")
+			p.missingVolumes = append(p.missingVolumes, volumeInfo)
+			continue
+		}
+
 		// Locate the NVMe Storage device by Serial Number
 		storage := p.storageService.findStorage(volumeInfo.SerialNumber)
 		if storage == nil {
@@ -268,16 +276,89 @@ func (p *StoragePool) replaceMissingVolumes() error {
 			pv.Storage.SerialNumber(),
 			pv.VolumeId), p)
 
-		// TODO: Find the serialnumber/volumeid in any other storage pools and
-		// invalidate that volumeid to prevent reuse. Should probably store
-		// that new value some how too.
-		// OR
-		// Patch all the storage pools and don't allow a particular storeage pool to be patched in isolation
+		// Invalidate this volume in any other storage pools to prevent reuse
+		if err := p.invalidateVolumeInOtherPools(pv.Storage.SerialNumber(), pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId()); err != nil {
+			log.Error(err, "Failed to invalidate volume in other storage pools", "serialNumber", pv.Storage.SerialNumber(), "namespaceId", pv.Storage.FindVolume(pv.VolumeId).GetNamespaceId())
+			// This is not a fatal error, continue with the replacement
+		}
 	}
 
 	// We've replaced all the missing volumes, so clear the list
 	p.missingVolumes = nil
 
+	return nil
+}
+
+// invalidateVolumeInOtherPools finds and invalidates the specified volume in any other storage pools
+// to prevent reuse of the same volume in multiple pools. It replaces the namespace ID with a
+// nonsense value (0xFFFFFFFF) in the persistent volume information of other pools.
+func (p *StoragePool) invalidateVolumeInOtherPools(serialNumber string, namespaceID nvme2.NamespaceIdentifier) error {
+	log := p.storageService.log.WithValues(storagePoolIdKey, p.id, "targetSerialNumber", serialNumber, "targetNamespaceId", namespaceID)
+	log.V(2).Info("invalidating volume in other storage pools")
+
+	invalidatedPools := 0
+
+	// Check all other storage pools in the service
+	for i := range p.storageService.pools {
+		otherPool := &p.storageService.pools[i]
+		if otherPool.id == p.id {
+			continue // Skip self
+		}
+
+		poolModified := false
+
+		// Check persistent volumes
+		for j := range otherPool.persistentVolumes {
+			persistentVol := &otherPool.persistentVolumes[j]
+			if persistentVol.SerialNumber == serialNumber && persistentVol.NamespaceID == namespaceID {
+				log.Info("invalidating persistent volume in storage pool", "otherPoolId", otherPool.id, "originalNamespaceId", persistentVol.NamespaceID)
+
+				// Replace with a nonsense namespace ID to prevent reuse
+				persistentVol.NamespaceID = invalidNamespaceID
+				poolModified = true
+			}
+		}
+
+		// Also remove from providing volumes if it exists there
+		for k := 0; k < len(otherPool.providingVolumes); k++ {
+			pv := &otherPool.providingVolumes[k]
+			if pv.Storage.SerialNumber() == serialNumber {
+				// Check if this providing volume matches the namespace
+				if volume := pv.Storage.FindVolume(pv.VolumeId); volume != nil && volume.GetNamespaceId() == namespaceID {
+					log.Info("removing providing volume from storage pool", "otherPoolId", otherPool.id, "volumeId", pv.VolumeId)
+					// Remove this providing volume
+					copy(otherPool.providingVolumes[k:], otherPool.providingVolumes[k+1:])
+					otherPool.providingVolumes = otherPool.providingVolumes[:len(otherPool.providingVolumes)-1]
+					k-- // Adjust index after removal
+					poolModified = true
+				}
+			}
+		}
+
+		// If we modified the pool, add an invalidated entry to missing volumes to track the change
+		if poolModified {
+			// Check if we already have this in missing volumes (avoid duplicates)
+			found := false
+			for _, mv := range otherPool.missingVolumes {
+				if mv.SerialNumber == serialNumber && mv.NamespaceID == invalidNamespaceID {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				otherPool.missingVolumes = append(otherPool.missingVolumes, storagePoolPersistentVolumeInfo{
+					SerialNumber: serialNumber,
+					NamespaceID:  invalidNamespaceID, // Use invalidated namespace ID
+				})
+			}
+
+			invalidatedPools++
+			log.Info("successfully invalidated volume in storage pool", "otherPoolId", otherPool.id)
+		}
+	}
+
+	log.V(2).Info("volume invalidation complete", "invalidatedPools", invalidatedPools)
 	return nil
 }
 
@@ -355,6 +436,9 @@ func (p *StoragePool) deallocateVolumes() error {
 // Persistent Object API
 
 const storagePoolRegistryPrefix = "SP"
+
+// Invalid namespace ID used to mark volumes as unusable in other storage pools
+const invalidNamespaceID = nvme2.NamespaceIdentifier(0xFFFFFFFF)
 
 const (
 	// Allocation Log Entry is recorded after the storage pool successfully allocates the backing storage resources (i.e. NVMe Namespaces)
