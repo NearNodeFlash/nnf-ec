@@ -62,9 +62,15 @@ codestyle:
 
 clean-lint:
 	docker rmi $(DTR_IMGPATH)-lint:$(PROD_VERSION) || true
+	docker container rm lint || true
 
 clean-codestyle:
 	docker rmi $(DTR_IMGPATH)-codestyle:$(PROD_VERSION) || true
+	docker container rm codestyle || true
+
+clean-container-unit-test:
+	docker rmi $(DTR_IMGPATH)-container-unit-test:$(PROD_VERSION) || true
+	docker container rm container-unit-test || true
 
 # push:
 # 	docker push $(DTR_IMGPATH):$(PROD_VERSION)
@@ -75,8 +81,32 @@ kind-push: image
 clean: clean-db
 	docker container prune --force
 	docker image prune --force
-	docker rmi $(DTR_IMGPATH):$(PROD_VERSION)
+	docker rmi $(DTR_IMGPATH):$(PROD_VERSION) || true
 	go clean all
+
+# Clean all Docker images related to this project
+clean-images:
+	docker rmi $(DTR_IMGPATH):$(PROD_VERSION) || true
+	docker rmi $(DTR_IMGPATH)-container-unit-test:$(PROD_VERSION) || true
+	docker rmi $(DTR_IMGPATH)-lint:$(PROD_VERSION) || true
+	docker rmi $(DTR_IMGPATH)-codestyle:$(PROD_VERSION) || true
+
+# Aggressive Docker cleanup - removes all unused images, containers, networks, and build cache
+clean-docker-all:
+	docker system prune -a --volumes --force
+
+# Clean only unused Docker images (keeps tagged images)
+clean-docker-images:
+	docker image prune --force
+
+# Clean Docker build cache
+clean-docker-cache:
+	docker builder prune --force
+
+# Clean everything Docker related for this project
+clean-project-docker: clean-images
+	docker container prune --force
+	docker image prune --force
 
 clean-db:
 	find . -name "*.db" -type d -exec rm -rf {} +
