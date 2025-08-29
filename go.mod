@@ -1,8 +1,6 @@
 module github.com/NearNodeFlash/nnf-ec
 
-go 1.22.0
-
-toolchain go1.22.5
+go 1.23.9
 
 require (
 	github.com/HewlettPackard/structex v1.0.4
