@@ -113,13 +113,39 @@ case $1 in
 
         # NOTE: --nosync is not allowed for RAID6 devices.
         echo "Creating '$RAID_LEVEL' Logical Volume '${NAME}' with '${STRIPES}' stripes"
-        lvcreate --zero y --activate y --extents 100%VG -i "$STRIPES" --stripesize 32KiB --type "$RAID_LEVEL" --noudevsync --name "${NAME}" "${NAME}"
 
-        echo "Activate Volume Group '${NAME}'"
-        vgchange --activate y "${NAME}"
+        # These 3 commands all create the LV and honor the --nosync parameter. The --activate y parameter is required to allow --zero y and for --nosync to be honored
+        # LVCREATE="lvcreate --zero y --activate y --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --no-sync --name \"${NAME}\" \"${NAME}\""
+        # LVCREATE="lvcreate --zero y --activate y --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --nosync --name \"${NAME}\" \"${NAME}\""
+        # LVCREATE="lvcreate --zero n --activate y --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --nosync --name \"${NAME}\" \"${NAME}\""
+        
+        # --nosync is ignored in this case. --activate n seems to be the culprit.
+        # LVCREATE="lvcreate --zero n --activate n --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --name --nosync \"${NAME}\" \"${NAME}\""
+        
+        # PROPOSED IMPROVEMENT: Two-stage creation for deferred activation support
+        # Stage 1: Create with immediate activation and --nosync
+        LVCREATE="lvcreate --zero n --activate y --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --nosync --name \"${NAME}\" \"${NAME}\""
+        # Stage 2: Simply deactivate for later use (activation skip usually unnecessary)
+        POST_CREATE="lvchange -an \"${NAME}/${NAME}\""
+        # Optional: Add activation skip if auto-activation is a concern
+        # POST_CREATE="lvchange --setactivationskip y \"${NAME}/${NAME}\" && lvchange -an \"${NAME}/${NAME}\""
+        
+        # lvcreate command: lvcreate --zero y --activate n --extents 100%VG -i "15" --stripesize 32KiB --type "raid5" --nosync --name "rabbit" "rabbit"
+        #  Cannot zero inactive logical volume with option -Zy or -Wy.
+        # LVCREATE="lvcreate --zero y --activate n --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --nosync --name \"${NAME}\" \"${NAME}\""
+        
+        # Initialization required... left off the --nosync parameter
+        # LVCREATE="lvcreate --zero y --activate y --extents 100%VG -i \"$STRIPES\" --stripesize 32KiB --type \"$RAID_LEVEL\" --name \"${NAME}\" \"${NAME}\""
+        echo "LVCREATE command: $LVCREATE"
+        echo "POST_CREATE command: $POST_CREATE"
+        eval "$LVCREATE" && eval "$POST_CREATE"
+        lvchange --activate n rabbit
+
+        # echo "Activate Volume Group '${NAME}'"
+        # vgchange --activate y "${NAME}"
 
         echo "Status '${NAME}'"
-        lvs -a -o +devices,raid_sync_action
+        lvs -o +raid_sync_action "${NAME}"
 
         echo "DONE! Access the volume at /dev/${NAME}/${NAME}"
         ;;
@@ -142,7 +168,7 @@ case $1 in
         ;;
     status)
         echo "Status of '${NAME}'"
-        lvs -a -o +raid_sync_action "${NAME}"
+        lvs -o +raid_sync_action "${NAME}"
         ;;
     devices)
         echo "Devices in '${NAME}'"
