@@ -381,7 +381,7 @@ func locateUartDevice(id int32) (string, error) {
 			return "", err
 		}
 
-		debugPrintf("Device id %d\n")
+		debugPrintf("Device id %d\n", devID)
 		if devID == id {
 			return devPath, nil
 		}
