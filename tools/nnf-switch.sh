@@ -208,7 +208,7 @@ displayDriveSlotStatus() {
         [16]=17
         [18]=18
         [20]=14
-        # [22]=13         SLOT 13 is not supported
+        [22]=13
         [48]=12
     )
     declare -a PAX1_DriveSlotFromPhysicalPort=(
@@ -217,7 +217,7 @@ displayDriveSlotStatus() {
         [10]=5
         [12]=6
         [14]=2
-        # [16]=1          SLOT 1 is not supported
+        [16]=1
         [18]=9
         [20]=10
         [22]=11
@@ -297,7 +297,7 @@ displayStatus() {
         [16]="Drive Slot 17              "
         [18]="Drive Slot 18              "
         [20]="Drive Slot 14              "
-        # [22]="Drive Slot 13              "        SLOT 13 is not supported
+        [22]="Drive Slot 13              "
         [48]="Drive Slot 12              "
 
         # Other Links
@@ -318,7 +318,7 @@ displayStatus() {
         [10]="Drive Slot 5               "
         [12]="Drive Slot 6               "
         [14]="Drive Slot 2               "
-        # [16]="Drive Slot 1               "        SLOT 1 is not supported
+        [16]="Drive Slot 1               "
         [18]="Drive Slot 9               "
         [20]="Drive Slot 10              "
         [22]="Drive Slot 11              "
